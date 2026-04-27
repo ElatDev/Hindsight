@@ -4,23 +4,21 @@
 
 ## Current session
 
-**Phase 10 Tasks 1-4 done.** 275 tests pass.
+**Phase 10 complete.** 510 tests pass.
 
 Latest pair (this update):
 
-- Phase 10 / Task 3: `src/chess/templates/selector.ts` — `TemplateSelector` filters registered rules against a runtime `(classification, motifs, phase)` and ranks them. Filters: `classifications`, `motifs` (any-of), `excludeMotifs` (none-of), `phases`. Specificity weights set so motif-tagged rules outrank classification-only rules, which outrank phase-only rules. `candidates(ctx)` returns ids sorted by specificity desc then id asc. `MOTIF_TAGS` is the canonical motif tag list (mirrors `src/chess/motifs/*`).
-- Phase 10 / Task 4: `selector.ts#pick()` — random-samples a single id from the top-specificity tier. Default RNG is `Math.random`; tests inject deterministic alternatives. Returns `null` when no rules match. Range-checks the RNG to surface bad injections.
+- Phase 10 / Task 5: `src/chess/templates/library.ts` — 109 hand-written explanation snippets organised by classification (best/brilliant/excellent/good/inaccuracy/mistake/blunder/miss/book) and motif (hanging, fork, pin, skewer, back-rank, discovered check/attack, double-attack, removing-defender, overloaded). Each entry pairs a DSL source with `TemplateCriteria`. The render-context schema is documented at the top of the file (~30 stable variables: identity, flags, eval, mate, motif data, opening). `loadLibrary(registry, selector)` wires both stores in one call.
+- Phase 10 / Task 6: `src/chess/templates/__tests__/library.test.ts` — 235 tests. Bulk-load behaviour, every template rendered against a kitchen-sink context **and** a falsy-flag variant (so both branches of `{?flag}` paths fire), no stray DSL syntax in output, selector coverage across every classification × phase × motif sample (270 contexts produce ≥ 1 candidate), every template selected by at least one realistic context, and motif-tagged blunders only fire when their motif is present.
 
-Earlier this session: Phase 10 / Tasks 1-2 (DSL + registry), Phase 9 / Tasks 1-2 (ECO bundle + matcher).
-
-**Session stop.** Two pairs landed this run (Phase 10/1-2 and Phase 10/3-4). All Phase 10 _infrastructure_ is in place — DSL, registry, selector, picker. Tree clean, all pushed, lint + typecheck + 275-test suite green. Next session is the content drop (Task 5: 100+ templates + Task 6: smoke tests) — recommend designing the render-context schema first (what variables each template can reference: piece, square, captured, suggestedSan, opponentThreat, etc.) since revising 100 templates later is painful. Start by sketching that schema, then group templates under `${classification}.${motif?}.${phase?}` ids and feed them into `TemplateRegistry.loadFromRecord` + `TemplateSelector.add`.
+Earlier this session: Phase 10 / Tasks 1-2 (DSL + registry), Tasks 3-4 (selector + picker), Phase 9 / Tasks 1-2 (ECO bundle + matcher).
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 10 / Task 5** — Write 100+ templates organized by classification + motif. The biggest content drop in the project; will populate the registry + selector built in Tasks 1-4.
-- **Phase 10 / Task 6** — Tests: every template renders without errors over a sample of real positions. Pairs with Task 5.
+- **Phase 9 / Task 3** — Display `B90: Sicilian Defense, Najdorf Variation` style header in the review UI. Last open task in Phase 9; thin glue around `identifyOpening()`.
+- **Phase 11 / Task 1** — `src/ui/Review.tsx`: move-by-move walkthrough using the existing board. The orchestration that wires the analysis pipeline + template library + selector into a per-move panel.
 
 ## Blockers
 
@@ -42,7 +40,7 @@ _None._
 |     7 | Tactical motif detection                           |     ✅     |
 |     8 | Positional analysis                                |     ✅     |
 |     9 | Opening database (ECO)                             | 🟡 in prog |
-|    10 | Explanation template system (100+ templates)       | 🟡 in prog |
+|    10 | Explanation template system (100+ templates)       |     ✅     |
 |    11 | Review UI                                          |     ⬜     |
 |    12 | Polish + distribution                              |     ⬜     |
 |    13 | Documentation + screenshots                        |     ⬜     |
@@ -140,8 +138,8 @@ _None._
 - [x] **Task 2** — Template loader + cache.
 - [x] **Task 3** — Template selection logic: match `(classification, motifs[], game phase)` to candidate templates.
 - [x] **Task 4** — Random-pick from candidates for variety.
-- [ ] **Task 5** — Write 100+ templates organized by classification + motif.
-- [ ] **Task 6** — Tests: every template renders without errors over a sample of real positions.
+- [x] **Task 5** — Write 100+ templates organized by classification + motif.
+- [x] **Task 6** — Tests: every template renders without errors over a sample of real positions.
 
 ## Phase 11 — Review UI
 
