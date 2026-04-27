@@ -12,6 +12,7 @@ import {
 } from './ui/NewGameDialog';
 import { PgnGameSelectDialog } from './ui/PgnGameSelectDialog';
 import { PgnPasteDialog } from './ui/PgnPasteDialog';
+import { Review } from './ui/Review';
 import { useTheme } from './ui/useTheme';
 import { Game } from './chess/game';
 import { previewPgnGames, type PgnGamePreview } from './chess/pgnSplit';
@@ -45,6 +46,7 @@ function App(): JSX.Element {
   const [showEndBanner, setShowEndBanner] = useState(true);
   const [pgnError, setPgnError] = useState<string | null>(null);
   const [pgnGames, setPgnGames] = useState<PgnGamePreview[] | null>(null);
+  const [reviewing, setReviewing] = useState(false);
   const { toggle: toggleTheme } = useTheme();
 
   const history = useMemo(() => {
@@ -161,6 +163,7 @@ function App(): JSX.Element {
     setShowNewGame(false);
     setShowEndBanner(true);
     setPgnError(null);
+    setReviewing(false);
     if (settings.mode === 'vs-engine') {
       setOrientation(settings.playerColor === 'w' ? 'white' : 'black');
     }
@@ -182,6 +185,7 @@ function App(): JSX.Element {
       setShowEndBanner(true);
       setPgnError(null);
       setPgnGames(null);
+      setReviewing(false);
       return true;
     } catch (err: unknown) {
       setPgnError(err instanceof Error ? err.message : String(err));
@@ -226,11 +230,13 @@ function App(): JSX.Element {
   }, [loadPgnText]);
 
   const handleReview = useCallback((): void => {
-    // Phase 6 will wire this to the analysis pipeline. For now jumping to the
-    // start of the game and dismissing the banner gets the user into the
-    // navigation UX they'll use during review.
     setViewPly(0);
     setShowEndBanner(false);
+    setReviewing(true);
+  }, []);
+
+  const exitReview = useCallback((): void => {
+    setReviewing(false);
   }, []);
 
   const statusLine = (() => {
@@ -271,6 +277,15 @@ function App(): JSX.Element {
         >
           Paste PGN
         </button>
+        {!reviewing && totalPlies > 0 ? (
+          <button
+            type="button"
+            className="header-secondary-btn"
+            onClick={() => setReviewing(true)}
+          >
+            Review game
+          </button>
+        ) : null}
       </header>
       <p className="tagline">Free, offline, open-source chess game review.</p>
 
@@ -294,31 +309,41 @@ function App(): JSX.Element {
         />
       ) : null}
 
-      <div className="play-area">
-        <EvalBar evalCp={0} mateIn={null} orientation={orientation} />
-        <div className="board-frame">
-          <Board
-            game={displayed}
-            width={520}
-            orientation={orientation}
-            onMove={playerCanMove ? handleMove : undefined}
-          />
+      {reviewing ? (
+        <Review
+          game={state.game}
+          orientation={orientation}
+          onFlip={flip}
+          onToggleTheme={toggleTheme}
+          onExit={exitReview}
+        />
+      ) : (
+        <div className="play-area">
+          <EvalBar evalCp={0} mateIn={null} orientation={orientation} />
+          <div className="board-frame">
+            <Board
+              game={displayed}
+              width={520}
+              orientation={orientation}
+              onMove={playerCanMove ? handleMove : undefined}
+            />
+          </div>
+          <aside className="side-panel">
+            <NavControls
+              canPrev={viewPly > 0}
+              canNext={viewPly < totalPlies}
+              onFirst={() => goTo(0)}
+              onPrev={() => goTo(viewPly - 1)}
+              onNext={() => goTo(viewPly + 1)}
+              onLast={() => goTo(totalPlies)}
+              onFlip={flip}
+              onToggleTheme={toggleTheme}
+            />
+            <MoveList history={history} currentPly={viewPly} onSelect={goTo} />
+            <p className="status">{statusLine}</p>
+          </aside>
         </div>
-        <aside className="side-panel">
-          <NavControls
-            canPrev={viewPly > 0}
-            canNext={viewPly < totalPlies}
-            onFirst={() => goTo(0)}
-            onPrev={() => goTo(viewPly - 1)}
-            onNext={() => goTo(viewPly + 1)}
-            onLast={() => goTo(totalPlies)}
-            onFlip={flip}
-            onToggleTheme={toggleTheme}
-          />
-          <MoveList history={history} currentPly={viewPly} onSelect={goTo} />
-          <p className="status">{statusLine}</p>
-        </aside>
-      </div>
+      )}
 
       {showNewGame ? (
         <NewGameDialog

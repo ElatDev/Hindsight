@@ -312,6 +312,136 @@ body,
   cursor: default;
 }
 
+.move-list__san {
+  display: inline;
+}
+
+.move-list__annotation {
+  display: inline-block;
+  margin-left: 0.15rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: -0.02em;
+}
+
+.move-list__annotation--brilliant {
+  color: #00b8d4;
+}
+
+.move-list__annotation--inaccuracy {
+  color: #c89000;
+}
+
+.move-list__annotation--mistake {
+  color: #d97706;
+}
+
+.move-list__annotation--blunder {
+  color: #d04040;
+}
+
+.move-list__annotation--miss {
+  color: #b45309;
+}
+
+.move-list__annotation--book {
+  color: var(--fg-subtle);
+  font-weight: 500;
+}
+
+.move-list__move--blunder,
+.move-list__move--mistake,
+.move-list__move--miss {
+  font-weight: 500;
+}
+
+.review-header {
+  font-size: 0.9rem;
+  color: var(--fg-muted);
+  font-style: italic;
+  margin-bottom: -0.25rem;
+}
+
+.review-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  font-size: 0.92rem;
+  text-align: left;
+}
+
+.review-panel__heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+.review-panel__san {
+  font-weight: 600;
+}
+
+.review-panel__classification {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.review-panel__explanation {
+  line-height: 1.4;
+  color: var(--fg);
+}
+
+.review-panel__best {
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+.review-panel--brilliant {
+  border-left-color: #00b8d4;
+}
+
+.review-panel--best {
+  border-left-color: var(--accent);
+}
+
+.review-panel--excellent {
+  border-left-color: var(--accent);
+}
+
+.review-panel--good {
+  border-left-color: var(--border-strong);
+}
+
+.review-panel--inaccuracy {
+  border-left-color: #c89000;
+}
+
+.review-panel--mistake {
+  border-left-color: #d97706;
+}
+
+.review-panel--blunder {
+  border-left-color: #d04040;
+}
+
+.review-panel--miss {
+  border-left-color: #b45309;
+}
+
+.review-panel--book {
+  border-left-color: var(--fg-subtle);
+}
+
 .dialog-overlay {
   position: fixed;
   inset: 0;

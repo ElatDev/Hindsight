@@ -1,3 +1,4 @@
+import type { Classification } from '../chess/classify';
 import type { SanMove } from '../chess/game';
 
 export type MoveListProps = {
@@ -11,6 +12,25 @@ export type MoveListProps = {
   currentPly: number;
   /** Click handler. `ply` is the index to jump to (0..history.length). */
   onSelect: (ply: number) => void;
+  /** Optional per-move classification. When provided, each move gets the
+   *  matching annotation icon (`!`, `??`, etc.) rendered next to its SAN. */
+  annotations?: readonly Classification[];
+};
+
+/**
+ * Annotation icon shown beside a move when its classification is non-neutral.
+ * Maps to the chess-conventional NAG glyphs: `!!`/`!`/`!?`/`?!`/`?`/`??`. We
+ * skip Best/Excellent/Good — those are common enough that a glyph would just
+ * be visual noise. `book` gets `B` so the user can see the opening was still
+ * in theory; `miss` gets `?!` (per chess.com convention for "missed a tactic").
+ */
+const CLASSIFICATION_GLYPH: Partial<Record<Classification, string>> = {
+  brilliant: '!!',
+  inaccuracy: '?!',
+  mistake: '?',
+  blunder: '??',
+  miss: '?!',
+  book: 'B',
 };
 
 /**
@@ -22,6 +42,7 @@ export function MoveList({
   history,
   currentPly,
   onSelect,
+  annotations,
 }: MoveListProps): JSX.Element {
   if (history.length === 0) {
     return <div className="move-list move-list--empty">No moves yet.</div>;
@@ -44,25 +65,21 @@ export function MoveList({
         return (
           <li key={row.number} className="move-list__row">
             <span className="move-list__number">{row.number}.</span>
-            <button
-              type="button"
-              className={`move-list__move${
-                currentPly === whitePly ? ' move-list__move--current' : ''
-              }`}
-              onClick={() => onSelect(whitePly)}
-            >
-              {row.white}
-            </button>
+            <MoveButton
+              san={row.white}
+              ply={whitePly}
+              currentPly={currentPly}
+              annotation={annotations?.[whitePly - 1]}
+              onSelect={onSelect}
+            />
             {row.black ? (
-              <button
-                type="button"
-                className={`move-list__move${
-                  currentPly === blackPly ? ' move-list__move--current' : ''
-                }`}
-                onClick={() => onSelect(blackPly)}
-              >
-                {row.black}
-              </button>
+              <MoveButton
+                san={row.black}
+                ply={blackPly}
+                currentPly={currentPly}
+                annotation={annotations?.[blackPly - 1]}
+                onSelect={onSelect}
+              />
             ) : (
               <span className="move-list__move move-list__move--placeholder" />
             )}
@@ -70,5 +87,42 @@ export function MoveList({
         );
       })}
     </ol>
+  );
+}
+
+function MoveButton({
+  san,
+  ply,
+  currentPly,
+  annotation,
+  onSelect,
+}: {
+  san: SanMove;
+  ply: number;
+  currentPly: number;
+  annotation?: Classification;
+  onSelect: (ply: number) => void;
+}): JSX.Element {
+  const glyph = annotation ? CLASSIFICATION_GLYPH[annotation] : undefined;
+  const isCurrent = currentPly === ply;
+  const className = [
+    'move-list__move',
+    isCurrent ? 'move-list__move--current' : '',
+    annotation ? `move-list__move--${annotation}` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return (
+    <button type="button" className={className} onClick={() => onSelect(ply)}>
+      <span className="move-list__san">{san}</span>
+      {glyph ? (
+        <span
+          className={`move-list__annotation move-list__annotation--${annotation}`}
+          aria-label={annotation}
+        >
+          {glyph}
+        </span>
+      ) : null}
+    </button>
   );
 }
