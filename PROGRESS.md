@@ -15,6 +15,8 @@ Tests: `src/chess/__tests__/review.test.ts` covers `formatEval`, white-POV snaps
 
 Lint + typecheck clean. Production build clean (`npm run build`). Manual UI verification limited to "Vite + Electron boot, no console errors at startup" — couldn't drive the rendered window interactively from this session.
 
+**Session stop.** Phase 11 / Tasks 1-2 (and Phase 9 / Task 3) closed out cleanly: Review UI scaffold with full pipeline orchestration, inline classification annotations, and ECO opening header all on `main`. Stopping here because the next pair (Tasks 3-4) is mostly Task 4 — best-move arrow overlay on the board, a second non-trivial UI integration — and the just-landed Review screen hasn't had interactive testing yet. Sanity-check the live UI before stacking another layer.
+
 **Last updated:** 2026-04-27
 
 ## Next up
