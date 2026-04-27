@@ -3,12 +3,15 @@ import type { Square } from 'chess.js';
 import type { Classification } from '../chess/classify';
 import { Game } from '../chess/game';
 import {
+  emptyReview,
   formatEval,
   runGameReview,
   type EvalSnapshot,
   type GameReview,
+  type GameSummary,
   type ReviewedMove,
 } from '../chess/review';
+import type { CriticalMoment } from '../chess/critical';
 import type { MotifTag } from '../chess/templates/selector';
 import { Board, type ArrowSpec } from './Board';
 import { EvalBar } from './EvalBar';
@@ -105,7 +108,7 @@ export function Review({
   useEffect(() => {
     if (totalPlies === 0) {
       setStatus('ready');
-      setResult({ perMove: [], opening: null });
+      setResult(emptyReview());
       return;
     }
     let cancelled = false;
@@ -213,6 +216,18 @@ export function Review({
         ) : status === 'ready' && totalPlies > 0 ? (
           <p className="status">Use Next to step through the game.</p>
         ) : null}
+        {status === 'ready' && totalPlies > 0 && result ? (
+          <>
+            <SummaryPanel summary={result.summary} />
+            {result.summary.criticalMoments.length > 0 ? (
+              <CriticalMomentsList
+                moments={result.summary.criticalMoments}
+                currentPly={viewPly}
+                onSelect={setViewPly}
+              />
+            ) : null}
+          </>
+        ) : null}
         <button type="button" className="header-secondary-btn" onClick={onExit}>
           Exit review
         </button>
@@ -262,6 +277,131 @@ function ExplanationPanel({ move }: { move: ReviewedMove }): JSX.Element {
         </ul>
       ) : null}
     </div>
+  );
+}
+
+/** Classifications shown in the summary count strip, ordered roughly from
+ *  best to worst. Zero-count buckets are hidden so a clean game doesn't look
+ *  cluttered with rows full of zeros. */
+const SUMMARY_CLASSIFICATIONS: readonly Classification[] = [
+  'brilliant',
+  'best',
+  'excellent',
+  'good',
+  'book',
+  'inaccuracy',
+  'mistake',
+  'miss',
+  'blunder',
+];
+
+function SummaryPanel({ summary }: { summary: GameSummary }): JSX.Element {
+  return (
+    <section className="review-summary" aria-label="Game summary">
+      <header className="review-summary__heading">Summary</header>
+      <div className="review-summary__accuracy">
+        <AccuracyRow side="White" overall={summary.accuracy.white.overall} />
+        <AccuracyRow side="Black" overall={summary.accuracy.black.overall} />
+      </div>
+      <table className="review-summary__counts">
+        <thead>
+          <tr>
+            <th aria-label="Classification" />
+            <th>W</th>
+            <th>B</th>
+          </tr>
+        </thead>
+        <tbody>
+          {SUMMARY_CLASSIFICATIONS.map((c) => {
+            const w = summary.counts.white[c];
+            const b = summary.counts.black[c];
+            if (w === 0 && b === 0) return null;
+            return (
+              <tr key={c}>
+                <th scope="row">
+                  <span
+                    className={`review-panel__badge review-panel__badge--${c} review-summary__badge`}
+                    aria-label={CLASSIFICATION_LABEL[c]}
+                  >
+                    {CLASSIFICATION_GLYPH[c]}
+                  </span>
+                  <span className="review-summary__count-label">
+                    {CLASSIFICATION_LABEL[c]}
+                  </span>
+                </th>
+                <td>{w}</td>
+                <td>{b}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function AccuracyRow({
+  side,
+  overall,
+}: {
+  side: 'White' | 'Black';
+  overall: number;
+}): JSX.Element {
+  return (
+    <div className="review-summary__acc-row">
+      <span className="review-summary__acc-side">{side}</span>
+      <span className="review-summary__acc-value">{overall.toFixed(1)}</span>
+    </div>
+  );
+}
+
+function CriticalMomentsList({
+  moments,
+  currentPly,
+  onSelect,
+}: {
+  moments: readonly CriticalMoment[];
+  currentPly: number;
+  onSelect: (ply: number) => void;
+}): JSX.Element {
+  return (
+    <section className="review-criticals" aria-label="Critical moments">
+      <header className="review-summary__heading">Critical moments</header>
+      <ol className="review-criticals__list">
+        {moments.map((m) => {
+          const moveNumber = Math.floor((m.ply + 1) / 2);
+          const dots = m.ply % 2 === 1 ? '.' : '...';
+          const swing = `${m.wpDelta >= 0 ? '+' : '−'}${Math.round(Math.abs(m.wpDelta))}%`;
+          const moverHurt = m.wpDelta < 0;
+          const isCurrent = currentPly === m.ply;
+          const className = [
+            'review-criticals__item',
+            isCurrent ? 'review-criticals__item--current' : '',
+            moverHurt
+              ? 'review-criticals__item--down'
+              : 'review-criticals__item--up',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          return (
+            <li key={m.ply}>
+              <button
+                type="button"
+                className={className}
+                onClick={() => onSelect(m.ply)}
+              >
+                <span className="review-criticals__ply">
+                  {moveNumber}
+                  {dots}
+                </span>
+                <span className="review-criticals__san">{m.san}</span>
+                <span className="review-criticals__swing">{swing}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 

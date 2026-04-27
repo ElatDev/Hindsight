@@ -12,12 +12,14 @@
  */
 
 import type { Color, Move, PieceSymbol, Square } from 'chess.js';
+import { gameAccuracy, type GameAccuracy } from './accuracy';
 import { analyzeGame, type AnalyzeFn, type MoveAnalysis } from './analysis';
 import {
   classifyAnalyses,
   type Classification,
   type ClassifiedMove,
 } from './classify';
+import { criticalMoments, type CriticalMoment } from './critical';
 import { Game } from './game';
 import { findHangingPieces } from './motifs/hanging';
 import { findForks } from './motifs/fork';
@@ -65,9 +67,24 @@ export type ReviewedMove = {
   readonly explanation: string;
 };
 
+/** Counts of each classification grouped by side. Every classification key
+ *  is always present (zero when none) so the UI never needs optional-chaining
+ *  while rendering rows. */
+export type ClassificationCounts = Record<Classification, number>;
+
+export type GameSummary = {
+  readonly accuracy: GameAccuracy;
+  readonly counts: {
+    readonly white: ClassificationCounts;
+    readonly black: ClassificationCounts;
+  };
+  readonly criticalMoments: readonly CriticalMoment[];
+};
+
 export type GameReview = {
   readonly perMove: readonly ReviewedMove[];
   readonly opening: EcoEntry | null;
+  readonly summary: GameSummary;
 };
 
 export type RunGameReviewOptions = {
@@ -368,7 +385,7 @@ export async function runGameReview(
   const total = verbose.length;
 
   if (total === 0) {
-    return { perMove: [], opening: null };
+    return emptyReview();
   }
 
   const analyses: MoveAnalysis[] = await analyzeGame(game, {
@@ -436,5 +453,58 @@ export async function runGameReview(
     });
   }
 
-  return { perMove, opening };
+  const summary: GameSummary = {
+    accuracy: gameAccuracy(classifications),
+    counts: countClassifications(classifications),
+    criticalMoments: criticalMoments(classifications, { topN: 5 }),
+  };
+
+  return { perMove, opening, summary };
+}
+
+const ZERO_COUNTS = (): ClassificationCounts => ({
+  brilliant: 0,
+  best: 0,
+  excellent: 0,
+  good: 0,
+  inaccuracy: 0,
+  mistake: 0,
+  blunder: 0,
+  miss: 0,
+  book: 0,
+});
+
+/**
+ * Tally classifications per side. Side is taken from the FEN's STM at the
+ * pre-move position so review of games started from a non-standard position
+ * still attributes correctly.
+ */
+export function countClassifications(records: readonly ClassifiedMove[]): {
+  readonly white: ClassificationCounts;
+  readonly black: ClassificationCounts;
+} {
+  const white = ZERO_COUNTS();
+  const black = ZERO_COUNTS();
+  for (const rec of records) {
+    const stm = rec.fenBefore.split(' ')[1] === 'b' ? 'b' : 'w';
+    const bucket = stm === 'w' ? white : black;
+    bucket[rec.classification] += 1;
+  }
+  return { white, black };
+}
+
+/** Zero-state review used by the UI when there are no moves to analyze. */
+export function emptyReview(): GameReview {
+  return { perMove: [], opening: null, summary: emptySummary() };
+}
+
+function emptySummary(): GameSummary {
+  return {
+    accuracy: {
+      white: { perMove: [], overall: 0 },
+      black: { perMove: [], overall: 0 },
+    },
+    counts: { white: ZERO_COUNTS(), black: ZERO_COUNTS() },
+    criticalMoments: [],
+  };
 }

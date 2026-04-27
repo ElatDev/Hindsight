@@ -484,6 +484,161 @@ body,
   background: var(--bg);
 }
 
+.review-summary,
+.review-criticals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.88rem;
+  text-align: left;
+}
+
+.review-summary__heading {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+
+.review-summary__accuracy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.55rem;
+}
+
+.review-summary__acc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+.review-summary__acc-side {
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+}
+
+.review-summary__acc-value {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.review-summary__counts {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+.review-summary__counts th,
+.review-summary__counts td {
+  padding: 0.18rem 0.3rem;
+  text-align: right;
+  font-weight: 400;
+  color: var(--fg);
+}
+
+.review-summary__counts thead th {
+  font-size: 0.72rem;
+  color: var(--fg-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.review-summary__counts thead th:first-child {
+  width: 100%;
+}
+
+.review-summary__counts tbody th {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+}
+
+.review-summary__badge {
+  width: 1.1rem;
+  height: 1.1rem;
+  font-size: 0.65rem;
+}
+
+.review-summary__count-label {
+  color: var(--fg);
+}
+
+.review-criticals__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0;
+  margin: 0;
+}
+
+.review-criticals__item {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.85rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  color: var(--fg);
+  padding: 0.3rem 0.55rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.review-criticals__item:hover {
+  background: var(--bg-hover);
+}
+
+.review-criticals__item--current {
+  background: var(--accent-soft);
+}
+
+.review-criticals__item--down {
+  border-left-color: #d04040;
+}
+
+.review-criticals__item--up {
+  border-left-color: var(--accent);
+}
+
+.review-criticals__ply {
+  color: var(--fg-subtle);
+}
+
+.review-criticals__san {
+  font-weight: 600;
+}
+
+.review-criticals__swing {
+  color: var(--fg-muted);
+  font-size: 0.8rem;
+}
+
+.review-criticals__item--down .review-criticals__swing {
+  color: #d04040;
+}
+
+.review-criticals__item--up .review-criticals__swing {
+  color: var(--accent);
+}
+
 .review-panel--brilliant {
   border-left-color: #00b8d4;
 }

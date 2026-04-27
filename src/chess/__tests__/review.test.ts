@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AnalysisResult, AnalyzeRequest } from '../../../shared/ipc';
 import { Game } from '../game';
 import {
+  countClassifications,
   detectMoveMotifs,
+  emptyReview,
   formatEval,
   runGameReview,
   snapshotsFromAnalysis,
@@ -153,12 +155,66 @@ describe('detectMoveMotifs', () => {
   });
 });
 
+describe('emptyReview', () => {
+  it('returns a zeroed-out review with empty arrays', () => {
+    const r = emptyReview();
+    expect(r.perMove).toEqual([]);
+    expect(r.opening).toBeNull();
+    expect(r.summary.criticalMoments).toEqual([]);
+    expect(r.summary.accuracy.white.overall).toBe(0);
+    expect(r.summary.accuracy.black.overall).toBe(0);
+    expect(r.summary.counts.white.blunder).toBe(0);
+    expect(r.summary.counts.black.blunder).toBe(0);
+  });
+});
+
+describe('countClassifications', () => {
+  it('attributes counts to the side that was on move', () => {
+    const counts = countClassifications([
+      {
+        ply: 1,
+        san: 'e4',
+        uciPlayed: 'e2e4',
+        fenBefore: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        evalCp: 24,
+        mateIn: null,
+        bestMove: 'e2e4',
+        evalCpAfter: 14,
+        mateInAfter: null,
+        cpLoss: 0,
+        classification: 'best',
+      },
+      {
+        ply: 2,
+        san: 'a5',
+        uciPlayed: 'a7a5',
+        fenBefore: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+        evalCp: -300,
+        mateIn: null,
+        bestMove: 'e7e5',
+        evalCpAfter: -480,
+        mateInAfter: null,
+        cpLoss: 180,
+        classification: 'mistake',
+      },
+    ]);
+    expect(counts.white.best).toBe(1);
+    expect(counts.white.mistake).toBe(0);
+    expect(counts.black.mistake).toBe(1);
+    expect(counts.black.best).toBe(0);
+    // All buckets should be present even when zero.
+    expect(counts.white.blunder).toBe(0);
+    expect(counts.black.brilliant).toBe(0);
+  });
+});
+
 describe('runGameReview', () => {
   it('returns an empty review for a game with no moves', async () => {
     const analyze = vi.fn(async (_req: AnalyzeRequest) => stub('e2e4', 0));
     const review = await runGameReview(new Game(), { analyze });
     expect(review.perMove).toEqual([]);
     expect(review.opening).toBeNull();
+    expect(review.summary.criticalMoments).toEqual([]);
     expect(analyze).not.toHaveBeenCalled();
   });
 
@@ -221,6 +277,26 @@ describe('runGameReview', () => {
     });
     expect(calls.length).toBe(2);
     expect(calls[calls.length - 1]).toEqual({ done: 2, total: 2 });
+  });
+
+  it('attaches an end-of-game summary with accuracy + counts + critical moments', async () => {
+    const game = new Game();
+    game.move('e4');
+    game.move('e5');
+    game.move('Nf3');
+    const analyze = vi.fn(async (_req: AnalyzeRequest) => stub('e2e4', 20));
+    const review = await runGameReview(game, { analyze });
+    // Top-level fields exist and are sensibly typed.
+    expect(review.summary.accuracy.white.perMove.length).toBe(2); // plies 1, 3
+    expect(review.summary.accuracy.black.perMove.length).toBe(1); // ply 2
+    expect(review.summary.accuracy.white.overall).toBeGreaterThan(0);
+    expect(review.summary.accuracy.black.overall).toBeGreaterThan(0);
+    // Counts strip — e4/e5/Nf3 with stable evals classify as best.
+    const total =
+      review.summary.counts.white.best + review.summary.counts.black.best;
+    expect(total).toBeGreaterThan(0);
+    // Critical moments are capped at 5 and ordered by absolute swing.
+    expect(review.summary.criticalMoments.length).toBeLessThanOrEqual(5);
   });
 
   it('threads the rng through to template selection', async () => {
