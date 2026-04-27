@@ -4,23 +4,23 @@
 
 ## Current session
 
-**Phase 11 wraps; Phase 12 / Task 1 lands.** 534 tests pass; lint + typecheck + build clean.
+**Phase 12 / Tasks 3 + 7 land.** 547 tests pass (+13 PGN-export tests); lint + typecheck + build clean.
 
 Latest pair (this update):
 
-- **Phase 11 / Task 9** — On-piece grade badges during review. `Board.tsx` wires a module-level `customSquare` renderer through React context so the destination square of the most recent move overlays a classification-coloured glyph (green check on best, blue `!!` on sharp, orange `?!` on inaccuracy, red `??` on blunder, etc.). `ReviewedMove` gains `toSquare` so the badge can pin to the played destination without re-parsing SAN; `book` moves are skipped to keep the opening visually quiet. CSS uses % units so the badge scales with the board.
-- **Phase 12 / Task 1** — Settings panel foundation. New `useSettings` hook persists analysis depth + live-eval + board/piece themes to localStorage with sanitization + clamping (the seam where Task 2's SQLite layer will plug in). New `SettingsDialog` exposes all of those plus a Light/Dark theme toggle wired to the existing `useTheme`; pending-feature controls (live-eval, board/piece themes) are flagged in copy so the user knows which fields are wired today vs queued for later Phase 12 tasks. Engine path override deferred — it requires main-process IPC + restart logic and was scoped out for this commit. Analysis-depth flows from settings → `Review` (replacing the hardcoded 12).
+- **Phase 12 / Task 3** — Annotated PGN export. New `src/chess/pgnExport.ts` is a pure exporter: NAG glyphs per classification (`$3` !! / `$6` ?! / `$2` ? / `$4` ??), `[%eval ...]` comments per ply (Lichess-compatible — signed pawn fractions or `#N`), and the rendered explanation as a free-text comment with brace sanitisation so a templated `{...}` inside the text can't fragment the surrounding PGN comment. Soft-wraps at 80 cols, never breaking inside a comment. New `pgn:saveFile` IPC channel backs a native save dialog from the Review screen; default file name is slugged from the W/B headers.
+- **Phase 12 / Task 7** — Live eval bar during play. New `useLiveEval` hook subscribes to `engine.analyze` on every FEN change with a request-id stale guard; flips engine output to white-POV before handing it to `EvalBar`. Gated by `settings.liveEval` and paused while the engine is busy with `bestMove` or the user is reviewing past plies. `electron/main.ts` now serialises every engine IPC task through a Promise chain so live-eval and the play loop can't interleave their stdout listeners on the shared Stockfish process.
 
-Manual UI verification: Vite + Electron boot clean, no console errors at startup. Interactive verification (badge contrast on light vs dark squares, settings-dialog form interactions) still pending — needs an interactive dev session.
+Manual UI verification: Vite + Electron boot clean, no console errors at startup. Interactive verification (toggling live eval in Settings, saving a PGN through the native dialog) still pending — needs an interactive dev session with Stockfish bound.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-Phase 11 is complete; Phase 12 starts in earnest. Next pair:
+- **Phase 12 / Task 5** — Error handling pass: friendly messages for missing Stockfish (currently throws on first analyze), malformed PGN (already partly handled in PgnPasteDialog — extend to file-open path), engine-process crashes during the review pipeline. Naturally pairs with the engine-path override deferred from Task 1, so this pair could close that loop too.
+- **Phase 12 / Task 9** — Knight-style L-shaped arrows. Custom SVG overlay above the board; replaces the straight react-chessboard arrows for both engine-suggested moves and right-click user arrows. Lichess-style geometry (orthogonal segments meeting at a right angle for knight jumps).
 
-- **Phase 12 / Task 2** — SQLite persistence layer + saved-games list. Replace `useSettings`'s localStorage backend with a SQLite-backed store (better-sqlite3 in main, IPC channel for renderer reads/writes). Add a "saved games" list view. This task owns the schema design — settings rows, games rows, and the migration story going forward.
-- **Phase 12 / Task 3** — Export annotated PGN. Re-emit the loaded game with NAG glyphs from `classification`, evals as `[%eval ...]` comments, and the rendered explanation as `{...}` comments per ply. Wire to a "Save as PGN" button on the review screen + native save dialog.
+Tasks 2 (SQLite + saved-games) and 4 (electron-builder) remain queued — both are larger and want their own dedicated pairs.
 
 ## Blockers
 
@@ -159,11 +159,11 @@ _None._
 
 - [x] **Task 1** — Settings panel (analysis depth, theme, engine path override, live-eval toggle, board/piece themes). Engine path override deferred — needs main-process IPC + restart logic; will be folded back in alongside Task 5's error-handling pass.
 - [ ] **Task 2** — SQLite persistence layer + saved-games list.
-- [ ] **Task 3** — Export annotated PGN.
+- [x] **Task 3** — Export annotated PGN.
 - [ ] **Task 4** — `electron-builder` config for Windows / macOS / Linux installers.
 - [ ] **Task 5** — Error handling pass: friendly messages for missing Stockfish, malformed PGN, etc.
 - [ ] **Task 6** — Performance pass: profile the analysis loop, parallelize where it helps.
-- [ ] **Task 7** — Live eval bar during play. Subscribes to engine.analyze on every position change, gated behind the settings toggle from Task 1 so non-coaching purists can keep play "blind".
+- [x] **Task 7** — Live eval bar during play. Subscribes to engine.analyze on every position change, gated behind the settings toggle from Task 1 so non-coaching purists can keep play "blind".
 - [ ] **Task 8** — Board / piece theme picker. Bundle 3-4 board palettes (classic brown, blue, green, gray) and 2-3 piece sets (Cburnett, Merida, Alpha) selectable from the settings panel.
 - [ ] **Task 9** — Knight-style L-shaped arrows (custom SVG overlay; Lichess-style) for the suggested-move and right-click arrows. Replaces the straight-line arrows shipped in Phase 11 / Task 4.
 
