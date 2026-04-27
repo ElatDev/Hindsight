@@ -4,21 +4,21 @@
 
 ## Current session
 
-**Phase 8 Tasks 1-3 done.** 179 tests pass.
+**Phase 8 complete.** 196 tests pass.
 
 Latest pair (this update):
 
-- Phase 8 / Task 2: `positional/kingSafety.ts` — `analyzeKingSafety(game, color)` returns `{ king, openNearbyFiles, missingShieldSquares, attackerCount, exposure }`. `openNearbyFiles` = king's file ± 1 with no friendly pawns; `missingShieldSquares` = the up-to-three squares directly ahead of the king with no friendly pawn; `attackerCount` = unique enemy pieces touching the king ring; `exposure` = sum of those three. 8 tests.
-- Phase 8 / Task 3: `positional/pieceActivity.ts` — `analyzePieceActivity(game)` returns `{ knightOutposts, rooksOnOpenFiles, rooksOnSemiOpenFiles, activeBishops }`. Outposts: enemy half + no enemy pawn can ever challenge. Active bishop: ≥ 6 squares of diagonal mobility. 9 tests.
+- Phase 8 / Task 4: `positional/material.ts` — `analyzeMaterial(game)` returns per-side piece counts, totals, diff, a bishop-pair flag, and per-piece countDelta. Excludes kings; uses the standard PIECE_VALUE table. 8 tests.
+- Phase 8 / Task 5: `positional/gamePhase.ts` — `detectGamePhase(game)` returns `'opening' | 'middlegame' | 'endgame'` from a Stockfish-style phase score (sum of N=1, B=1, R=2, Q=4 over remaining non-pawn material) plus a ply-count guard. `phaseScore(game)` exported for raw 0..MAX_PHASE_SCORE access. 9 tests.
 
-Earlier in the session: Phase 5 closed (multi-game PGN selector), Phase 6 closed (analyzeGame, classify, alternatives, accuracy, critical moments), Phase 7 closed (8 motif detectors), Phase 8 / Task 1 (`pawnStructure.ts`).
+Earlier this session: Phases 1-7 closed, then Phase 8 in five tasks — pawn structure, king safety (open files, missing shield, attacker count on king ring, exposure), piece activity (knight outposts, open/semi-open file rooks, long-diagonal bishops), material imbalance, game-phase detection.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 8 / Task 4** — Material imbalance summary. Static piece-value comparison, breakdown by piece type, "two bishops vs bishop+knight" style flags.
-- **Phase 8 / Task 5** — Game-phase detection (opening / middlegame / endgame) — heuristic on remaining material + move count + development.
+- **Phase 9 / Task 1** — Bundle Lichess ECO data (TSV → `src/data/eco.json`). Source: `https://github.com/lichess-org/chess-openings`. Will need a small build script.
+- **Phase 9 / Task 2** — `identifyOpening(moves)` walks a move list against the ECO trie.
 
 ## Blockers
 
@@ -28,22 +28,22 @@ _None._
 
 ## Phase status
 
-| Phase | Scope                                              |   Status   |
-| ----: | -------------------------------------------------- | :--------: |
-|     0 | Repo + scaffold                                    |     ✅     |
-|     1 | Stockfish UCI integration                          |     ✅     |
-|     2 | Chess logic layer (`chess.js`, PGN, FEN)           |     ✅     |
-|     3 | Board GUI                                          |     ✅     |
-|     4 | Play vs Stockfish                                  |     ✅     |
-|     5 | Game import (PGN file/paste/manual)                |     ✅     |
-|     6 | Analysis pipeline (per-move eval + classification) |     ✅     |
-|     7 | Tactical motif detection                           |     ✅     |
-|     8 | Positional analysis                                | 🟡 in prog |
-|     9 | Opening database (ECO)                             |     ⬜     |
-|    10 | Explanation template system (100+ templates)       |     ⬜     |
-|    11 | Review UI                                          |     ⬜     |
-|    12 | Polish + distribution                              |     ⬜     |
-|    13 | Documentation + screenshots                        |     ⬜     |
+| Phase | Scope                                              | Status |
+| ----: | -------------------------------------------------- | :----: |
+|     0 | Repo + scaffold                                    |   ✅   |
+|     1 | Stockfish UCI integration                          |   ✅   |
+|     2 | Chess logic layer (`chess.js`, PGN, FEN)           |   ✅   |
+|     3 | Board GUI                                          |   ✅   |
+|     4 | Play vs Stockfish                                  |   ✅   |
+|     5 | Game import (PGN file/paste/manual)                |   ✅   |
+|     6 | Analysis pipeline (per-move eval + classification) |   ✅   |
+|     7 | Tactical motif detection                           |   ✅   |
+|     8 | Positional analysis                                |   ✅   |
+|     9 | Opening database (ECO)                             |   ⬜   |
+|    10 | Explanation template system (100+ templates)       |   ⬜   |
+|    11 | Review UI                                          |   ⬜   |
+|    12 | Polish + distribution                              |   ⬜   |
+|    13 | Documentation + screenshots                        |   ⬜   |
 
 ---
 
@@ -123,8 +123,8 @@ _None._
 - [x] **Task 1** — Pawn structure (doubled, isolated, backward, passed).
 - [x] **Task 2** — King safety (open files near king, missing pawn shield, exposure score).
 - [x] **Task 3** — Piece activity (knight outposts, bishop diagonals, rook on open/semi-open files).
-- [ ] **Task 4** — Material imbalance summary.
-- [ ] **Task 5** — Game-phase detection (opening / middlegame / endgame).
+- [x] **Task 4** — Material imbalance summary.
+- [x] **Task 5** — Game-phase detection (opening / middlegame / endgame).
 
 ## Phase 9 — Opening database
 
