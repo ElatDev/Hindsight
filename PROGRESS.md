@@ -4,39 +4,23 @@
 
 ## Current session
 
-**Phases 1-4 complete; Phase 5 Tasks 1-3 done.** 34 tests pass.
+**Phases 1-4 complete; Phase 5 done; Phase 6 Task 1 done.** 50 tests pass.
 
-- Phase 1: Stockfish fetcher + UCI handshake + analyzePosition + Vitest engine tests (8) + IPC surface.
-- Phase 2: `chess.js@^1.4.0` wrapper with full typed surface, `GameEnd` const + union, 26 tests.
-- Phase 3:
-  - Task 1: `react-chessboard@^4.7.3` board (pinned to 4.x — 5.x needs React 19).
-  - Task 2: drag-drop with `Game.move({from, to, promotion})` + version-counter re-renders.
-  - Task 3: click-to-select with legal-target dots / red capture rings.
-  - Task 4: MoveList button-pair grid; click any ply to jump.
-  - Task 5: NavControls (First/Prev/Next/Last/Flip) + Left/Right/Home/End shortcuts; reviewing past disables drag-drop.
-  - Task 6: EvalBar with sigmoid(evalCp / 410) → white-share, mate clamps to 99/1. Currently fed evalCp=0 placeholder; Phase 6 will wire `analyzePosition` output.
-  - Task 7: useTheme hook (localStorage + prefers-color-scheme fallback) writes `<html data-theme>`; index.css fully driven by CSS variables.
-- Phase 4 / Task 1: `src/ui/NewGameDialog.tsx` modal — mode (vs-engine / free play), color (white / black / random), Elo slider 1320..3190. Random color resolves on confirm. `App.tsx` now carries `{ game, mode, playerColor, elo }` and re-orients the board to the player's color on vs-engine start.
-- Phase 4 / Task 2: When `mode='vs-engine'` and it's the engine's turn, an effect calls `window.hindsight.engine.bestMove({ fen, depth: 12, elo })`; the main process applies `UCI_LimitStrength=true` + `UCI_Elo=<elo>` before the search and returns the bestMove UCI string. The renderer parses `e2e4` / `e7e8q` and applies via `Game.move({from, to, promotion})`. `requestId` ref discards stale results.
-- Phase 4 / Task 3: `src/ui/GameEndBanner.tsx` shows on game end with result headline + reason (checkmate / stalemate / threefold / fifty-move / insufficient material / draw). Actions: Review (placeholder — jumps to ply 0 today, will seed Phase 6 analysis later), New game, Dismiss. Winner derived from the side NOT to move on a mate FEN.
-- Phase 5 / Task 1: `pgn:openFile` IPC channel — main process spawns `dialog.showOpenDialog` with a PGN filter, reads the file via `fs/promises.readFile`, returns `{ path, pgn } | null`. "Open PGN" header button calls it and loads the file into a fresh Game in free-play mode at the final ply.
-- Phase 5 / Task 2: `src/ui/PgnPasteDialog.tsx` modal — textarea + live preview (move count + W/B/Result headers, or parser error inline). Load button disabled until parsing succeeds. "Paste PGN" header button opens it.
-- Phase 5 / Task 3: Manual move-entry mode confirmed — already provided by the existing 'free' mode. Relabeled in `NewGameDialog` to "Free play / manual entry (no engine)" for discoverability.
-
-**Session stop.** 11 pairs (22 tasks) landed in one go: full Phase 1 (engine + IPC), Phase 2 (chess.js wrapper + tests), Phase 3 (board GUI), Phase 4 (play vs Stockfish), Phase 5 Tasks 1-3 (PGN file/paste/manual). Stopping cleanly before Phase 6 / Task 1 because that module (analysis pipeline orchestrator over `Game.history()`) is the load-bearing foundation for the entire review feature and deserves a fresh-context start.
+- Phase 5 / Task 4: `src/chess/pgnSplit.ts` — `splitPgn(text)` walks line-by-line and breaks on a tag-line that follows movetext (handles CRLF, no-blank-line concatenations, movetext-only single-game PGN, brace-comment edge cases). `previewPgnGames(text)` pairs splits with parsed headers + ply count. `src/ui/PgnGameSelectDialog.tsx` shows a list when 2+ games are detected (Event / White / Black / Result / ply); parse failures stay listed but disabled. `App.loadPgnText` splits first and either calls `loadSinglePgn` (1 game) or opens the selector (2+). Both Open PGN and Paste PGN flow through it. `PgnPasteDialog` preview now hints "N games found" when applicable. 9 new tests in `pgnSplit.test.ts`.
+- Phase 6 / Task 1: `src/chess/analysis.ts` — `analyzeGame(game, { depth, analyze?, onProgress?, signal? })` walks `historyVerbose()`, replays into a fresh `Game`, and asks the engine to evaluate every position the mover faced. Returns one `MoveAnalysis` per ply with `{ ply, san, uciPlayed, fenBefore, evalCp, mateIn, bestMove }`. The engine call is injectable (defaults to `window.hindsight.engine.analyze`) so tests can drive the orchestrator without spinning up Stockfish. Sequential by design — single-process Stockfish can't safely interleave searches. 7 new tests in `analysis.test.ts`.
 
 Notes:
 
-- PowerShell scripts must be ASCII-safe.
-- IPC round-trip still wants a manual DevTools smoke. Now BOTH `engine.bestMove` and `pgn.openFile` are wired but unverified; "New game → Black → Start" exercises the engine path, "Open PGN" exercises the file path.
-- Renderer bundle ~280kB. Main bundle 10.44kB.
+- 12 pairs / 24 tasks landed since fresh start. Phase 5 closed; Phase 6 Task 1 in.
+- `analyzeGame` is the foundation — Phase 6 Task 2 (centipawn-loss → classification) plugs in directly above it.
+- IPC round-trip still wants a manual DevTools smoke for the multi-game flow and an end-to-end `analyzeGame` call. Suite + lint + typecheck all green.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 5 / Task 4** — Multi-game PGN: list selector for which game to load. Today the file/paste paths feed the entire PGN text to `Game.fromPgn`, which only retains the first game. Need a multi-game splitter (`split-pgn`-style) and a small list UI (Event/White/Black/Result columns) inside the open + paste flows.
-- **Phase 6 / Task 1** — `src/chess/analysis.ts`: orchestrate per-move eval over a `Game.history()`. Wire to `window.hindsight.engine.analyze` (depth 16 first pass), record `{ ply, fen, evalCp/mateIn, bestMove }` per move. This finally exercises the full engine→IPC→renderer pipeline in earnest.
+- **Phase 6 / Task 2** — Centipawn-loss thresholds → classification (Brilliant, Best, Excellent, Good, Inaccuracy, Mistake, Blunder, Miss, Book). Build on top of `analyzeGame`'s `MoveAnalysis[]` — for each ply compute `cpLoss = evalAfterPlayed - evalBest` (both side-to-move POV), then bucket. Output adds a `classification` field per ply.
+- **Phase 6 / Task 3** — Mate-in-X handling: when either `bestMove` or the played move yields mate, the centipawn delta is meaningless; classify by mate-distance change instead (e.g. "missed mate-in-3" → Miss).
 
 ## Blockers
 
@@ -53,8 +37,8 @@ _None._
 |     2 | Chess logic layer (`chess.js`, PGN, FEN)           |     ✅     |
 |     3 | Board GUI                                          |     ✅     |
 |     4 | Play vs Stockfish                                  |     ✅     |
-|     5 | Game import (PGN file/paste/manual)                | 🟡 in prog |
-|     6 | Analysis pipeline (per-move eval + classification) |     ⬜     |
+|     5 | Game import (PGN file/paste/manual)                |     ✅     |
+|     6 | Analysis pipeline (per-move eval + classification) | 🟡 in prog |
 |     7 | Tactical motif detection                           |     ⬜     |
 |     8 | Positional analysis                                |     ⬜     |
 |     9 | Opening database (ECO)                             |     ⬜     |
@@ -114,11 +98,11 @@ _None._
 - [x] **Task 1** — PGN file picker (Electron native dialog).
 - [x] **Task 2** — PGN paste textarea with parse-on-paste preview.
 - [x] **Task 3** — Manual move-entry mode (board accepts moves, no engine).
-- [ ] **Task 4** — Multi-game PGN: list selector for which game to load.
+- [x] **Task 4** — Multi-game PGN: list selector for which game to load.
 
 ## Phase 6 — Analysis pipeline
 
-- [ ] **Task 1** — `src/chess/analysis.ts`: orchestrate per-move eval over a `Game.history()`.
+- [x] **Task 1** — `src/chess/analysis.ts`: orchestrate per-move eval over a `Game.history()`.
 - [ ] **Task 2** — Centipawn-loss thresholds → classification (Brilliant, Best, Excellent, Good, Inaccuracy, Mistake, Blunder, Miss, Book).
 - [ ] **Task 3** — Mate-in-X handling (eval comparison breaks down at mate scores; treat separately).
 - [ ] **Task 4** — Multi-PV second pass for flagged moves (top 3 alternatives).
