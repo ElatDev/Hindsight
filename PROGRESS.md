@@ -4,23 +4,27 @@
 
 ## Current session
 
-**Phase 12 / Tasks 3 + 7 land.** 547 tests pass (+13 PGN-export tests); lint + typecheck + build clean.
+**Phase 12 / Tasks 5 + 9 land.** 562 tests pass (+15: 1 stockfish-not-found, 3 IPC marker, 11 arrow geometry); lint + typecheck + build clean.
 
 Latest pair (this update):
 
-- **Phase 12 / Task 3** — Annotated PGN export. New `src/chess/pgnExport.ts` is a pure exporter: NAG glyphs per classification (`$3` !! / `$6` ?! / `$2` ? / `$4` ??), `[%eval ...]` comments per ply (Lichess-compatible — signed pawn fractions or `#N`), and the rendered explanation as a free-text comment with brace sanitisation so a templated `{...}` inside the text can't fragment the surrounding PGN comment. Soft-wraps at 80 cols, never breaking inside a comment. New `pgn:saveFile` IPC channel backs a native save dialog from the Review screen; default file name is slugged from the W/B headers.
-- **Phase 12 / Task 7** — Live eval bar during play. New `useLiveEval` hook subscribes to `engine.analyze` on every FEN change with a request-id stale guard; flips engine output to white-POV before handing it to `EvalBar`. Gated by `settings.liveEval` and paused while the engine is busy with `bestMove` or the user is reviewing past plies. `electron/main.ts` now serialises every engine IPC task through a Promise chain so live-eval and the play loop can't interleave their stdout listeners on the shared Stockfish process.
+- **Phase 12 / Task 5** — Error handling pass focused on the missing-Stockfish case (the loudest failure mode). `StockfishEngine.start()` now `existsSync`-prechecks the binary path and throws a typed `StockfishNotFoundError` whose message is prefixed with `[STOCKFISH_NOT_FOUND]` so the renderer can match it across the IPC string-error boundary. New `parseStockfishNotFound` helper in `shared/ipc.ts` (with 3 tests) extracts the path. New `EngineMissingDialog` shows the expected path + the `npm run fetch-stockfish` fix-it command; both the play-view status line and the review header switch to a paused-state copy when the marker is matched. Review also gains a "Retry analysis" button on the error state. Engine-path override + PGN-error polish stay deferred — the missing-binary path was the highest-value fix to land first.
+- **Phase 12 / Task 9** — Knight-style L-shaped SVG arrows. New `src/ui/arrowGeometry.ts` (pure helpers: `squareCenter`, `isKnightJump`, `arrowPath`) computes board-percent coordinates and L-shape paths in the Lichess convention (long leg first along the larger displacement). `ArrowOverlay.tsx` renders the merged arrows as an SVG above the board with per-arrow `marker-end` heads; `pointer-events: none` keeps the underlying right-click drag working. `Board.tsx` stamps every library-arrow tuple `'transparent'` so react-chessboard's straight arrows hide while still firing `onArrowsChange` for user drags — visible arrows come from the overlay.
 
-Manual UI verification: Vite + Electron boot clean, no console errors at startup. Interactive verification (toggling live eval in Settings, saving a PGN through the native dialog) still pending — needs an interactive dev session with Stockfish bound.
+Manual UI verification: Vite + Electron boot clean, no console errors at startup. Interactive verification (knight L-shape vs straight rendering, missing-Stockfish dialog flow on a moved/renamed binary) still pending — needs an interactive dev session.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 12 / Task 5** — Error handling pass: friendly messages for missing Stockfish (currently throws on first analyze), malformed PGN (already partly handled in PgnPasteDialog — extend to file-open path), engine-process crashes during the review pipeline. Naturally pairs with the engine-path override deferred from Task 1, so this pair could close that loop too.
-- **Phase 12 / Task 9** — Knight-style L-shaped arrows. Custom SVG overlay above the board; replaces the straight react-chessboard arrows for both engine-suggested moves and right-click user arrows. Lichess-style geometry (orthogonal segments meeting at a right angle for knight jumps).
+Three Phase 12 tasks remain, all infrastructure-sized:
 
-Tasks 2 (SQLite + saved-games) and 4 (electron-builder) remain queued — both are larger and want their own dedicated pairs.
+- **Phase 12 / Task 2** — SQLite persistence layer + saved-games list. Native module (better-sqlite3) + electron-rebuild + schema design + migration from the localStorage `useSettings` backend + a "saved games" list view.
+- **Phase 12 / Task 4** — `electron-builder` config for Windows / macOS / Linux installers. Config + icons + signing setup for at least Windows.
+- **Phase 12 / Task 6** — Performance pass: profile the analysis loop, parallelize the per-ply analyze where it helps (today `analyzeGame` is serial).
+- **Phase 12 / Task 8** — Board / piece theme picker (consumes `settings.boardTheme` / `settings.pieceTheme` already persisted; needs piece-set asset bundles like Cburnett, Merida, Alpha).
+
+Tasks 2 + 4 are the most natural next pair (both are distribution-readiness work).
 
 ## Blockers
 
@@ -161,11 +165,11 @@ _None._
 - [ ] **Task 2** — SQLite persistence layer + saved-games list.
 - [x] **Task 3** — Export annotated PGN.
 - [ ] **Task 4** — `electron-builder` config for Windows / macOS / Linux installers.
-- [ ] **Task 5** — Error handling pass: friendly messages for missing Stockfish, malformed PGN, etc.
+- [x] **Task 5** — Error handling pass: friendly missing-Stockfish dialog + retry on engine failures during review. Engine-path override and PGN-error polish remain deferred — both need their own targeted follow-ups.
 - [ ] **Task 6** — Performance pass: profile the analysis loop, parallelize where it helps.
 - [x] **Task 7** — Live eval bar during play. Subscribes to engine.analyze on every position change, gated behind the settings toggle from Task 1 so non-coaching purists can keep play "blind".
 - [ ] **Task 8** — Board / piece theme picker. Bundle 3-4 board palettes (classic brown, blue, green, gray) and 2-3 piece sets (Cburnett, Merida, Alpha) selectable from the settings panel.
-- [ ] **Task 9** — Knight-style L-shaped arrows (custom SVG overlay; Lichess-style) for the suggested-move and right-click arrows. Replaces the straight-line arrows shipped in Phase 11 / Task 4.
+- [x] **Task 9** — Knight-style L-shaped arrows (custom SVG overlay; Lichess-style) for the suggested-move and right-click arrows. Replaces the straight-line arrows shipped in Phase 11 / Task 4.
 
 ## Phase 13 — Documentation
 
