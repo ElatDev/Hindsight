@@ -4,7 +4,11 @@ import { Game } from './game';
 /**
  * Per-position analysis record. One entry is produced for every ply that was
  * actually played in the source game, capturing the engine's read on the
- * position the player faced at that moment.
+ * position the player faced at that moment **and** the position they left
+ * behind. All eval fields are normalised to the moving player's POV (i.e. the
+ * `*After` fields are sign-flipped from the engine's raw output, since after
+ * the move the opponent is to move and the engine reports from the new STM's
+ * perspective).
  */
 export type MoveAnalysis = {
   /** 1-based ply index (1 = white's first move, 2 = black's first reply). */
@@ -15,12 +19,21 @@ export type MoveAnalysis = {
   uciPlayed: string;
   /** FEN of the position the player faced *before* making this move. */
   fenBefore: string;
-  /** Centipawn score from the side-to-move POV; null when this is mate. */
+  /** Centipawn score before the move, from the moving player's POV. null when
+   *  the position was mate-scored. */
   evalCp: number | null;
-  /** Mate distance from the side-to-move POV; null when score is cp. */
+  /** Mate distance before the move, from the moving player's POV. */
   mateIn: number | null;
   /** Engine's preferred move (UCI) from `fenBefore`, or null if no legal moves. */
   bestMove: string | null;
+  /** Centipawn score after the move, normalised to the *moving player's* POV
+   *  (i.e. positive = good for them). null when the resulting position was
+   *  mate-scored, or when the move ended the game. */
+  evalCpAfter: number | null;
+  /** Mate distance after the move, from the *moving player's* POV (positive
+   *  = they're delivering mate, negative = they're getting mated). null when
+   *  the resulting position was cp-scored, or when the move ended the game. */
+  mateInAfter: number | null;
 };
 
 export type AnalyzeFn = (req: AnalyzeRequest) => Promise<AnalysisResult>;
@@ -38,6 +51,10 @@ export type AnalyzeGameOptions = {
   /** Set to true from the caller to abort early; the in-flight analysis
    *  finishes but no further plies are dispatched. */
   signal?: AbortSignal;
+  /** When true (default), each ply gets a second engine call against the
+   *  resulting position so consumers can compute centipawn loss. Set to false
+   *  to halve the engine load when only the pre-move eval is needed. */
+  analyzeAfter?: boolean;
 };
 
 const moveToUci = (move: {
@@ -65,24 +82,40 @@ export async function analyzeGame(
   const results: MoveAnalysis[] = [];
   const replay = new Game();
   const analyze = opts.analyze ?? defaultAnalyze;
+  const wantAfter = opts.analyzeAfter ?? true;
 
   for (let i = 0; i < total; i += 1) {
     if (opts.signal?.aborted) break;
     const fenBefore = replay.fen();
     const move = verbose[i];
-    const result = await analyze({ fen: fenBefore, depth: opts.depth });
-    const top = result.lines[0];
+    const before = await analyze({ fen: fenBefore, depth: opts.depth });
+    const beforeTop = before.lines[0];
+    replay.move(move.san);
+
+    let evalCpAfter: number | null = null;
+    let mateInAfter: number | null = null;
+    if (wantAfter && !replay.isGameOver()) {
+      const after = await analyze({ fen: replay.fen(), depth: opts.depth });
+      const afterTop = after.lines[0];
+      // Engine eval is reported from the side-to-move's POV. After our move
+      // the opponent is to move, so flip the sign back to the original
+      // mover's POV.
+      evalCpAfter = afterTop?.evalCp != null ? -afterTop.evalCp : null;
+      mateInAfter = afterTop?.mateIn != null ? -afterTop.mateIn : null;
+    }
+
     const record: MoveAnalysis = {
       ply: i + 1,
       san: move.san,
       uciPlayed: moveToUci(move),
       fenBefore,
-      evalCp: top?.evalCp ?? null,
-      mateIn: top?.mateIn ?? null,
-      bestMove: result.bestMove,
+      evalCp: beforeTop?.evalCp ?? null,
+      mateIn: beforeTop?.mateIn ?? null,
+      bestMove: before.bestMove,
+      evalCpAfter,
+      mateInAfter,
     };
     results.push(record);
-    replay.move(move.san);
     opts.onProgress?.(i + 1, total, record);
   }
 
