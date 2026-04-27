@@ -4,21 +4,21 @@
 
 ## Current session
 
-**Phase 10 Tasks 1-2 done.** 254 tests pass.
+**Phase 10 Tasks 1-4 done.** 275 tests pass.
 
 Latest pair (this update):
 
-- Phase 10 / Task 1: `src/chess/templates/dsl.ts` — minimal templating language with `{var}`, `{var?fallback}`, `{?flag}…{/}`, `{?flag}…{:}…{/}`, negated `{?!flag}…{/}`, nested conditionals, and `\{ \} \\` escapes. Parser/renderer split: `parseTemplate(source)` produces a `ParsedTemplate` (AST + var introspection set), `renderTemplate(parsed, ctx)` produces the string. Missing context vars throw at render time so typos surface; conditional branches that aren't taken don't require their vars.
-- Phase 10 / Task 2: `src/chess/templates/registry.ts` — `TemplateRegistry` parses each template once and caches the AST. `register(id, source)`, `loadFromRecord({...})` with all-or-nothing rollback on parse/collision errors, `render(id, ctx)`, `get/has/size/ids/clear` for introspection. Will be fed by Phase 10/Task 5's 100+ snippets and read by Task 3's selector.
+- Phase 10 / Task 3: `src/chess/templates/selector.ts` — `TemplateSelector` filters registered rules against a runtime `(classification, motifs, phase)` and ranks them. Filters: `classifications`, `motifs` (any-of), `excludeMotifs` (none-of), `phases`. Specificity weights set so motif-tagged rules outrank classification-only rules, which outrank phase-only rules. `candidates(ctx)` returns ids sorted by specificity desc then id asc. `MOTIF_TAGS` is the canonical motif tag list (mirrors `src/chess/motifs/*`).
+- Phase 10 / Task 4: `selector.ts#pick()` — random-samples a single id from the top-specificity tier. Default RNG is `Math.random`; tests inject deterministic alternatives. Returns `null` when no rules match. Range-checks the RNG to surface bad injections.
 
-Earlier this session: Phase 9 / Tasks 1-2 (Lichess ECO bundle + `identifyOpening` matcher).
+Earlier this session: Phase 10 / Tasks 1-2 (DSL + registry), Phase 9 / Tasks 1-2 (ECO bundle + matcher).
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 10 / Task 3** — Template selection logic: match `(classification, motifs[], game phase)` to candidate template ids. Reads the registry from Task 2.
-- **Phase 10 / Task 4** — Random-pick from candidates for variety. Pairs with Task 3.
+- **Phase 10 / Task 5** — Write 100+ templates organized by classification + motif. The biggest content drop in the project; will populate the registry + selector built in Tasks 1-4.
+- **Phase 10 / Task 6** — Tests: every template renders without errors over a sample of real positions. Pairs with Task 5.
 
 ## Blockers
 
@@ -136,8 +136,8 @@ _None._
 
 - [x] **Task 1** — Define template DSL (variable substitution syntax, conditionals).
 - [x] **Task 2** — Template loader + cache.
-- [ ] **Task 3** — Template selection logic: match `(classification, motifs[], game phase)` to candidate templates.
-- [ ] **Task 4** — Random-pick from candidates for variety.
+- [x] **Task 3** — Template selection logic: match `(classification, motifs[], game phase)` to candidate templates.
+- [x] **Task 4** — Random-pick from candidates for variety.
 - [ ] **Task 5** — Write 100+ templates organized by classification + motif.
 - [ ] **Task 6** — Tests: every template renders without errors over a sample of real positions.
 
