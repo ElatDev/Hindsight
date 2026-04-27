@@ -4,21 +4,23 @@
 
 ## Current session
 
-**Phase 11 / Tasks 3-6 complete.** 529 tests pass (+3 review tests); lint + typecheck + build clean.
+**Phase 11 / Tasks 7-8 complete.** 534 tests pass (+4 alternatives tests); lint + typecheck + build clean.
 
-This session landed two task pairs:
+Latest pair (this update):
 
-- **Tasks 3-4** (commit `feat: review polish — classification badge, motif chips, engine arrow`): explanation-panel polish (classification badge, motif chips, pawn-relative cp loss copy) and the suggested-move arrow overlay. `Board.tsx` gained an `arrows` prop forwarded to react-chessboard's `customArrows` (tuples are copied per render because the library filters in place); `Review.tsx` derives a blue arrow from `currentMove.bestUci` whenever the engine's preferred move differs from what was played.
-- **Tasks 5-6** (commit `feat: review summary panel + critical-moments quick-jump`): `GameReview` now carries a `summary` block — per-side Lichess accuracy via `gameAccuracy`, a `Classification`-keyed counts map per side via the new `countClassifications` helper (attributing by FEN STM so non-standard starts work), and the top 5 critical moments via `criticalMoments`. New `emptyReview()` constructor lets the UI surface a typed zero-state without re-running the pipeline. `Review.tsx` renders a `SummaryPanel` (W/B accuracy + a count table that hides zero-only rows) and a `CriticalMomentsList` (clickable rows that jump `viewPly`, color-coded by swing direction with the current row highlighted).
+- **Task 7** — Multi-PV alternatives panel. `runGameReview` now calls `analyzeAlternatives` after `classifyAnalyses` (gated by a new `skipAlternatives` flag for tests). Each `ReviewedMove` carries a SAN-resolved `alternatives` array; the played move is filtered out via the new `resolveAlternatives` helper so the panel doesn't echo what was just played. `Review.tsx` renders a numbered list under the explanation with mover-POV evals (signed pawn fractions or `Mn`).
+- **Task 8** — Right-click highlights + arrows. `Board.tsx` owns the annotations state (highlights as a square list, arrows as `ArrowSpec[]`). Right-click on a square toggles a Lichess-green highlight via `onSquareRightClick`; right-click drag toggles a green arrow via the library's internal arrow drawing — captured through `onArrowsChange`, ignoring the empty-array echo that fires after we re-set `customArrows`. State persists across move-list navigation because Board doesn't unmount across ply changes; left-click clears all annotations even on read-only review boards. Engine arrows from props sit beneath user arrows in the merged `customArrows`.
 
-Manual UI verification: Vite + Electron boot clean, no console errors at startup. Interactive verification (badge legibility, arrow contrast on light theme, summary table layout, criticals click-through) still pending — sequential dev sessions can drive the live window.
+Manual UI verification: Vite + Electron boot clean, no console errors at startup. Interactive verification (right-click toggle behaviour, drag-arrow contrast, alternatives list legibility) still pending — needs an interactive dev session.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 11 / Task 7** — Multi-PV alternatives panel for flagged moves. Phase 6 / Task 4 already runs a multi-PV second pass for blunders/mistakes/misses; the move records carry the alternatives. Wire them into the Review side panel as a small "alternatives" section under the explanation when the current move is flagged.
-- **Phase 11 / Task 8** — Right-click square highlights + arrows (Lichess-style). Persistent across navigation, cleared on left-click. Both Review and play views. Will need a shared `BoardAnnotations` state and right-click handlers on `Board.tsx`.
+Phase 11 has two remaining tasks (8 and 9 had been re-numbered to 8 and 9 in PROGRESS — Task 9 is the on-piece grade badges; with Task 8 now done the next pair is Task 9 + Phase 12 / Task 1):
+
+- **Phase 11 / Task 9** — On-piece grade badges during review: overlay icons (green check on best, blue spark on sharp, orange `?!` on inaccuracy, red `??` on blunder, etc.) rendered over the destination square so the grade is readable from the board itself, not just the side panel. Will need a custom-square renderer (react-chessboard exposes `customSquare`) or an absolutely-positioned overlay layer.
+- **Phase 12 / Task 1** — Settings panel: analysis depth, theme, engine path override, live-eval toggle, board/piece themes. Foundation for the rest of Phase 12; persists to disk (gateway to Task 2's SQLite layer).
 
 ## Blockers
 
@@ -149,8 +151,8 @@ _None._
 - [x] **Task 4** — Suggested-better-move arrow overlay on the board.
 - [x] **Task 5** — End-of-game summary (accuracy, blunders, mistakes count, opening).
 - [x] **Task 6** — Critical-moments quick-jump list.
-- [ ] **Task 7** — Multi-PV alternatives panel for flagged moves.
-- [ ] **Task 8** — Right-click square highlights + arrows (Lichess-style: persistent across nav, cleared on left-click). Both review and play views.
+- [x] **Task 7** — Multi-PV alternatives panel for flagged moves.
+- [x] **Task 8** — Right-click square highlights + arrows (Lichess-style: persistent across nav, cleared on left-click). Both review and play views.
 - [ ] **Task 9** — On-piece grade badges during review: overlay icons (green check on best, blue spark on sharp, orange `?!` on inaccuracy, red `??` on blunder, etc.) rendered over the destination square so the grade is readable from the board itself, not just the side panel.
 
 ## Phase 12 — Polish + distribution
