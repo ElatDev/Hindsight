@@ -3,6 +3,10 @@ import { Chessboard } from 'react-chessboard';
 import type { Square } from 'chess.js';
 import type { Game } from '../chess/game';
 
+/** `[from, to, color?]` — passed straight through to react-chessboard's
+ *  `customArrows`. Color is any CSS color string; library default is amber. */
+export type ArrowSpec = readonly [Square, Square, string?];
+
 export type BoardProps = {
   /** Game whose `fen()` drives the rendered position. */
   game: Game;
@@ -21,6 +25,10 @@ export type BoardProps = {
   orientation?: 'white' | 'black';
   /** Pixel width of the board. Optional; the library auto-sizes if omitted. */
   width?: number;
+  /** Optional persistent arrows drawn on top of the board. Used by the review
+   *  view to show the engine's preferred move; merges with any in-progress
+   *  user-drawn arrows. */
+  arrows?: readonly ArrowSpec[];
 };
 
 const SELECTED_STYLE = { backgroundColor: 'rgba(255, 233, 99, 0.55)' };
@@ -43,6 +51,7 @@ export function Board({
   onMove,
   orientation = 'white',
   width,
+  arrows,
 }: BoardProps): JSX.Element {
   const [selected, setSelected] = useState<Square | null>(null);
   const interactive = Boolean(onMove);
@@ -89,6 +98,13 @@ export function Board({
     setSelected(hasMoves ? square : null);
   };
 
+  // react-chessboard mutates the `customArrows` array (filters in place),
+  // so hand it a fresh mutable copy each render. The cast launders the
+  // tuple's readonly modifier away for the library type.
+  const customArrows = arrows
+    ? (arrows.map((a) => [...a]) as [Square, Square, string?][])
+    : undefined;
+
   return (
     <Chessboard
       position={game.fen()}
@@ -98,6 +114,7 @@ export function Board({
       onPieceDrop={interactive ? handlePieceDrop : undefined}
       onSquareClick={interactive ? handleSquareClick : undefined}
       customSquareStyles={customSquareStyles}
+      customArrows={customArrows}
       autoPromoteToQueen
     />
   );

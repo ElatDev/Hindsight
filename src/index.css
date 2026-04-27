@@ -378,10 +378,62 @@ body,
 
 .review-panel__heading {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
   font-family: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+.review-panel__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: -0.04em;
+  background: var(--border-strong);
+}
+
+.review-panel__badge--brilliant {
+  background: #00b8d4;
+}
+
+.review-panel__badge--best {
+  background: var(--accent);
+}
+
+.review-panel__badge--excellent {
+  background: var(--accent);
+}
+
+.review-panel__badge--good {
+  background: var(--border-strong);
+}
+
+.review-panel__badge--inaccuracy {
+  background: #c89000;
+}
+
+.review-panel__badge--mistake {
+  background: #d97706;
+}
+
+.review-panel__badge--blunder {
+  background: #d04040;
+}
+
+.review-panel__badge--miss {
+  background: #b45309;
+}
+
+.review-panel__badge--book {
+  background: var(--fg-subtle);
+  color: var(--bg);
 }
 
 .review-panel__san {
@@ -395,6 +447,12 @@ body,
   letter-spacing: 0.05em;
 }
 
+.review-panel__eval {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+}
+
 .review-panel__explanation {
   line-height: 1.4;
   color: var(--fg);
@@ -404,6 +462,26 @@ body,
   font-size: 0.85rem;
   color: var(--fg-muted);
   font-family: 'JetBrains Mono', 'Consolas', monospace;
+}
+
+.review-panel__motifs {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0;
+  margin: 0;
+}
+
+.review-panel__motif {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--fg-muted);
+  background: var(--bg);
 }
 
 .review-panel--brilliant {
