@@ -1,11 +1,27 @@
-import { useMemo, useState } from 'react';
+import {
+  createContext,
+  forwardRef,
+  useContext,
+  useMemo,
+  useState,
+  type ComponentProps,
+} from 'react';
 import { Chessboard } from 'react-chessboard';
 import type { Square } from 'chess.js';
+import type { Classification } from '../chess/classify';
 import type { Game } from '../chess/game';
 
 /** `[from, to, color?]` — passed straight through to react-chessboard's
  *  `customArrows`. Color is any CSS color string; library default is amber. */
 export type ArrowSpec = readonly [Square, Square, string?];
+
+/** A grade badge to overlay on the destination square of the most recently
+ *  played move during review. Drives the on-piece icon (green check on best,
+ *  blue spark on sharp, orange `?!` on inaccuracy, red `??` on blunder, …). */
+export type GradeBadge = {
+  readonly square: Square;
+  readonly classification: Classification;
+};
 
 export type BoardProps = {
   /** Game whose `fen()` drives the rendered position. */
@@ -29,6 +45,10 @@ export type BoardProps = {
    *  view to show the engine's preferred move; merges with any user-drawn
    *  right-click arrows owned by the Board itself. */
   arrows?: readonly ArrowSpec[];
+  /** Optional on-piece grade badge for the most recent move's destination
+   *  square. When set, a small classification-coloured glyph is rendered on
+   *  top of the piece occupying that square. */
+  gradeBadge?: GradeBadge | null;
 };
 
 const SELECTED_STYLE = { backgroundColor: 'rgba(255, 233, 99, 0.55)' };
@@ -47,6 +67,20 @@ const RIGHT_CLICK_HIGHLIGHT_STYLE = {
 };
 const RIGHT_CLICK_ARROW_COLOR = 'rgba(35, 165, 75, 0.8)';
 
+const GRADE_GLYPH: Record<Classification, string> = {
+  sharp: '!!',
+  best: '✓',
+  excellent: '!',
+  good: '·',
+  inaccuracy: '?!',
+  mistake: '?',
+  blunder: '??',
+  miss: '?!',
+  book: 'B',
+};
+
+const GradeBadgeContext = createContext<GradeBadge | null>(null);
+
 /**
  * Board view backed by react-chessboard. When `onMove` is supplied, supports
  * drag-and-drop with legal-move enforcement and click-to-select with target
@@ -60,6 +94,7 @@ export function Board({
   orientation = 'white',
   width,
   arrows,
+  gradeBadge,
 }: BoardProps): JSX.Element {
   const [selected, setSelected] = useState<Square | null>(null);
   const [highlights, setHighlights] = useState<readonly Square[]>([]);
@@ -153,19 +188,60 @@ export function Board({
   }, [arrows, userArrows]);
 
   return (
-    <Chessboard
-      position={game.fen()}
-      boardOrientation={orientation}
-      boardWidth={width}
-      arePiecesDraggable={interactive}
-      onPieceDrop={interactive ? handlePieceDrop : undefined}
-      onSquareClick={handleSquareClick}
-      onSquareRightClick={handleSquareRightClick}
-      onArrowsChange={handleArrowsChange}
-      customSquareStyles={customSquareStyles}
-      customArrows={customArrows}
-      customArrowColor={RIGHT_CLICK_ARROW_COLOR}
-      autoPromoteToQueen
-    />
+    <GradeBadgeContext.Provider value={gradeBadge ?? null}>
+      <Chessboard
+        position={game.fen()}
+        boardOrientation={orientation}
+        boardWidth={width}
+        arePiecesDraggable={interactive}
+        onPieceDrop={interactive ? handlePieceDrop : undefined}
+        onSquareClick={handleSquareClick}
+        onSquareRightClick={handleSquareRightClick}
+        onArrowsChange={handleArrowsChange}
+        customSquareStyles={customSquareStyles}
+        customSquare={
+          SquareWithBadge as unknown as ComponentProps<
+            typeof Chessboard
+          >['customSquare']
+        }
+        customArrows={customArrows}
+        customArrowColor={RIGHT_CLICK_ARROW_COLOR}
+        autoPromoteToQueen
+      />
+    </GradeBadgeContext.Provider>
   );
 }
+
+/**
+ * Custom square renderer wired through `customSquare`. react-chessboard calls
+ * this for every square on every render; the wrapper conditionally overlays
+ * a grade badge when the active context value matches the square. Defined at
+ * module scope (stable component identity) so the library doesn't unmount /
+ * remount squares on parent re-renders.
+ */
+const SquareWithBadge = forwardRef<
+  HTMLDivElement,
+  {
+    children?: React.ReactNode;
+    square: Square;
+    squareColor: 'white' | 'black';
+    style: Record<string, string | number>;
+  }
+>(({ children, square, style }, ref) => {
+  const badge = useContext(GradeBadgeContext);
+  const showBadge = badge?.square === square;
+  return (
+    <div ref={ref} style={{ ...style, position: 'relative' }}>
+      {children}
+      {showBadge ? (
+        <span
+          className={`board-grade-badge board-grade-badge--${badge.classification}`}
+          aria-label={badge.classification}
+        >
+          {GRADE_GLYPH[badge.classification]}
+        </span>
+      ) : null}
+    </div>
+  );
+});
+SquareWithBadge.displayName = 'BoardSquare';

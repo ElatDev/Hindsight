@@ -65,6 +65,9 @@ export type ReviewedAlternative = {
 export type ReviewedMove = {
   readonly ply: number;
   readonly san: string;
+  /** Destination square of the played move. Surfaced so the UI can pin grade
+   *  badges to the right square without re-parsing SAN. */
+  readonly toSquare: Square;
   readonly classification: Classification;
   readonly cpLoss: number | null;
   /** Eval white-POV facing the move (i.e. snapshot of the position the mover
@@ -484,6 +487,7 @@ export async function runGameReview(
     perMove.push({
       ply: classified.ply,
       san: classified.san,
+      toSquare: played.to,
       classification: classified.classification,
       cpLoss: classified.cpLoss,
       evalBefore,

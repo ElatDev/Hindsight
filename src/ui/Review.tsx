@@ -14,7 +14,7 @@ import {
 } from '../chess/review';
 import type { CriticalMoment } from '../chess/critical';
 import type { MotifTag } from '../chess/templates/selector';
-import { Board, type ArrowSpec } from './Board';
+import { Board, type ArrowSpec, type GradeBadge } from './Board';
 import { EvalBar } from './EvalBar';
 import { MoveList } from './MoveList';
 import { NavControls } from './NavControls';
@@ -23,13 +23,16 @@ export type ReviewProps = {
   /** The game to walk through. The component does not mutate it. */
   game: Game;
   orientation: 'white' | 'black';
+  /** Stockfish search depth fed into `runGameReview`. Sourced from the
+   *  Settings dialog (Phase 12 / Task 1); falls back to 12 if unset. */
+  analysisDepth?: number;
   onFlip: () => void;
   onToggleTheme: () => void;
   /** Leave review mode and return to the previous (play / free) view. */
   onExit: () => void;
 };
 
-const REVIEW_DEPTH = 12;
+const DEFAULT_REVIEW_DEPTH = 12;
 
 /** Arrow color used for the engine's suggested-better-move overlay. Picked
  *  for contrast against both light and dark board palettes; close enough to
@@ -85,6 +88,7 @@ const MOTIF_LABEL: Record<MotifTag, string> = {
 export function Review({
   game,
   orientation,
+  analysisDepth = DEFAULT_REVIEW_DEPTH,
   onFlip,
   onToggleTheme,
   onExit,
@@ -118,7 +122,7 @@ export function Review({
     setProgress({ done: 0, total: totalPlies });
     setError(null);
     void runGameReview(game, {
-      depth: REVIEW_DEPTH,
+      depth: analysisDepth,
       signal: ac.signal,
       onProgress: (done, total) => {
         if (cancelled) return;
@@ -139,7 +143,7 @@ export function Review({
       cancelled = true;
       ac.abort();
     };
-  }, [game, totalPlies]);
+  }, [game, totalPlies, analysisDepth]);
 
   const evalForView = useMemo(
     () => computeEvalForView(viewPly, totalPlies, result?.perMove ?? null),
@@ -169,6 +173,19 @@ export function Review({
     return [[from, to, SUGGESTED_ARROW_COLOR] as const];
   }, [currentMove]);
 
+  // On-piece grade badge: the destination square of the just-played move
+  // gets a small classification-coloured glyph. Skipped at the start of the
+  // game (viewPly === 0) and for `book` moves so the opening doesn't get
+  // visually noisy.
+  const gradeBadge = useMemo<GradeBadge | null>(() => {
+    if (!currentMove) return null;
+    if (currentMove.classification === 'book') return null;
+    return {
+      square: currentMove.toSquare,
+      classification: currentMove.classification,
+    };
+  }, [currentMove]);
+
   const headerLine = (() => {
     if (status === 'analyzing') {
       return `Analyzing… ${progress.done} / ${progress.total} plies.`;
@@ -192,6 +209,7 @@ export function Review({
           width={520}
           orientation={orientation}
           arrows={arrows}
+          gradeBadge={gradeBadge}
         />
       </div>
       <aside className="side-panel">

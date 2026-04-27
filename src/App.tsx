@@ -13,6 +13,8 @@ import {
 import { PgnGameSelectDialog } from './ui/PgnGameSelectDialog';
 import { PgnPasteDialog } from './ui/PgnPasteDialog';
 import { Review } from './ui/Review';
+import { SettingsDialog } from './ui/SettingsDialog';
+import { useSettings } from './ui/useSettings';
 import { useTheme } from './ui/useTheme';
 import { Game } from './chess/game';
 import { previewPgnGames, type PgnGamePreview } from './chess/pgnSplit';
@@ -47,7 +49,13 @@ function App(): JSX.Element {
   const [pgnError, setPgnError] = useState<string | null>(null);
   const [pgnGames, setPgnGames] = useState<PgnGamePreview[] | null>(null);
   const [reviewing, setReviewing] = useState(false);
-  const { toggle: toggleTheme } = useTheme();
+  const [showSettings, setShowSettings] = useState(false);
+  const { theme, toggle: toggleTheme, setTheme } = useTheme();
+  const {
+    settings,
+    update: updateSettings,
+    reset: resetSettings,
+  } = useSettings();
 
   const history = useMemo(() => {
     void version;
@@ -286,6 +294,13 @@ function App(): JSX.Element {
             Review game
           </button>
         ) : null}
+        <button
+          type="button"
+          className="header-secondary-btn"
+          onClick={() => setShowSettings(true)}
+        >
+          Settings
+        </button>
       </header>
       <p className="tagline">Free, offline, open-source chess game review.</p>
 
@@ -313,6 +328,7 @@ function App(): JSX.Element {
         <Review
           game={state.game}
           orientation={orientation}
+          analysisDepth={settings.analysisDepth}
           onFlip={flip}
           onToggleTheme={toggleTheme}
           onExit={exitReview}
@@ -371,6 +387,20 @@ function App(): JSX.Element {
           games={pgnGames}
           onSelect={(pgn) => loadSinglePgn(pgn)}
           onCancel={() => setPgnGames(null)}
+        />
+      ) : null}
+
+      {showSettings ? (
+        <SettingsDialog
+          initial={settings}
+          theme={theme}
+          onConfirm={(next, nextTheme) => {
+            updateSettings(next);
+            setTheme(nextTheme);
+            setShowSettings(false);
+          }}
+          onReset={resetSettings}
+          onCancel={() => setShowSettings(false)}
         />
       ) : null}
     </main>

@@ -727,6 +727,80 @@ body,
   border-left-color: var(--fg-subtle);
 }
 
+/* Grade badge overlaid on the destination square of the just-played move
+   during review. Sized in % so it scales with the board, top-right corner
+   following chess.com convention. The pointer-events: none lets clicks
+   through to the underlying square (selection, right-click highlight). */
+.board-grade-badge {
+  position: absolute;
+  top: 4%;
+  right: 4%;
+  width: 32%;
+  height: 32%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #fff;
+  background: var(--border-strong);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  letter-spacing: -0.04em;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.board-grade-badge--sharp {
+  background: #00b8d4;
+}
+
+.board-grade-badge--best {
+  background: var(--accent);
+}
+
+.board-grade-badge--excellent {
+  background: var(--accent);
+}
+
+.board-grade-badge--good {
+  background: var(--border-strong);
+}
+
+.board-grade-badge--inaccuracy {
+  background: #c89000;
+}
+
+.board-grade-badge--mistake {
+  background: #d97706;
+}
+
+.board-grade-badge--blunder {
+  background: #d04040;
+}
+
+.board-grade-badge--miss {
+  background: #b45309;
+}
+
+.board-grade-badge--book {
+  background: var(--fg-subtle);
+  color: var(--bg);
+}
+
+.settings__hint {
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+  line-height: 1.4;
+  margin-top: 0.2rem;
+}
+
+.settings__hint--pending {
+  color: var(--fg-subtle);
+  font-style: italic;
+}
+
 .dialog-overlay {
   position: fixed;
   inset: 0;
