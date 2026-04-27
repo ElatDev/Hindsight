@@ -4,23 +4,28 @@
 
 ## Current session
 
-**Windows `npm run dist` build verified end-to-end.** Phase 13 / Task 4's main dependency — a clean installer build — is satisfied; what remains is the user-driven release click.
+**README v0.1 accuracy pass.** Phase 13 / Task 1's prose half is done; the actual screenshot capture is the only remaining user-driven piece.
 
 This session:
 
-- Ran `npm run dist` from a clean tree. electron-builder produced `release/Hindsight-0.0.0-windows-x64.exe` (146 MB NSIS installer, exit code 0; signing skipped — no certificate, by design per ADR-005).
-- Inspected the unpacked output: `release/win-unpacked/resources/stockfish/bin/win32-x64/stockfish.exe` (extraResources is doing its job) and `release/win-unpacked/resources/app.asar.unpacked/node_modules/better-sqlite3/build/Release/better_sqlite3.node` (yesterday's `asarUnpack` rule extracts the native addon outside the archive so the OS can `dlopen` it). Both are wired correctly for a packaged launch.
-- Build artifacts are all under `release/` which is `.gitignore`d, so this session produces no tracked code changes.
-- Build-log warnings noted but not actioned (none block the release): `author is missed in the package.json` (cosmetic — only affects installer "Author" string), and `@electron/rebuild already used by electron-builder, please consider to remove excess dependency from devDependencies` (we keep it explicit because our own `postinstall` invokes it directly for dev rebuilds — not redundant).
+- Rewrote the README "Features" list against what actually ships (saved-games, live eval bar, knight-style arrows, board palettes, grade badges, single-pass multi-PV — features that landed during Phase 11–12 but never made it back into the feature bullets).
+- Added an **Install** section pointing readers at [GitHub Releases](https://github.com/ElatDev/Hindsight/releases) so non-developer visitors land on the installer instead of the dev quickstart.
+- Replaced the Build table's mythical `build:win` / `build:mac` / `build:linux` scripts with the real `npm run dist` plus a `dist:dir` smoke-test variant; called out the no-cross-compilation reality.
+- Roadmap table updated to match this file (phases 1-12 are ✅, phase 13 in progress).
+- Stale annotations dropped (`react-chessboard (Phase 3)`, "Screenshots coming once Phase 11 lands") and a new **Screenshots** section drops a v0.1-release-thread placeholder.
+- Quickstart picked up the `ELECTRON_RUN_AS_NODE` one-liner inline so a fresh Windows clone doesn't trip on it.
+- Linked `docs/CONTRIBUTING.md` from the Contributing section so the contributor guide that landed last week actually has a discoverability path.
+
+Markdown-only changes; lint + typecheck stayed green; pre-commit hook ran prettier on the file with no further edits needed.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-Two Phase 13 tasks remain — both are now strictly user-driven.
+Two Phase 13 deliverables still need user input. Phase 13 / Task 1's prose half landed today; the rest is pure user action.
 
-- **Phase 13 / Task 1** — README screenshots / GIFs. Needs interactive UI captures.
-- **Phase 13 / Task 4** — Cut a v0.1 release on GitHub. The build path is now verified; the remaining steps are: bump `package.json` `version` from `0.0.0` to `0.1.0`, re-run `npm run dist` to produce `Hindsight-0.1.0-windows-x64.exe`, then `gh release create v0.1.0 release/Hindsight-0.1.0-windows-x64.exe ...` with release notes. macOS DMG + Linux AppImage need their respective hosts or a CI matrix; ship Windows-only for v0.1 unless those are easy to obtain.
+- **Phase 13 / Task 1** — Screenshot capture. The README has the **Screenshots** section already; what's missing is the actual captures of the play view, the post-game review (annotations + suggested-move arrow + grade badges), the critical-moments / alternatives panel, the saved-games browser, and the settings dialog. Task 1 stays unchecked until those land.
+- **Phase 13 / Task 4** — Cut a v0.1 release on GitHub. The build path is verified; remaining steps are: bump `package.json` `version` from `0.0.0` to `0.1.0`, re-run `npm run dist` to produce `Hindsight-0.1.0-windows-x64.exe`, then `gh release create v0.1.0 release/Hindsight-0.1.0-windows-x64.exe ...` with release notes drawn from the recent commit log. macOS DMG + Linux AppImage need their respective hosts or a CI matrix; ship Windows-only for v0.1 unless those are easy to obtain.
 
 Carved-out follow-ups still pending: piece-set bundling (Task 8 second half), engine-path override UI (Task 1/5 deferred), PGN-error polish (Task 5 deferred). Also worth flagging for v0.2: an analysis-cache table keyed on `(pgn_hash, depth)` so re-opening a saved review is instant — the `electron/storage/` layer is now the natural home for it.
 
