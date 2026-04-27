@@ -4,23 +4,25 @@
 
 ## Current session
 
-**Phases 1-4 complete; Phase 5 done; Phase 6 Task 1 done.** 50 tests pass.
+**Phases 1-5 complete; Phase 6 Tasks 1-3 done.** 69 tests pass.
 
-- Phase 5 / Task 4: `src/chess/pgnSplit.ts` — `splitPgn(text)` walks line-by-line and breaks on a tag-line that follows movetext (handles CRLF, no-blank-line concatenations, movetext-only single-game PGN, brace-comment edge cases). `previewPgnGames(text)` pairs splits with parsed headers + ply count. `src/ui/PgnGameSelectDialog.tsx` shows a list when 2+ games are detected (Event / White / Black / Result / ply); parse failures stay listed but disabled. `App.loadPgnText` splits first and either calls `loadSinglePgn` (1 game) or opens the selector (2+). Both Open PGN and Paste PGN flow through it. `PgnPasteDialog` preview now hints "N games found" when applicable. 9 new tests in `pgnSplit.test.ts`.
-- Phase 6 / Task 1: `src/chess/analysis.ts` — `analyzeGame(game, { depth, analyze?, onProgress?, signal? })` walks `historyVerbose()`, replays into a fresh `Game`, and asks the engine to evaluate every position the mover faced. Returns one `MoveAnalysis` per ply with `{ ply, san, uciPlayed, fenBefore, evalCp, mateIn, bestMove }`. The engine call is injectable (defaults to `window.hindsight.engine.analyze`) so tests can drive the orchestrator without spinning up Stockfish. Sequential by design — single-process Stockfish can't safely interleave searches. 7 new tests in `analysis.test.ts`.
+- Phase 5 / Task 4: `splitPgn` + `PgnGameSelectDialog`; both file-open and paste flows route multi-game PGNs through the selector. 9 tests.
+- Phase 6 / Task 1: `analyzeGame` orchestrator over `Game.historyVerbose()`. Injectable `analyze` for tests; supports `onProgress` + `AbortSignal`. 7 tests.
+- Phase 6 / Task 2: `src/chess/classify.ts` — `Classification` enum (Brilliant/Best/Excellent/Good/Inaccuracy/Mistake/Blunder/Miss/Book; Brilliant + Book reserved for later phases and never emitted yet) + cp-loss buckets at 10/50/100/200. `classifyMove(record)` returns a `ClassifiedMove` with `classification` + `cpLoss`. `classifyAnalyses(records)` maps a whole game.
+- Phase 6 / Task 3: Mate-aware overrides in `classifyMove`: had-forced-mate → played-non-mating = Miss; walked-into-being-mated when previously not = Blunder. Mate-vs-cp arithmetic uses a `MATE_AS_CP=100_000` sentinel so cp-loss math degrades gracefully across the boundary. `analyzeGame` now does a second engine call against the resulting position (POV-flipped) to populate `evalCpAfter` / `mateInAfter`; toggleable via `analyzeAfter:false` for tests / engine-light callers. 16 + 3 new tests.
 
 Notes:
 
-- 12 pairs / 24 tasks landed since fresh start. Phase 5 closed; Phase 6 Task 1 in.
-- `analyzeGame` is the foundation — Phase 6 Task 2 (centipawn-loss → classification) plugs in directly above it.
-- IPC round-trip still wants a manual DevTools smoke for the multi-game flow and an end-to-end `analyzeGame` call. Suite + lint + typecheck all green.
+- 14 pairs / 28 tasks landed in this session. Phase 5 closed; Phase 6 half done.
+- `analyzeGame` does 2 engine calls per ply by default. Phase 12 perf pass will revisit (e.g. parallel multi-PV at fenBefore to extract eval-after-played without a second search).
+- IPC round-trip still wants a manual DevTools smoke for the multi-game flow and an end-to-end `analyzeGame` call. Lint + typecheck + 69-test suite all green.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 6 / Task 2** — Centipawn-loss thresholds → classification (Brilliant, Best, Excellent, Good, Inaccuracy, Mistake, Blunder, Miss, Book). Build on top of `analyzeGame`'s `MoveAnalysis[]` — for each ply compute `cpLoss = evalAfterPlayed - evalBest` (both side-to-move POV), then bucket. Output adds a `classification` field per ply.
-- **Phase 6 / Task 3** — Mate-in-X handling: when either `bestMove` or the played move yields mate, the centipawn delta is meaningless; classify by mate-distance change instead (e.g. "missed mate-in-3" → Miss).
+- **Phase 6 / Task 4** — Multi-PV second pass for flagged moves: when `classifyMove` flags a move (Inaccuracy or worse, or Miss), re-analyse the pre-move position with `multiPV: 3` to surface the top 3 alternatives. Output a `top3` field on those records.
+- **Phase 6 / Task 5** — Accuracy score (Lichess-style harmonic-mean over centipawn losses). Per-side accuracy 0..100, computed once `classifyAnalyses` has run.
 
 ## Blockers
 
@@ -103,8 +105,8 @@ _None._
 ## Phase 6 — Analysis pipeline
 
 - [x] **Task 1** — `src/chess/analysis.ts`: orchestrate per-move eval over a `Game.history()`.
-- [ ] **Task 2** — Centipawn-loss thresholds → classification (Brilliant, Best, Excellent, Good, Inaccuracy, Mistake, Blunder, Miss, Book).
-- [ ] **Task 3** — Mate-in-X handling (eval comparison breaks down at mate scores; treat separately).
+- [x] **Task 2** — Centipawn-loss thresholds → classification (Brilliant, Best, Excellent, Good, Inaccuracy, Mistake, Blunder, Miss, Book).
+- [x] **Task 3** — Mate-in-X handling (eval comparison breaks down at mate scores; treat separately).
 - [ ] **Task 4** — Multi-PV second pass for flagged moves (top 3 alternatives).
 - [ ] **Task 5** — Accuracy score (Lichess-style harmonic-mean formula over centipawn losses).
 - [ ] **Task 6** — Critical moments: rank moves by abs(eval delta), surface top 5.
