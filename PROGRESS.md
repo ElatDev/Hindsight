@@ -4,23 +4,23 @@
 
 ## Current session
 
-**Phases 1-6 complete; Phase 7 Tasks 1-7 done.** 148 tests pass.
+**Phases 1-7 complete; Phase 8 Task 1 done.** 162 tests pass.
 
-- Phase 7 / Tasks 1-5: hanging, fork, pin, skewer, discovered-attack — covered in earlier commits.
-- Phase 7 / Task 6: `motifs/doubleAttack.ts` — value-agnostic cousin of forks. Any piece attacking 2+ enemies. 5 tests.
-- Phase 7 / Task 7: `motifs/backRank.ts` — king on back rank with every forward escape square (≤3 candidates, fewer at corners) blocked by own pieces. Static check only — doesn't reach for whether the opponent has the heavy piece to exploit (engine eval handles that). 6 tests.
+This session landed 8 pairs (16 tasks) across Phases 5, 6, 7, and the start of 8. Highlights from the latest pair:
 
-Notes:
+- Phase 7 / Task 8: `motifs/overloaded.ts` — `findOverloadedPieces(game)` flags any non-king piece defending 2+ own pieces that are simultaneously under enemy attack. Building block for "removing the defender" tactical themes downstream. 6 tests.
+- Phase 8 / Task 1: `positional/pawnStructure.ts` — `analyzePawnStructure(game, color)` returns `{ doubled, isolated, backward, passed }`. Definitions match standard usage (doubled = ≥2 same file; isolated = no adjacent-file friendlies; passed = clear path to promotion; backward = push square attacked + no rear support on adjacent files). New `src/chess/positional/` directory. 8 tests.
 
-- 20 pairs / 40 tasks landed this session. Phase 7 7/8 done — only Task 8 (removing-defender / overloaded piece) left.
-- Lint + typecheck + 148-test suite all green. Manual DevTools smoke still owed for the renderer-side analysis pipeline.
+Earlier in the session: Phase 5 closed (multi-game PGN selector), Phase 6 closed (analyzeGame, classify, alternatives, accuracy, critical moments), Phase 7 motifs 1-7 (hanging, fork, pin, skewer, discovered-attack, double-attack, back-rank weakness).
+
+**Session stop.** Stopping cleanly at the Phase 7 → Phase 8 boundary after the heaviest motif/positional run. Tree clean, all pushed, lint + typecheck + 162-test suite green. Phase 7 fully closed; Phase 8 has Task 1 in but Tasks 2-5 (king safety, piece activity, material imbalance, game-phase detection) untouched.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 7 / Task 8** — Removing-the-defender + overloaded-piece detector. Two related ideas: a defender protecting a key piece is captured/deflected (so the piece becomes hanging), and an overloaded piece is forced to defend two things and can't do both. Likely implemented by enumerating defenders for hanging-able pieces and tagging when one defender covers ≥2 pieces.
-- **Phase 8 / Task 1** — Pawn structure (doubled, isolated, backward, passed). First positional analysis task. Pure pawn-bitboard math; no engine calls.
+- **Phase 8 / Task 2** — King safety. Open files near the king, missing pawn shield, exposure score. Layered on top of `pawnStructure.ts`'s logic — share the file-occupancy queries.
+- **Phase 8 / Task 3** — Piece activity (knight outposts, bishop diagonals, rook on open / semi-open files).
 
 ## Blockers
 
@@ -39,8 +39,8 @@ _None._
 |     4 | Play vs Stockfish                                  |     ✅     |
 |     5 | Game import (PGN file/paste/manual)                |     ✅     |
 |     6 | Analysis pipeline (per-move eval + classification) |     ✅     |
-|     7 | Tactical motif detection                           | 🟡 in prog |
-|     8 | Positional analysis                                |     ⬜     |
+|     7 | Tactical motif detection                           |     ✅     |
+|     8 | Positional analysis                                | 🟡 in prog |
 |     9 | Opening database (ECO)                             |     ⬜     |
 |    10 | Explanation template system (100+ templates)       |     ⬜     |
 |    11 | Review UI                                          |     ⬜     |
@@ -118,11 +118,11 @@ _None._
 - [x] **Task 5** — Discovered-attack and discovered-check detector.
 - [x] **Task 6** — Double-attack detector.
 - [x] **Task 7** — Back-rank weakness detector.
-- [ ] **Task 8** — Removing-the-defender + overloaded-piece detector.
+- [x] **Task 8** — Removing-the-defender + overloaded-piece detector.
 
 ## Phase 8 — Positional analysis
 
-- [ ] **Task 1** — Pawn structure (doubled, isolated, backward, passed).
+- [x] **Task 1** — Pawn structure (doubled, isolated, backward, passed).
 - [ ] **Task 2** — King safety (open files near king, missing pawn shield, exposure score).
 - [ ] **Task 3** — Piece activity (knight outposts, bishop diagonals, rook on open/semi-open files).
 - [ ] **Task 4** — Material imbalance summary.
