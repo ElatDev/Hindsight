@@ -13,9 +13,11 @@
 
 import type { Color, Move, PieceSymbol, Square } from 'chess.js';
 import { gameAccuracy, type GameAccuracy } from './accuracy';
+import { analyzeAlternatives } from './alternatives';
 import { analyzeGame, type AnalyzeFn, type MoveAnalysis } from './analysis';
 import {
   classifyAnalyses,
+  isFlaggedClassification,
   type Classification,
   type ClassifiedMove,
 } from './classify';
@@ -47,6 +49,19 @@ export type EvalSnapshot = {
   readonly mate: number | null;
 };
 
+/** One engine-suggested alternative line at the pre-move position, resolved
+ *  to SAN. Mover-POV evals (positive = good for the side that was to move). */
+export type ReviewedAlternative = {
+  /** UCI of the alternative's first move. */
+  readonly uci: string;
+  /** SAN of the first move, resolved at the pre-move FEN. */
+  readonly san: string;
+  /** Mover-POV centipawn score; null when this line resolves to mate. */
+  readonly evalCp: number | null;
+  /** Mover-POV mate distance (positive = mover delivers mate in N). */
+  readonly mateIn: number | null;
+};
+
 export type ReviewedMove = {
   readonly ply: number;
   readonly san: string;
@@ -65,6 +80,10 @@ export type ReviewedMove = {
   readonly templateId: string | null;
   /** Rendered explanation. Empty string when no template matched. */
   readonly explanation: string;
+  /** Top engine alternatives at the pre-move position, with the played
+   *  move filtered out and SAN resolved. Empty when the move wasn't
+   *  flagged or no second-pass analysis ran. */
+  readonly alternatives: readonly ReviewedAlternative[];
 };
 
 /** Counts of each classification grouped by side. Every classification key
@@ -101,6 +120,10 @@ export type RunGameReviewOptions = {
   /** Source of randomness for template selection variety. Defaults to
    *  `Math.random`; tests inject a deterministic rng. */
   readonly rng?: Rng;
+  /** Skip the multi-PV second pass for flagged moves. Defaults to false —
+   *  on by default so the alternatives panel has data. Tests set true to
+   *  keep the engine call count predictable. */
+  readonly skipAlternatives?: boolean;
 };
 
 const PIECE_NAME: Record<PieceSymbol, string> = {
@@ -403,7 +426,18 @@ export async function runGameReview(
     onProgress: (done, totalPlies) => opts.onProgress?.(done, totalPlies),
   });
 
-  const classifications = classifyAnalyses(analyses);
+  const baseClassifications = classifyAnalyses(analyses);
+  // Second pass — multi-PV at each flagged move's pre-move FEN. Skipped in
+  // tests by default to avoid blowing up the engine-call count; on by
+  // default in production so the Review UI's alternatives panel has data.
+  const classifications = opts.skipAlternatives
+    ? baseClassifications
+    : await analyzeAlternatives(baseClassifications, {
+        depth,
+        multiPV: 3,
+        analyze: opts.analyze,
+        signal: opts.signal,
+      });
   const opening = identifyOpening(game.history());
   const registry = new TemplateRegistry();
   const selector = new TemplateSelector();
@@ -445,6 +479,8 @@ export async function runGameReview(
     );
     const explanation = templateId ? registry.render(templateId, ctx) : '';
 
+    const alternatives = resolveAlternatives(classified);
+
     perMove.push({
       ply: classified.ply,
       san: classified.san,
@@ -458,6 +494,7 @@ export async function runGameReview(
       phase,
       templateId,
       explanation,
+      alternatives,
     });
   }
 
@@ -504,6 +541,36 @@ export function countClassifications(records: readonly ClassifiedMove[]): {
 /** Zero-state review used by the UI when there are no moves to analyze. */
 export function emptyReview(): GameReview {
   return { perMove: [], opening: null, summary: emptySummary() };
+}
+
+/**
+ * Resolve a `ClassifiedMove`'s raw multi-PV `alternatives` (UCI lines from
+ * the engine) into the SAN-resolved tuples the UI consumes. The played UCI
+ * is filtered out so the panel doesn't echo "Alternative: e4" when the
+ * player already played e4. Returns an empty array when no alternatives
+ * are present (unflagged moves, or `skipAlternatives` was set).
+ */
+export function resolveAlternatives(
+  classified: ClassifiedMove,
+): readonly ReviewedAlternative[] {
+  if (!isFlaggedClassification(classified.classification)) return [];
+  const lines = classified.alternatives;
+  if (!lines || lines.length === 0) return [];
+  const out: ReviewedAlternative[] = [];
+  for (const line of lines) {
+    const uci = line.pv[0];
+    if (!uci) continue;
+    if (uci === classified.uciPlayed) continue;
+    const info = uciToMoveInfo(classified.fenBefore, uci);
+    if (!info) continue;
+    out.push({
+      uci,
+      san: info.san,
+      evalCp: line.evalCp,
+      mateIn: line.mateIn,
+    });
+  }
+  return out;
 }
 
 function emptySummary(): GameSummary {

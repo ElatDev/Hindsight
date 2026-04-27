@@ -6,6 +6,7 @@ import {
   detectMoveMotifs,
   emptyReview,
   formatEval,
+  resolveAlternatives,
   runGameReview,
   snapshotsFromAnalysis,
   uciToMoveInfo,
@@ -164,6 +165,60 @@ describe('detectMoveMotifs', () => {
     const before = Game.fromFen('6k1/5ppp/8/8/8/b7/8/4K3 b - - 0 1');
     const result = detectMoveMotifs(before, 'Bb4+');
     expect(result.motifs).not.toContain('backRank');
+  });
+});
+
+describe('resolveAlternatives', () => {
+  const baseRec = (
+    overrides: Partial<Parameters<typeof resolveAlternatives>[0]> = {},
+  ) => ({
+    ply: 5,
+    san: 'Nc6',
+    uciPlayed: 'b8c6',
+    fenBefore: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2',
+    evalCp: 30,
+    mateIn: null,
+    bestMove: 'g8f6',
+    evalCpAfter: -180,
+    mateInAfter: null,
+    cpLoss: 210,
+    classification: 'mistake' as const,
+    ...overrides,
+  });
+
+  it('returns an empty list for non-flagged classifications', () => {
+    const rec = baseRec({ classification: 'best' });
+    expect(resolveAlternatives(rec)).toEqual([]);
+  });
+
+  it('returns an empty list when alternatives field is missing', () => {
+    const rec = baseRec();
+    expect(resolveAlternatives(rec)).toEqual([]);
+  });
+
+  it('resolves UCI lines to SAN and filters out the played move', () => {
+    const rec = baseRec({
+      alternatives: [
+        { depth: 14, multipv: 1, pv: ['g8f6'], evalCp: 25, mateIn: null },
+        { depth: 14, multipv: 2, pv: ['b8c6'], evalCp: 10, mateIn: null }, // played
+        { depth: 14, multipv: 3, pv: ['d7d6'], evalCp: 0, mateIn: null },
+      ],
+    });
+    const out = resolveAlternatives(rec);
+    expect(out.map((a) => a.san)).toEqual(['Nf6', 'd6']);
+    expect(out[0].evalCp).toBe(25);
+  });
+
+  it('skips PV lines that resolve to illegal moves', () => {
+    const rec = baseRec({
+      alternatives: [
+        { depth: 14, multipv: 1, pv: ['g8f6'], evalCp: 25, mateIn: null },
+        { depth: 14, multipv: 2, pv: ['a1h8'], evalCp: 0, mateIn: null }, // illegal
+      ],
+    });
+    const out = resolveAlternatives(rec);
+    expect(out).toHaveLength(1);
+    expect(out[0].san).toBe('Nf6');
   });
 });
 

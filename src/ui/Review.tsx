@@ -9,6 +9,7 @@ import {
   type EvalSnapshot,
   type GameReview,
   type GameSummary,
+  type ReviewedAlternative,
   type ReviewedMove,
 } from '../chess/review';
 import type { CriticalMoment } from '../chess/critical';
@@ -239,7 +240,7 @@ export function Review({
 function ExplanationPanel({ move }: { move: ReviewedMove }): JSX.Element {
   const label = CLASSIFICATION_LABEL[move.classification];
   const glyph = CLASSIFICATION_GLYPH[move.classification];
-  const showAlt = Boolean(move.bestSan) && move.bestSan !== move.san;
+  const showBest = Boolean(move.bestSan) && move.bestSan !== move.san;
   const cpLossPawns =
     move.cpLoss != null && move.cpLoss > 0 ? move.cpLoss / 100 : null;
   return (
@@ -258,7 +259,7 @@ function ExplanationPanel({ move }: { move: ReviewedMove }): JSX.Element {
       {move.explanation ? (
         <p className="review-panel__explanation">{move.explanation}</p>
       ) : null}
-      {showAlt ? (
+      {showBest ? (
         <p className="review-panel__best">
           Engine preferred <strong>{move.bestSan}</strong>
           {cpLossPawns != null
@@ -276,8 +277,47 @@ function ExplanationPanel({ move }: { move: ReviewedMove }): JSX.Element {
           ))}
         </ul>
       ) : null}
+      {move.alternatives.length > 0 ? (
+        <AlternativesList alternatives={move.alternatives} />
+      ) : null}
     </div>
   );
+}
+
+function AlternativesList({
+  alternatives,
+}: {
+  alternatives: readonly ReviewedAlternative[];
+}): JSX.Element {
+  return (
+    <div className="review-alternatives" aria-label="Engine alternatives">
+      <span className="review-alternatives__label">Alternatives</span>
+      <ol className="review-alternatives__list">
+        {alternatives.map((alt) => (
+          <li key={alt.uci} className="review-alternatives__item">
+            <span className="review-alternatives__san">{alt.san}</span>
+            <span className="review-alternatives__eval">
+              {formatAlternativeEval(alt)}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** Format a mover-POV alternative eval as a signed pawn fraction or `Mn`.
+ *  Stays distinct from `formatEval` because that one assumes white-POV. */
+function formatAlternativeEval(alt: ReviewedAlternative): string {
+  if (alt.mateIn != null) {
+    return alt.mateIn >= 0 ? `M${alt.mateIn}` : `M-${Math.abs(alt.mateIn)}`;
+  }
+  if (alt.evalCp != null) {
+    const pawns = alt.evalCp / 100;
+    const sign = pawns > 0 ? '+' : '';
+    return `${sign}${pawns.toFixed(2)}`;
+  }
+  return '?';
 }
 
 /** Classifications shown in the summary count strip, ordered roughly from

@@ -485,6 +485,57 @@ body,
   background: var(--bg);
 }
 
+.review-alternatives {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.55rem;
+}
+
+.review-alternatives__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+
+.review-alternatives__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0;
+  margin: 0;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.85rem;
+  counter-reset: alt;
+}
+
+.review-alternatives__item {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr auto;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+
+.review-alternatives__item::before {
+  counter-increment: alt;
+  content: counter(alt) '.';
+  color: var(--fg-subtle);
+  text-align: right;
+}
+
+.review-alternatives__san {
+  color: var(--fg);
+}
+
+.review-alternatives__eval {
+  color: var(--fg-muted);
+  font-size: 0.8rem;
+}
+
 .review-summary,
 .review-criticals {
   display: flex;

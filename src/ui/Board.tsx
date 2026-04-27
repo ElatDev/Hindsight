@@ -26,8 +26,8 @@ export type BoardProps = {
   /** Pixel width of the board. Optional; the library auto-sizes if omitted. */
   width?: number;
   /** Optional persistent arrows drawn on top of the board. Used by the review
-   *  view to show the engine's preferred move; merges with any in-progress
-   *  user-drawn arrows. */
+   *  view to show the engine's preferred move; merges with any user-drawn
+   *  right-click arrows owned by the Board itself. */
   arrows?: readonly ArrowSpec[];
 };
 
@@ -40,11 +40,19 @@ const LEGAL_CAPTURE_STYLE = {
   background:
     'radial-gradient(circle, transparent 56%, rgba(220,40,40,0.55) 58%)',
 };
+/** Right-click highlight color — Lichess-green at half opacity. Sits under
+ *  any selection ring so the user can still see legal-move targets. */
+const RIGHT_CLICK_HIGHLIGHT_STYLE = {
+  backgroundColor: 'rgba(35, 165, 75, 0.55)',
+};
+const RIGHT_CLICK_ARROW_COLOR = 'rgba(35, 165, 75, 0.8)';
 
 /**
  * Board view backed by react-chessboard. When `onMove` is supplied, supports
  * drag-and-drop with legal-move enforcement and click-to-select with target
- * highlighting; otherwise renders read-only.
+ * highlighting; otherwise renders read-only. Right-click on a square toggles
+ * a Lichess-style green highlight; right-click drag toggles a green arrow.
+ * Both persist across moves and are cleared on left-click.
  */
 export function Board({
   game,
@@ -54,19 +62,27 @@ export function Board({
   arrows,
 }: BoardProps): JSX.Element {
   const [selected, setSelected] = useState<Square | null>(null);
+  const [highlights, setHighlights] = useState<readonly Square[]>([]);
+  const [userArrows, setUserArrows] = useState<readonly ArrowSpec[]>([]);
   const interactive = Boolean(onMove);
 
   const customSquareStyles = useMemo(() => {
-    if (!selected) return undefined;
-    const styles: Record<string, React.CSSProperties> = {
-      [selected]: SELECTED_STYLE,
-    };
-    for (const move of game.legalMovesFrom(selected)) {
-      const isCapture = move.flags.includes('c') || move.flags.includes('e');
-      styles[move.to] = isCapture ? LEGAL_CAPTURE_STYLE : LEGAL_TARGET_STYLE;
+    const styles: Record<string, React.CSSProperties> = {};
+    for (const sq of highlights) styles[sq] = RIGHT_CLICK_HIGHLIGHT_STYLE;
+    if (selected) {
+      styles[selected] = SELECTED_STYLE;
+      for (const move of game.legalMovesFrom(selected)) {
+        const isCapture = move.flags.includes('c') || move.flags.includes('e');
+        styles[move.to] = isCapture ? LEGAL_CAPTURE_STYLE : LEGAL_TARGET_STYLE;
+      }
     }
-    return styles;
-  }, [game, selected]);
+    return Object.keys(styles).length > 0 ? styles : undefined;
+  }, [game, selected, highlights]);
+
+  const clearAnnotations = (): void => {
+    setHighlights([]);
+    setUserArrows([]);
+  };
 
   const tryMove = (
     from: Square,
@@ -85,6 +101,9 @@ export function Board({
   ): boolean => tryMove(sourceSquare, targetSquare, 'q');
 
   const handleSquareClick = (square: Square): void => {
+    // Lichess convention: any left-click clears persistent annotations,
+    // including read-only review boards where there's no move to make.
+    clearAnnotations();
     if (!interactive) return;
 
     if (selected && selected !== square) {
@@ -92,18 +111,46 @@ export function Board({
       if (moved) return;
     }
 
-    // Either no current selection or the click wasn't a valid target —
-    // try selecting the clicked square if it has a piece for the side to move.
     const hasMoves = game.legalMovesFrom(square).length > 0;
     setSelected(hasMoves ? square : null);
   };
 
-  // react-chessboard mutates the `customArrows` array (filters in place),
-  // so hand it a fresh mutable copy each render. The cast launders the
-  // tuple's readonly modifier away for the library type.
-  const customArrows = arrows
-    ? (arrows.map((a) => [...a]) as [Square, Square, string?][])
-    : undefined;
+  const handleSquareRightClick = (square: Square): void => {
+    setHighlights((prev) =>
+      prev.includes(square)
+        ? prev.filter((s) => s !== square)
+        : [...prev, square],
+    );
+  };
+
+  // react-chessboard fires `onArrowsChange` whenever its internal arrow set
+  // changes — including when we update `customArrows` (which calls the
+  // library's `clearArrows`, immediately firing back with `[]`). Treat
+  // empty-array calls as the post-prop-update echo and ignore them.
+  // Non-empty calls are user-drawn arrows; toggle each into our state.
+  const handleArrowsChange = (libArrows: ArrowSpec[]): void => {
+    if (libArrows.length === 0) return;
+    setUserArrows((prev) => {
+      const next = [...prev];
+      for (const arrow of libArrows) {
+        const idx = next.findIndex(
+          (a) => a[0] === arrow[0] && a[1] === arrow[1],
+        );
+        if (idx >= 0) next.splice(idx, 1);
+        else next.push(arrow);
+      }
+      return next;
+    });
+  };
+
+  // react-chessboard mutates the `customArrows` array (filters in place), so
+  // hand it a fresh mutable copy each render. Engine arrows from props come
+  // first so the user's overlay sits on top.
+  const customArrows = useMemo(() => {
+    const all = [...(arrows ?? []), ...userArrows];
+    if (all.length === 0) return undefined;
+    return all.map((a) => [...a]) as [Square, Square, string?][];
+  }, [arrows, userArrows]);
 
   return (
     <Chessboard
@@ -112,9 +159,12 @@ export function Board({
       boardWidth={width}
       arePiecesDraggable={interactive}
       onPieceDrop={interactive ? handlePieceDrop : undefined}
-      onSquareClick={interactive ? handleSquareClick : undefined}
+      onSquareClick={handleSquareClick}
+      onSquareRightClick={handleSquareRightClick}
+      onArrowsChange={handleArrowsChange}
       customSquareStyles={customSquareStyles}
       customArrows={customArrows}
+      customArrowColor={RIGHT_CLICK_ARROW_COLOR}
       autoPromoteToQueen
     />
   );
