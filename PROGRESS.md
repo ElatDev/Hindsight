@@ -4,7 +4,7 @@
 
 ## Current session
 
-**Phases 1-3 complete; Phase 4 Tasks 1-2 done.** 34 tests pass. The app now plays vs Stockfish end-to-end through IPC.
+**Phases 1-4 complete; Phase 5 / Task 1 done.** 34 tests pass.
 
 - Phase 1: Stockfish fetcher + UCI handshake + analyzePosition + Vitest engine tests (8) + IPC surface.
 - Phase 2: `chess.js@^1.4.0` wrapper with full typed surface, `GameEnd` const + union, 26 tests.
@@ -17,20 +17,22 @@
   - Task 6: EvalBar with sigmoid(evalCp / 410) → white-share, mate clamps to 99/1. Currently fed evalCp=0 placeholder; Phase 6 will wire `analyzePosition` output.
   - Task 7: useTheme hook (localStorage + prefers-color-scheme fallback) writes `<html data-theme>`; index.css fully driven by CSS variables.
 - Phase 4 / Task 1: `src/ui/NewGameDialog.tsx` modal — mode (vs-engine / free play), color (white / black / random), Elo slider 1320..3190. Random color resolves on confirm. `App.tsx` now carries `{ game, mode, playerColor, elo }` and re-orients the board to the player's color on vs-engine start.
-- Phase 4 / Task 2: When `mode='vs-engine'` and it's the engine's turn, an effect calls `window.hindsight.engine.bestMove({ fen, depth: 12, elo })`; the main process applies `UCI_LimitStrength=true` + `UCI_Elo=<elo>` before the search and returns the bestMove UCI string. The renderer parses `e2e4` / `e7e8q` and applies via `Game.move({from, to, promotion})`. A `requestId` ref discards stale results when the user starts a new game mid-think. `BestMoveRequest` in `shared/ipc.ts` gained the optional `elo` field.
+- Phase 4 / Task 2: When `mode='vs-engine'` and it's the engine's turn, an effect calls `window.hindsight.engine.bestMove({ fen, depth: 12, elo })`; the main process applies `UCI_LimitStrength=true` + `UCI_Elo=<elo>` before the search and returns the bestMove UCI string. The renderer parses `e2e4` / `e7e8q` and applies via `Game.move({from, to, promotion})`. `requestId` ref discards stale results.
+- Phase 4 / Task 3: `src/ui/GameEndBanner.tsx` shows on game end with result headline + reason (checkmate / stalemate / threefold / fifty-move / insufficient material / draw). Actions: Review (placeholder — jumps to ply 0 today, will seed Phase 6 analysis later), New game, Dismiss. Winner derived from the side NOT to move on a mate FEN.
+- Phase 5 / Task 1: `pgn:openFile` IPC channel — main process spawns `dialog.showOpenDialog` with a PGN filter, reads the file via `fs/promises.readFile`, returns `{ path, pgn } | null`. "Open PGN" header button calls it and loads the file into a fresh Game in free-play mode at the final ply.
 
 Notes:
 
 - PowerShell scripts must be ASCII-safe.
-- The full IPC round-trip (renderer → main → engine → back) hasn't been hit through DevTools yet — needs a manual "New game → Black → Start" once. Auto-tests cover the underlying analyzePosition; the IPC layer is thin glue.
-- Renderer bundle ~280kB. Main bundle 9.79kB. Acceptable.
+- IPC round-trip still wants a manual DevTools smoke. Now BOTH `engine.bestMove` and `pgn.openFile` are wired but unverified; "New game → Black → Start" exercises the engine path, "Open PGN" exercises the file path.
+- Renderer bundle ~280kB. Main bundle 10.44kB.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 4 / Task 3** — Game-end detection triggers "review this game?" prompt. When the active game ends (any `gameEnd()` non-null), surface a modal/banner offering to review it; "Review" pre-flags the position as the seed for Phase 6 analysis. For now (Phase 6 not yet built) the button can simply log the intent; it's a spec slot.
-- **Phase 5 / Task 1** — PGN file picker (Electron native dialog). Adds an `import:pgn` IPC channel that opens `dialog.showOpenDialog`, reads the file, and returns the PGN string for the renderer to feed into `Game.fromPgn`.
+- **Phase 5 / Task 2** — PGN paste textarea with parse-on-paste preview. A small modal/inline panel where the user pastes PGN text; the panel shows the parsed move count + result header before "Load" applies it to a fresh Game. Build on the existing `Game.fromPgn` + `headers()` surface.
+- **Phase 5 / Task 3** — Manual move-entry mode (board accepts moves, no engine). Already mostly true: free play mode with mode='free' is exactly this. Task probably resolves to confirming the UX is acceptable + perhaps a "Manual entry" preset in the new-game dialog (vs vs-engine vs free vs manual = all the same minus the engine-thinking path).
 
 ## Blockers
 
@@ -46,8 +48,8 @@ _None._
 |     1 | Stockfish UCI integration                          |     ✅     |
 |     2 | Chess logic layer (`chess.js`, PGN, FEN)           |     ✅     |
 |     3 | Board GUI                                          |     ✅     |
-|     4 | Play vs Stockfish                                  | 🟡 in prog |
-|     5 | Game import (PGN file/paste/manual)                |     ⬜     |
+|     4 | Play vs Stockfish                                  |     ✅     |
+|     5 | Game import (PGN file/paste/manual)                | 🟡 in prog |
 |     6 | Analysis pipeline (per-move eval + classification) |     ⬜     |
 |     7 | Tactical motif detection                           |     ⬜     |
 |     8 | Positional analysis                                |     ⬜     |
@@ -101,11 +103,11 @@ _None._
 
 - [x] **Task 1** — "New game vs engine" flow with Elo / skill-level chooser.
 - [x] **Task 2** — Engine plays its move on its turn (renderer requests `engine.bestMove` via IPC).
-- [ ] **Task 3** — Game-end detection triggers "review this game?" prompt.
+- [x] **Task 3** — Game-end detection triggers "review this game?" prompt.
 
 ## Phase 5 — Game import
 
-- [ ] **Task 1** — PGN file picker (Electron native dialog).
+- [x] **Task 1** — PGN file picker (Electron native dialog).
 - [ ] **Task 2** — PGN paste textarea with parse-on-paste preview.
 - [ ] **Task 3** — Manual move-entry mode (board accepts moves, no engine).
 - [ ] **Task 4** — Multi-game PGN: list selector for which game to load.
