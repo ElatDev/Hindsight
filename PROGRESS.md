@@ -4,28 +4,23 @@
 
 ## Current session
 
-**Phase 12 / Task 2 lands as a dedicated session.** SQLite persistence is now wired end-to-end. Lint + typecheck clean; the full vitest suite (572 tests) is green; the dev run boots cleanly, the IPC handlers respond without errors, and `<userData>/hindsight.db` is created with `.db-shm`/`.db-wal` on first launch.
+**Windows `npm run dist` build verified end-to-end.** Phase 13 / Task 4's main dependency — a clean installer build — is satisfied; what remains is the user-driven release click.
 
-This update:
+This session:
 
-- **better-sqlite3 + @electron/rebuild** added; the postinstall hook now runs `electron-rebuild -f -w better-sqlite3` after the Stockfish fetch so the native binary always tracks Electron 32's Node ABI. No MSVC build tools needed — the prebuilt binary loaded fine on this machine.
-- **`electron/storage/`** — `db.ts` opens the DB with WAL + foreign keys + a tiny migrator (a `schema_version` table + an append-only migrations array); `settings.ts` is a JSON-encoded KV store; `games.ts` is the `saved_games` CRUD with a header-extraction helper for the denormalised `white`/`black`/`result`/`event`/`played_at` columns.
-- **IPC** — six new channels (`settings:load`/`save`, `games:list`/`get`/`save`/`delete`) on `shared/ipc.ts`, exposed through `preload.ts` as `window.hindsight.settings` / `window.hindsight.games`.
-- **`useSettings` migration** — localStorage stays as a synchronous first-paint cache (no theme flicker on launch); on mount the hook reconciles against the SQLite-backed settings, and a fresh DB is seeded one-shot from the cache so existing user preferences survive the upgrade. Both stores are written-through on every update.
-- **Saved-games browser** — a new "Saved games" header button opens `SavedGamesDialog`. From there: save the current game (PGN + ply count, optional custom name), load a saved game back into the main view, or delete one. The dialog re-fetches after each mutation so ordering stays correct without optimistic-update bookkeeping.
-- **`Game.pgn()`** — added so the renderer can hand a clean PGN to the storage layer without re-parsing.
-- **`vite.config.ts`** — externalized `better-sqlite3`, `bindings`, and `file-uri-to-path` for both main and preload Rollup builds; the native `.node` addon must be resolved at runtime, not bundled. (Bundle size for `dist-electron/main.js` dropped from 49 → 18 KB as a happy side effect.)
-- **`electron-builder` config** — `asarUnpack` now pulls `better-sqlite3` out of the archive so the OS can dlopen the binary in packaged installers.
-- **Tests** — `electron/storage/__tests__/storage.test.ts` covers the PGN header-extraction helpers (5 cases). The full DB CRUD path is intentionally _not_ in vitest because the single `.node` binary is built for Electron's Node ABI (v128) and host vitest runs on system Node (v137); the SQL paths are exercised every dev launch and were verified clean today. If we grow non-trivial storage logic, lift those tests to electron-mocha rather than dual-build the native module.
+- Ran `npm run dist` from a clean tree. electron-builder produced `release/Hindsight-0.0.0-windows-x64.exe` (146 MB NSIS installer, exit code 0; signing skipped — no certificate, by design per ADR-005).
+- Inspected the unpacked output: `release/win-unpacked/resources/stockfish/bin/win32-x64/stockfish.exe` (extraResources is doing its job) and `release/win-unpacked/resources/app.asar.unpacked/node_modules/better-sqlite3/build/Release/better_sqlite3.node` (yesterday's `asarUnpack` rule extracts the native addon outside the archive so the OS can `dlopen` it). Both are wired correctly for a packaged launch.
+- Build artifacts are all under `release/` which is `.gitignore`d, so this session produces no tracked code changes.
+- Build-log warnings noted but not actioned (none block the release): `author is missed in the package.json` (cosmetic — only affects installer "Author" string), and `@electron/rebuild already used by electron-builder, please consider to remove excess dependency from devDependencies` (we keep it explicit because our own `postinstall` invokes it directly for dev rebuilds — not redundant).
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-Two Phase 13 tasks remain — both have user-driven prerequisites, so they're not autonomous-friendly.
+Two Phase 13 tasks remain — both are now strictly user-driven.
 
-- **Phase 13 / Task 1** — README screenshots / GIFs. Needs interactive UI captures (user-driven).
-- **Phase 13 / Task 4** — Cut a v0.1 release on GitHub. Depends on a clean `npm run dist` installer build (the host OS produces its native target; macOS DMG + Linux AppImage need their respective hosts or a CI matrix). Will also pick up the SQLite asarUnpack config that landed today.
+- **Phase 13 / Task 1** — README screenshots / GIFs. Needs interactive UI captures.
+- **Phase 13 / Task 4** — Cut a v0.1 release on GitHub. The build path is now verified; the remaining steps are: bump `package.json` `version` from `0.0.0` to `0.1.0`, re-run `npm run dist` to produce `Hindsight-0.1.0-windows-x64.exe`, then `gh release create v0.1.0 release/Hindsight-0.1.0-windows-x64.exe ...` with release notes. macOS DMG + Linux AppImage need their respective hosts or a CI matrix; ship Windows-only for v0.1 unless those are easy to obtain.
 
 Carved-out follow-ups still pending: piece-set bundling (Task 8 second half), engine-path override UI (Task 1/5 deferred), PGN-error polish (Task 5 deferred). Also worth flagging for v0.2: an analysis-cache table keyed on `(pgn_hash, depth)` so re-opening a saved review is instant — the `electron/storage/` layer is now the natural home for it.
 
