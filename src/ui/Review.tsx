@@ -36,7 +36,7 @@ const REVIEW_DEPTH = 12;
 const SUGGESTED_ARROW_COLOR = 'rgba(33, 150, 243, 0.85)';
 
 const CLASSIFICATION_LABEL: Record<Classification, string> = {
-  brilliant: 'Brilliant',
+  sharp: 'Sharp',
   best: 'Best',
   excellent: 'Excellent',
   good: 'Good',
@@ -51,7 +51,7 @@ const CLASSIFICATION_LABEL: Record<Classification, string> = {
  *  annotations but covers all classifications (the move-list intentionally
  *  skips Best/Excellent/Good to avoid clutter; the panel always shows one). */
 const CLASSIFICATION_GLYPH: Record<Classification, string> = {
-  brilliant: '!!',
+  sharp: '!!',
   best: '✓',
   excellent: '!',
   good: '·',
@@ -284,7 +284,7 @@ function ExplanationPanel({ move }: { move: ReviewedMove }): JSX.Element {
  *  best to worst. Zero-count buckets are hidden so a clean game doesn't look
  *  cluttered with rows full of zeros. */
 const SUMMARY_CLASSIFICATIONS: readonly Classification[] = [
-  'brilliant',
+  'sharp',
   'best',
   'excellent',
   'good',

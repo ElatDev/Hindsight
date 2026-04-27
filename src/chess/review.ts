@@ -142,6 +142,14 @@ export function detectMoveMotifs(
   const opponent: Color = mover === 'w' ? 'b' : 'w';
   const tags: MotifTag[] = [];
   const data: MotifData = {};
+  // True when the played move itself delivered check (chess.js appends `+`
+  // or `#` to the SAN). The check-resolved status governs the back-rank
+  // motif — its templates ("the rook delivers mate on the back rank")
+  // imply an immediate exploitation that the opponent can't perform while
+  // they're forced to address a check. Other static motifs (fork, pin,
+  // skewer, hanging) describe geometric patterns that hold regardless of
+  // whose turn it is and stay informative even alongside a check.
+  const moverGaveCheck = /[+#]$/.test(move.san);
 
   const hanging = findHangingPieces(replay).filter((p) => p.color === mover);
   if (hanging.length > 0) {
@@ -182,7 +190,7 @@ export function detectMoveMotifs(
   const backRank = findBackRankWeaknesses(replay).filter(
     (w) => w.king.color === mover,
   );
-  if (backRank.length > 0) {
+  if (backRank.length > 0 && !moverGaveCheck) {
     tags.push('backRank');
     data.backRankPiece = 'rook';
   }
@@ -463,7 +471,7 @@ export async function runGameReview(
 }
 
 const ZERO_COUNTS = (): ClassificationCounts => ({
-  brilliant: 0,
+  sharp: 0,
   best: 0,
   excellent: 0,
   good: 0,

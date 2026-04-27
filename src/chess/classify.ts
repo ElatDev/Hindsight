@@ -2,14 +2,16 @@ import type { AnalysisLine } from '../../shared/ipc';
 import type { MoveAnalysis } from './analysis';
 
 /**
- * Per-move quality buckets. Naming follows the chess.com / lichess vocabulary
- * users already know. `Brilliant` and `Book` are reserved for later phases:
- * `Brilliant` needs motif detection (Phase 7+) to identify sacrifices, and
- * `Book` needs the opening database (Phase 9). Until then the classifier will
- * never emit them.
+ * Per-move quality buckets. Naming mostly follows the chess.com / lichess
+ * vocabulary users already know; `Sharp` replaces "Brilliant" — same idea
+ * (a tactical move the engine itself rates highly), distinct name to keep
+ * Hindsight clear of any other product's house style. `Sharp` and `Book`
+ * are reserved for later phases: `Sharp` needs motif detection (Phase 7+)
+ * to identify sacrifices, and `Book` needs the opening database (Phase 9).
+ * Until then the classifier will never emit them.
  */
 export const Classification = {
-  Brilliant: 'brilliant',
+  Sharp: 'sharp',
   Best: 'best',
   Excellent: 'excellent',
   Good: 'good',
@@ -49,7 +51,7 @@ export type ClassifiedMove = MoveAnalysis & {
 
 /**
  * Predicate for classifications that warrant a multi-PV second pass.
- * Anything Inaccuracy-or-worse + Miss qualifies; Brilliant/Best/Excellent/Good
+ * Anything Inaccuracy-or-worse + Miss qualifies; Sharp/Best/Excellent/Good
  * + Book are skipped because they don't need an "you should have played..."
  * suggestion.
  */

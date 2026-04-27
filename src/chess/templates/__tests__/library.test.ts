@@ -162,8 +162,8 @@ describe('Template library — selector coverage over realistic contexts', () =>
     const { selector } = freshLibrary();
     const wildcardOnlyContexts: SelectionContext[] = [];
     for (const ctx of SAMPLES) {
-      // Every non-Brilliant / non-Book classification with no motifs should
-      // have explicit candidates; Brilliant/Book without motifs still have
+      // Every non-Sharp / non-Book classification with no motifs should
+      // have explicit candidates; Sharp/Book without motifs still have
       // their general templates. So every sample should produce ≥ 1.
       const candidates = selector.candidates(ctx);
       if (candidates.length === 0) wildcardOnlyContexts.push(ctx);

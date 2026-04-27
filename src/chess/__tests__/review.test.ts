@@ -153,6 +153,18 @@ describe('detectMoveMotifs', () => {
     expect(result.motifs).toEqual([]);
     expect(result.data).toEqual({});
   });
+
+  it('suppresses back-rank motif when the move gave check', () => {
+    // Black king on g8 with the classic f7/g7/h7 pawn shield (textbook
+    // back-rank-trap pattern). Black has a bishop on a3 and plays Bb4+,
+    // attacking the white king on e1 along the b4–e1 diagonal. The
+    // structural back-rank weakness exists, but white must address the
+    // check before exploiting it — so the explanation system shouldn't
+    // imply imminent back-rank mate.
+    const before = Game.fromFen('6k1/5ppp/8/8/8/b7/8/4K3 b - - 0 1');
+    const result = detectMoveMotifs(before, 'Bb4+');
+    expect(result.motifs).not.toContain('backRank');
+  });
 });
 
 describe('emptyReview', () => {
@@ -204,7 +216,7 @@ describe('countClassifications', () => {
     expect(counts.black.best).toBe(0);
     // All buckets should be present even when zero.
     expect(counts.white.blunder).toBe(0);
-    expect(counts.black.brilliant).toBe(0);
+    expect(counts.black.sharp).toBe(0);
   });
 });
 

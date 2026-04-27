@@ -12,7 +12,7 @@ If you've ever wanted Chess.com's review feature without paying for Diamond, or 
 
 - **Play vs Stockfish** at configurable strength (UCI Elo or skill level)
 - **Import games** — PGN file, paste PGN text, or enter moves manually
-- **Full game review** with annotations: Brilliant (‼), Great (!), Best, Excellent, Good, Inaccuracy (?!), Mistake (?), Blunder (??), Miss, Book
+- **Full game review** with annotations: Sharp (‼), Best (✓), Excellent (!), Good, Inaccuracy (?!), Mistake (?), Blunder (??), Miss, Book
 - **Tactical motif detection** — forks, pins, skewers, discovered attacks, hanging pieces, back-rank weaknesses, removing the defender, overloaded pieces
 - **Positional analysis** — pawn structure, king safety, piece activity, space, material imbalances
 - **Opening identification** via the bundled ECO database

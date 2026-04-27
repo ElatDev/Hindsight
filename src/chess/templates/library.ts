@@ -40,7 +40,7 @@ import type { TemplateRegistry } from './registry';
 import type { TemplateCriteria, TemplateSelector } from './selector';
 
 const Best = Classification.Best;
-const Brilliant = Classification.Brilliant;
+const Sharp = Classification.Sharp;
 const Excellent = Classification.Excellent;
 const Good = Classification.Good;
 const Inaccuracy = Classification.Inaccuracy;
@@ -98,45 +98,44 @@ export const TEMPLATES: Readonly<Record<string, TemplateEntry>> = {
     criteria: { classifications: [Best], phases: [Endgame] },
   },
 
-  // ----- Brilliant ------------------------------------------------------
-  'brilliant.general.1': {
-    source: 'Brilliant! {san} sees a tactic the engine itself rates highly.',
-    criteria: { classifications: [Brilliant] },
+  // ----- Sharp ----------------------------------------------------------
+  'sharp.general.1': {
+    source: 'Sharp! {san} sees a tactic the engine itself rates highly.',
+    criteria: { classifications: [Sharp] },
   },
-  'brilliant.general.2': {
-    source: '{san} is a brilliancy — a move most players walk right past.',
-    criteria: { classifications: [Brilliant] },
+  'sharp.general.2': {
+    source: '{san} is a sharp blow — a move most players walk right past.',
+    criteria: { classifications: [Sharp] },
   },
-  'brilliant.general.3': {
+  'sharp.general.3': {
     source:
       'A stunning find. {san} converts the position with surgical accuracy.',
-    criteria: { classifications: [Brilliant] },
+    criteria: { classifications: [Sharp] },
   },
-  'brilliant.general.4': {
+  'sharp.general.4': {
     source: 'Top engines reserve an exclamation mark for moves like {san}.',
-    criteria: { classifications: [Brilliant] },
+    criteria: { classifications: [Sharp] },
   },
-  'brilliant.mate-setup': {
-    source: '{san} sets up a forced mate. Brilliant calculation.',
-    criteria: { classifications: [Brilliant] },
+  'sharp.mate-setup': {
+    source: '{san} sets up a forced mate. Sharp calculation.',
+    criteria: { classifications: [Sharp] },
   },
-  'brilliant.fork': {
+  'sharp.fork': {
+    source: '{san} is a sharp fork — the {piece} hits {forkTargets} at once.',
+    criteria: { classifications: [Sharp], motifs: ['fork'] },
+  },
+  'sharp.discovered': {
     source:
-      '{san} is a brilliant fork — the {piece} hits {forkTargets} at once.',
-    criteria: { classifications: [Brilliant], motifs: ['fork'] },
-  },
-  'brilliant.discovered': {
-    source:
-      '{san} unleashes a brilliant discovered attack — the resulting threat is decisive.',
+      '{san} unleashes a sharp discovered attack — the resulting threat is decisive.',
     criteria: {
-      classifications: [Brilliant],
+      classifications: [Sharp],
       motifs: ['discoveredAttack', 'discoveredCheck'],
     },
   },
-  'brilliant.endgame': {
+  'sharp.endgame': {
     source:
-      '{san} is a brilliant endgame find — most players would never spot the resource.',
-    criteria: { classifications: [Brilliant], phases: [Endgame] },
+      '{san} is a sharp endgame find — most players would never spot the resource.',
+    criteria: { classifications: [Sharp], phases: [Endgame] },
   },
 
   // ----- Excellent ------------------------------------------------------

@@ -68,7 +68,7 @@ This is documented as ADR-001 in [DECISIONS.md](./DECISIONS.md).
 1. **Input** — user imports a PGN or finishes a game vs Stockfish. Renderer parses with `chess.js` → array of `(fen, sanMove)` pairs.
 2. **Analysis request** — renderer calls `analyzeGame(moves, depth, multiPV)` over IPC.
 3. **Per-move UCI loop** — main process feeds each FEN to Stockfish, captures `info depth N score cp X pv ...` and `bestmove`. Multi-PV gives us the top 3 alternatives.
-4. **Classification** — for each move, compare eval before vs after. Centipawn loss thresholds → Brilliant / Best / Excellent / Good / Inaccuracy / Mistake / Blunder. Mate-in-X handled separately.
+4. **Classification** — for each move, compare eval before vs after. Centipawn loss thresholds → Sharp / Best / Excellent / Good / Inaccuracy / Mistake / Blunder. Mate-in-X handled separately.
 5. **Motif detection** — for moves flagged as `Mistake` or worse, run motif detectors against the position the player missed (forks, pins, hanging pieces, etc.).
 6. **Template selection** — pick from the explanation library based on `(classification, motifs, game phase)`. Substitute squares/pieces/sequences.
 7. **Persistence** — store game + per-move annotations in SQLite. Cache key: PGN hash + analysis depth.
@@ -95,7 +95,7 @@ Stockfish binaries are **not committed to git** (license-compatible but bulky an
 
 ---
 
-## What this architecture does *not* do
+## What this architecture does _not_ do
 
 - **No network calls at runtime.** The fetch-stockfish script runs once at install and is the only network touch. Analysis, opening identification, template rendering — all local.
 - **No telemetry, ever.**

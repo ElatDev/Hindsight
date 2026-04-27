@@ -22,10 +22,10 @@ export type MoveListProps = {
  * Maps to the chess-conventional NAG glyphs: `!!`/`!`/`!?`/`?!`/`?`/`??`. We
  * skip Best/Excellent/Good — those are common enough that a glyph would just
  * be visual noise. `book` gets `B` so the user can see the opening was still
- * in theory; `miss` gets `?!` (per chess.com convention for "missed a tactic").
+ * in theory; `miss` gets `?!` (chess convention for "missed a tactic").
  */
 const CLASSIFICATION_GLYPH: Partial<Record<Classification, string>> = {
-  brilliant: '!!',
+  sharp: '!!',
   inaccuracy: '?!',
   mistake: '?',
   blunder: '??',

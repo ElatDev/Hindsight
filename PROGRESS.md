@@ -101,7 +101,7 @@ _None._
 ## Phase 6 — Analysis pipeline
 
 - [x] **Task 1** — `src/chess/analysis.ts`: orchestrate per-move eval over a `Game.history()`.
-- [x] **Task 2** — Centipawn-loss thresholds → classification (Brilliant, Best, Excellent, Good, Inaccuracy, Mistake, Blunder, Miss, Book).
+- [x] **Task 2** — Centipawn-loss thresholds → classification (Sharp, Best, Excellent, Good, Inaccuracy, Mistake, Blunder, Miss, Book).
 - [x] **Task 3** — Mate-in-X handling (eval comparison breaks down at mate scores; treat separately).
 - [x] **Task 4** — Multi-PV second pass for flagged moves (top 3 alternatives).
 - [x] **Task 5** — Accuracy score (Lichess-style harmonic-mean formula over centipawn losses).
@@ -151,7 +151,7 @@ _None._
 - [x] **Task 6** — Critical-moments quick-jump list.
 - [ ] **Task 7** — Multi-PV alternatives panel for flagged moves.
 - [ ] **Task 8** — Right-click square highlights + arrows (Lichess-style: persistent across nav, cleared on left-click). Both review and play views.
-- [ ] **Task 9** — On-piece grade badges during review: Chess.com-style overlay icons (green check on best, blue spark on brilliant, orange `?!` on inaccuracy, red `??` on blunder, etc.) rendered over the destination square so the grade is readable from the board itself, not just the side panel.
+- [ ] **Task 9** — On-piece grade badges during review: overlay icons (green check on best, blue spark on sharp, orange `?!` on inaccuracy, red `??` on blunder, etc.) rendered over the destination square so the grade is readable from the board itself, not just the side panel.
 
 ## Phase 12 — Polish + distribution
 
