@@ -11,6 +11,8 @@ import type { Square } from 'chess.js';
 import type { Classification } from '../chess/classify';
 import type { Game } from '../chess/game';
 import { ArrowOverlay } from './ArrowOverlay';
+import { BOARD_PALETTES } from './boardThemes';
+import type { BoardTheme } from './useSettings';
 
 /** `[from, to, color?]` — passed straight through to react-chessboard's
  *  `customArrows`. Color is any CSS color string; library default is amber. */
@@ -50,6 +52,9 @@ export type BoardProps = {
    *  square. When set, a small classification-coloured glyph is rendered on
    *  top of the piece occupying that square. */
   gradeBadge?: GradeBadge | null;
+  /** Board colour palette key. Defaults to `'classic'` — the chess.com
+   *  cream/brown the renderer ships with out of the box. */
+  boardTheme?: BoardTheme;
 };
 
 const SELECTED_STYLE = { backgroundColor: 'rgba(255, 233, 99, 0.55)' };
@@ -96,7 +101,9 @@ export function Board({
   width,
   arrows,
   gradeBadge,
+  boardTheme = 'classic',
 }: BoardProps): JSX.Element {
+  const palette = BOARD_PALETTES[boardTheme] ?? BOARD_PALETTES.classic;
   const [selected, setSelected] = useState<Square | null>(null);
   const [highlights, setHighlights] = useState<readonly Square[]>([]);
   const [userArrows, setUserArrows] = useState<readonly ArrowSpec[]>([]);
@@ -224,6 +231,8 @@ export function Board({
           }
           customArrows={libraryArrows}
           customArrowColor="transparent"
+          customLightSquareStyle={{ backgroundColor: palette.light }}
+          customDarkSquareStyle={{ backgroundColor: palette.dark }}
           autoPromoteToQueen
         />
         <ArrowOverlay

@@ -29,8 +29,8 @@ const PIECE_THEME_LABEL: Record<PieceTheme, string> = {
   alpha: 'Alpha',
 };
 
-const PHASE12_PENDING_NOTE =
-  'Saved now; takes effect once the board/piece theme picker lands.';
+const PIECE_SET_PENDING_NOTE =
+  'Saved now; piece-set bundles ship in a follow-up release.';
 
 /**
  * Settings dialog (Phase 12 / Task 1). The dialog ships the foundational
@@ -143,9 +143,6 @@ export function SettingsDialog({
               {BOARD_THEME_LABEL[key]}
             </label>
           ))}
-          <p className="settings__hint settings__hint--pending">
-            {PHASE12_PENDING_NOTE}
-          </p>
         </fieldset>
 
         <fieldset className="dialog__field">
@@ -163,7 +160,7 @@ export function SettingsDialog({
             </label>
           ))}
           <p className="settings__hint settings__hint--pending">
-            {PHASE12_PENDING_NOTE}
+            {PIECE_SET_PENDING_NOTE}
           </p>
         </fieldset>
 

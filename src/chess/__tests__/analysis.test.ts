@@ -204,6 +204,50 @@ describe('analyzeGame', () => {
     expect(results[3].mateInAfter).toBeNull();
   });
 
+  it('plumbs multiPV into the pre-move analyze call and surfaces linesBefore', async () => {
+    const game = new Game();
+    game.move('e4');
+
+    const analyze = vi.fn(async (req: AnalyzeRequest) => ({
+      bestMove: 'e2e4',
+      lines: [
+        { depth: 12, multipv: 1, pv: ['e2e4'], evalCp: 30, mateIn: null },
+        { depth: 12, multipv: 2, pv: ['d2d4'], evalCp: 25, mateIn: null },
+        { depth: 12, multipv: 3, pv: ['c2c4'], evalCp: 20, mateIn: null },
+      ].slice(0, req.multiPV ?? 1),
+    }));
+
+    const [rec] = await analyzeGame(game, {
+      depth: 12,
+      multiPV: 3,
+      analyze,
+      analyzeAfter: false,
+    });
+    // The pre-move analyze call must carry the multiPV request.
+    expect(analyze).toHaveBeenCalledWith(
+      expect.objectContaining({ multiPV: 3 }),
+    );
+    expect(rec.linesBefore).toBeDefined();
+    expect(rec.linesBefore).toHaveLength(3);
+  });
+
+  it('omits linesBefore when multiPV defaults to 1', async () => {
+    const game = new Game();
+    game.move('e4');
+    const analyze = vi.fn(async (_req: AnalyzeRequest) =>
+      stubResult('e2e4', 30),
+    );
+    const [rec] = await analyzeGame(game, {
+      depth: 12,
+      analyze,
+      analyzeAfter: false,
+    });
+    expect(rec.linesBefore).toBeUndefined();
+    expect(analyze).toHaveBeenCalledWith(
+      expect.not.objectContaining({ multiPV: expect.anything() }),
+    );
+  });
+
   it('flips mate sign on the after-position eval', async () => {
     const game = new Game();
     game.move('e4');

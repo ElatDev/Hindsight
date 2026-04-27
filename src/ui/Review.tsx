@@ -19,6 +19,7 @@ import { Board, type ArrowSpec, type GradeBadge } from './Board';
 import { EvalBar } from './EvalBar';
 import { MoveList } from './MoveList';
 import { NavControls } from './NavControls';
+import type { BoardTheme } from './useSettings';
 
 export type ReviewProps = {
   /** The game to walk through. The component does not mutate it. */
@@ -27,6 +28,8 @@ export type ReviewProps = {
   /** Stockfish search depth fed into `runGameReview`. Sourced from the
    *  Settings dialog (Phase 12 / Task 1); falls back to 12 if unset. */
   analysisDepth?: number;
+  /** Board palette key from the Settings dialog (Phase 12 / Task 8). */
+  boardTheme?: BoardTheme;
   onFlip: () => void;
   onToggleTheme: () => void;
   /** Leave review mode and return to the previous (play / free) view. */
@@ -90,6 +93,7 @@ export function Review({
   game,
   orientation,
   analysisDepth = DEFAULT_REVIEW_DEPTH,
+  boardTheme,
   onFlip,
   onToggleTheme,
   onExit,
@@ -247,6 +251,7 @@ export function Review({
           game={displayed}
           width={520}
           orientation={orientation}
+          boardTheme={boardTheme}
           arrows={arrows}
           gradeBadge={gradeBadge}
         />

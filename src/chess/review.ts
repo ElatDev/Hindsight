@@ -13,7 +13,6 @@
 
 import type { Color, Move, PieceSymbol, Square } from 'chess.js';
 import { gameAccuracy, type GameAccuracy } from './accuracy';
-import { analyzeAlternatives } from './alternatives';
 import { analyzeGame, type AnalyzeFn, type MoveAnalysis } from './analysis';
 import {
   classifyAnalyses,
@@ -123,10 +122,15 @@ export type RunGameReviewOptions = {
   /** Source of randomness for template selection variety. Defaults to
    *  `Math.random`; tests inject a deterministic rng. */
   readonly rng?: Rng;
-  /** Skip the multi-PV second pass for flagged moves. Defaults to false —
-   *  on by default so the alternatives panel has data. Tests set true to
-   *  keep the engine call count predictable. */
+  /** Skip surfacing multi-PV alternatives for flagged moves. Defaults to
+   *  false — alternatives are pulled from the first-pass `multiPV=3` lines
+   *  so they cost nothing extra. Tests set true to keep the per-ply lines
+   *  field predictable. */
   readonly skipAlternatives?: boolean;
+  /** First-pass multi-PV requested from the engine. Default 3 so flagged
+   *  moves carry alternative lines without a second engine pass; lower
+   *  values (1) trade alternatives for slightly faster searches. */
+  readonly multiPV?: number;
 };
 
 const PIECE_NAME: Record<PieceSymbol, string> = {
@@ -422,25 +426,24 @@ export async function runGameReview(
     return emptyReview();
   }
 
+  // Phase 12 / Task 6 perf win: ask the first pass for `multiPV` lines so
+  // flagged moves get alternatives "for free" — no separate engine call.
+  // Skipping alternatives drops back to MultiPV=1 to keep the search
+  // narrowly focused (cheaper for tests, marginally faster in production).
+  const wantAlternatives = !opts.skipAlternatives;
+  const multiPV = wantAlternatives ? (opts.multiPV ?? 3) : 1;
   const analyses: MoveAnalysis[] = await analyzeGame(game, {
     depth,
+    multiPV,
     analyze: opts.analyze,
     signal: opts.signal,
     onProgress: (done, totalPlies) => opts.onProgress?.(done, totalPlies),
   });
 
   const baseClassifications = classifyAnalyses(analyses);
-  // Second pass — multi-PV at each flagged move's pre-move FEN. Skipped in
-  // tests by default to avoid blowing up the engine-call count; on by
-  // default in production so the Review UI's alternatives panel has data.
-  const classifications = opts.skipAlternatives
-    ? baseClassifications
-    : await analyzeAlternatives(baseClassifications, {
-        depth,
-        multiPV: 3,
-        analyze: opts.analyze,
-        signal: opts.signal,
-      });
+  const classifications = wantAlternatives
+    ? attachAlternativesFromFirstPass(baseClassifications)
+    : baseClassifications;
   const opening = identifyOpening(game.history());
   const registry = new TemplateRegistry();
   const selector = new TemplateSelector();
@@ -545,6 +548,24 @@ export function countClassifications(records: readonly ClassifiedMove[]): {
 /** Zero-state review used by the UI when there are no moves to analyze. */
 export function emptyReview(): GameReview {
   return { perMove: [], opening: null, summary: emptySummary() };
+}
+
+/**
+ * Lift the multi-PV first-pass output (`linesBefore`, when present) onto
+ * each flagged classification's `alternatives` field. Unflagged moves are
+ * passed through untouched — no point cluttering Best/Excellent records
+ * with "engine also liked..." noise. Phase 12 / Task 6 perf win: this
+ * replaces the dedicated second engine pass that previously ran per
+ * flagged move.
+ */
+export function attachAlternativesFromFirstPass(
+  records: ClassifiedMove[],
+): ClassifiedMove[] {
+  return records.map((rec) => {
+    if (!isFlaggedClassification(rec.classification)) return rec;
+    if (!rec.linesBefore || rec.linesBefore.length === 0) return rec;
+    return { ...rec, alternatives: rec.linesBefore };
+  });
 }
 
 /**

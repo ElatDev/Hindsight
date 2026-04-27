@@ -346,6 +346,7 @@ function App(): JSX.Element {
           game={state.game}
           orientation={orientation}
           analysisDepth={settings.analysisDepth}
+          boardTheme={settings.boardTheme}
           onFlip={flip}
           onToggleTheme={toggleTheme}
           onExit={exitReview}
@@ -362,6 +363,7 @@ function App(): JSX.Element {
               game={displayed}
               width={520}
               orientation={orientation}
+              boardTheme={settings.boardTheme}
               onMove={playerCanMove ? handleMove : undefined}
             />
           </div>

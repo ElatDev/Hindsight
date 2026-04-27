@@ -1,4 +1,8 @@
-import type { AnalysisResult, AnalyzeRequest } from '../../shared/ipc';
+import type {
+  AnalysisLine,
+  AnalysisResult,
+  AnalyzeRequest,
+} from '../../shared/ipc';
 import { Game } from './game';
 
 /**
@@ -34,6 +38,11 @@ export type MoveAnalysis = {
    *  = they're delivering mate, negative = they're getting mated). null when
    *  the resulting position was cp-scored, or when the move ended the game. */
   mateInAfter: number | null;
+  /** Full multi-PV result for the pre-move analysis, sorted by `multipv`.
+   *  Only populated when the caller passes `multiPV > 1`; lets downstream
+   *  consumers (review pipeline) source alternatives without a second
+   *  engine pass. */
+  linesBefore?: AnalysisLine[];
 };
 
 export type AnalyzeFn = (req: AnalyzeRequest) => Promise<AnalysisResult>;
@@ -55,6 +64,12 @@ export type AnalyzeGameOptions = {
    *  resulting position so consumers can compute centipawn loss. Set to false
    *  to halve the engine load when only the pre-move eval is needed. */
   analyzeAfter?: boolean;
+  /** Number of principal variations to request from the pre-move analysis.
+   *  Defaults to 1. When > 1 the full `lines` array surfaces on
+   *  `linesBefore`, so the review pipeline can populate flagged-move
+   *  alternatives without a separate second pass (Phase 12 / Task 6 perf
+   *  win — halves engine load on the alternatives-second-pass case). */
+  multiPV?: number;
 };
 
 const moveToUci = (move: {
@@ -83,12 +98,17 @@ export async function analyzeGame(
   const replay = new Game();
   const analyze = opts.analyze ?? defaultAnalyze;
   const wantAfter = opts.analyzeAfter ?? true;
+  const multiPV = opts.multiPV ?? 1;
 
   for (let i = 0; i < total; i += 1) {
     if (opts.signal?.aborted) break;
     const fenBefore = replay.fen();
     const move = verbose[i];
-    const before = await analyze({ fen: fenBefore, depth: opts.depth });
+    const before = await analyze({
+      fen: fenBefore,
+      depth: opts.depth,
+      ...(multiPV > 1 ? { multiPV } : {}),
+    });
     const beforeTop = before.lines[0];
     replay.move(move.san);
 
@@ -114,6 +134,7 @@ export async function analyzeGame(
       bestMove: before.bestMove,
       evalCpAfter,
       mateInAfter,
+      ...(multiPV > 1 ? { linesBefore: before.lines } : {}),
     };
     results.push(record);
     opts.onProgress?.(i + 1, total, record);

@@ -375,4 +375,30 @@ describe('runGameReview', () => {
     // At least once per ply that has matching templates.
     expect(rng).toHaveBeenCalled();
   });
+
+  it('requests multiPV from the first pass and surfaces alternatives without a second engine call', async () => {
+    // Build a game where the played move is *not* engine-best, so the
+    // classifier flags it and the alternatives panel should populate.
+    const game = new Game();
+    game.move('e4');
+    game.move('e5');
+    game.move('h4'); // bad — engine prefers Nf3.
+
+    let multiPVSeen = 0;
+    const analyze = vi.fn(async (req: AnalyzeRequest) => {
+      if (req.multiPV && req.multiPV > 1) multiPVSeen = req.multiPV;
+      const lines = [
+        { depth: 12, multipv: 1, pv: ['g1f3'], evalCp: 30, mateIn: null },
+        { depth: 12, multipv: 2, pv: ['d2d4'], evalCp: 25, mateIn: null },
+        { depth: 12, multipv: 3, pv: ['c2c4'], evalCp: 20, mateIn: null },
+      ].slice(0, req.multiPV ?? 1);
+      return { bestMove: 'g1f3', lines };
+    });
+
+    const review = await runGameReview(game, { analyze, depth: 12 });
+    expect(multiPVSeen).toBeGreaterThanOrEqual(3);
+    const flagged = review.perMove.find((m) => m.classification !== 'best');
+    expect(flagged).toBeDefined();
+    expect(flagged?.alternatives.length).toBeGreaterThan(0);
+  });
 });
