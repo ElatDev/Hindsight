@@ -4,21 +4,21 @@
 
 ## Current session
 
-**Phase 8 complete.** 196 tests pass.
+**Phase 9 Tasks 1-2 done.** 205 tests pass.
 
 Latest pair (this update):
 
-- Phase 8 / Task 4: `positional/material.ts` — `analyzeMaterial(game)` returns per-side piece counts, totals, diff, a bishop-pair flag, and per-piece countDelta. Excludes kings; uses the standard PIECE_VALUE table. 8 tests.
-- Phase 8 / Task 5: `positional/gamePhase.ts` — `detectGamePhase(game)` returns `'opening' | 'middlegame' | 'endgame'` from a Stockfish-style phase score (sum of N=1, B=1, R=2, Q=4 over remaining non-pawn material) plus a ply-count guard. `phaseScore(game)` exported for raw 0..MAX_PHASE_SCORE access. 9 tests.
+- Phase 9 / Task 1: `scripts/build-eco.mjs` + `src/data/eco.json` — fetcher pulls a-e.tsv from `lichess-org/chess-openings` (CC0), parses to `{ eco, name, pgn, san }`, sorts longest-first, writes a 3,690-entry JSON (~700KB). Run via `npm run build-eco`; not in `postinstall` so users don't need network on install.
+- Phase 9 / Task 2: `src/chess/openings.ts` — `identifyOpening(moves)` returns the deepest ECO entry whose SAN list is a prefix of `moves`. First-move index built at module load keeps the per-call scan small. 9 tests covering Sicilian, Najdorf, Ruy Lopez, Queen's Gambit, Italian, deepest-match-wins, empty/unknown inputs, trailing non-book moves.
 
-Earlier this session: Phases 1-7 closed, then Phase 8 in five tasks — pawn structure, king safety (open files, missing shield, attacker count on king ring, exposure), piece activity (knight outposts, open/semi-open file rooks, long-diagonal bishops), material imbalance, game-phase detection.
+Earlier this session: Phase 8 closed (5 positional analyzers — pawn structure, king safety, piece activity, material imbalance, game-phase detection). Earlier Phases 5-7 fully closed in this run.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 9 / Task 1** — Bundle Lichess ECO data (TSV → `src/data/eco.json`). Source: `https://github.com/lichess-org/chess-openings`. Will need a small build script.
-- **Phase 9 / Task 2** — `identifyOpening(moves)` walks a move list against the ECO trie.
+- **Phase 9 / Task 3** — Display "B90: Sicilian Defense, Najdorf Variation" in the review header. Lives on the UI side; consume `identifyOpening` from `analyzeGame` output or directly from the loaded game's `history()`.
+- **Phase 10 / Task 1** — Define template DSL (variable substitution syntax, conditionals). Heart of the explanation system.
 
 ## Blockers
 
@@ -28,22 +28,22 @@ _None._
 
 ## Phase status
 
-| Phase | Scope                                              | Status |
-| ----: | -------------------------------------------------- | :----: |
-|     0 | Repo + scaffold                                    |   ✅   |
-|     1 | Stockfish UCI integration                          |   ✅   |
-|     2 | Chess logic layer (`chess.js`, PGN, FEN)           |   ✅   |
-|     3 | Board GUI                                          |   ✅   |
-|     4 | Play vs Stockfish                                  |   ✅   |
-|     5 | Game import (PGN file/paste/manual)                |   ✅   |
-|     6 | Analysis pipeline (per-move eval + classification) |   ✅   |
-|     7 | Tactical motif detection                           |   ✅   |
-|     8 | Positional analysis                                |   ✅   |
-|     9 | Opening database (ECO)                             |   ⬜   |
-|    10 | Explanation template system (100+ templates)       |   ⬜   |
-|    11 | Review UI                                          |   ⬜   |
-|    12 | Polish + distribution                              |   ⬜   |
-|    13 | Documentation + screenshots                        |   ⬜   |
+| Phase | Scope                                              |   Status   |
+| ----: | -------------------------------------------------- | :--------: |
+|     0 | Repo + scaffold                                    |     ✅     |
+|     1 | Stockfish UCI integration                          |     ✅     |
+|     2 | Chess logic layer (`chess.js`, PGN, FEN)           |     ✅     |
+|     3 | Board GUI                                          |     ✅     |
+|     4 | Play vs Stockfish                                  |     ✅     |
+|     5 | Game import (PGN file/paste/manual)                |     ✅     |
+|     6 | Analysis pipeline (per-move eval + classification) |     ✅     |
+|     7 | Tactical motif detection                           |     ✅     |
+|     8 | Positional analysis                                |     ✅     |
+|     9 | Opening database (ECO)                             | 🟡 in prog |
+|    10 | Explanation template system (100+ templates)       |     ⬜     |
+|    11 | Review UI                                          |     ⬜     |
+|    12 | Polish + distribution                              |     ⬜     |
+|    13 | Documentation + screenshots                        |     ⬜     |
 
 ---
 
@@ -128,8 +128,8 @@ _None._
 
 ## Phase 9 — Opening database
 
-- [ ] **Task 1** — Bundle Lichess ECO data (TSV → JSON in `src/data/eco.json`).
-- [ ] **Task 2** — `identifyOpening(moves)` walks the move list against the ECO trie.
+- [x] **Task 1** — Bundle Lichess ECO data (TSV → JSON in `src/data/eco.json`).
+- [x] **Task 2** — `identifyOpening(moves)` walks the move list against the ECO trie.
 - [ ] **Task 3** — Display "B90: Sicilian Defense, Najdorf Variation" in the review header.
 
 ## Phase 10 — Explanation template system
