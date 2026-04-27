@@ -113,6 +113,31 @@ Format:
 
 ---
 
+## ADR-005: Distribution — electron-builder with extraResources for Stockfish
+
+**Date:** 2026-04-27
+**Status:** Accepted
+
+**Context:** Phase 12 / Task 4 ships installers for Windows / macOS / Linux. The bundled Stockfish binary (per ADR-003) needs to land somewhere the OS can `exec` it; that rules out the ASAR archive.
+
+**Decision:** Use `electron-builder` with the binary copied via `extraResources` from `stockfish/bin` to `<resources>/stockfish/bin`. At runtime `electron/main.ts` resolves the binary root from `process.resourcesPath` when `app.isPackaged` is true, and from `app.getAppPath()` (project root) otherwise. Default targets: NSIS (Windows x64), DMG (macOS x64+arm64), AppImage (Linux x64). No code-signing or notarization in the v0.1 config — users will see the standard "unidentified developer" prompts; signing certs are deferred to a per-platform follow-up since they're paid + per-OS workflows.
+
+**Consequences:**
+
+- (+) Single command (`npm run dist`) builds an installer for the host OS.
+- (+) Stockfish is shipped as part of the installer — users don't need a network round-trip on first launch.
+- (+) Renderer + main code lives inside ASAR (faster startup, smaller footprint); only the binary lives outside.
+- (–) No code signing in v0.1 → SmartScreen warning on Windows, "unidentified developer" on macOS. Acceptable for an open-source v0.1; the README will document the warning.
+- (–) Cross-OS build needs the corresponding host (e.g., macOS DMG can only be built on macOS without a CI matrix). The config supports the obvious GH Actions matrix when we add it.
+
+**Alternatives considered:**
+
+- `electron-forge`: similar feature set; team familiarity with electron-builder + the dep is already on disk made it the lower-friction pick.
+- Per-OS CI immediately (Phase 13 / Task 4): deferred until manual local builds prove the config.
+- Bundle Stockfish inside ASAR: doesn't work — exec'ing files from inside the archive isn't supported.
+
+---
+
 ## Note: Windows dev gotcha — `ELECTRON_RUN_AS_NODE`
 
 If `ELECTRON_RUN_AS_NODE=1` is set in your shell environment (some Windows setups have this from earlier electron experimentation), `npm run dev` and `npx electron .` will both fail with `TypeError: Cannot read properties of undefined (reading 'whenReady')`. The fix is to `unset ELECTRON_RUN_AS_NODE` before running. We may add an `env-check` script to detect this at `npm run dev` startup if it bites repeatedly.

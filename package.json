@@ -17,7 +17,9 @@
     "prepare": "husky",
     "fetch-stockfish": "node scripts/fetch-stockfish.mjs",
     "build-eco": "node scripts/build-eco.mjs",
-    "postinstall": "node scripts/fetch-stockfish.mjs"
+    "postinstall": "node scripts/fetch-stockfish.mjs",
+    "dist": "npm run build && electron-builder",
+    "dist:dir": "npm run build && electron-builder --dir"
   },
   "dependencies": {
     "chess.js": "^1.4.0",
@@ -54,5 +56,72 @@
     "*.{json,md,css,html}": [
       "prettier --write"
     ]
+  },
+  "build": {
+    "appId": "com.elatdev.hindsight",
+    "productName": "Hindsight",
+    "copyright": "Copyright © 2026 Vince",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json",
+      "!**/__tests__/**",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "stockfish/bin",
+        "to": "stockfish/bin"
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [],
+    "compression": "normal",
+    "publish": null,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-windows-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.games",
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Game",
+      "artifactName": "${productName}-${version}-linux-${arch}.${ext}"
+    }
   }
 }

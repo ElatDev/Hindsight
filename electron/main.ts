@@ -25,11 +25,22 @@ let mainWindow: BrowserWindow | null = null;
 let engineInstance: StockfishEngine | null = null;
 let enginePending: Promise<StockfishEngine> | null = null;
 
+/**
+ * Resolve the directory holding `stockfish/bin/<platform-arch>/`. In dev the
+ * binaries live next to the project root (where `scripts/fetch-stockfish.mjs`
+ * dropped them). In a packaged build they're copied via electron-builder's
+ * `extraResources` into `process.resourcesPath` — which is *outside* the
+ * ASAR archive so the OS can actually exec the binary.
+ */
+function engineRoot(): string {
+  return app.isPackaged ? process.resourcesPath : app.getAppPath();
+}
+
 async function getEngine(): Promise<StockfishEngine> {
   if (engineInstance) return engineInstance;
   if (enginePending) return enginePending;
   enginePending = (async (): Promise<StockfishEngine> => {
-    const e = new StockfishEngine({ appRoot: app.getAppPath() });
+    const e = new StockfishEngine({ appRoot: engineRoot() });
     await e.start();
     engineInstance = e;
     enginePending = null;
