@@ -4,27 +4,24 @@
 
 ## Current session
 
-**Phase 12 / Task 4 lands solo.** 567 tests pass; lint + typecheck + build clean. Single-task commit was justified since the only well-scoped pair partner — Task 2 (SQLite + saved-games) — is too big to bundle responsibly.
+**Phase 13 / Tasks 2 + 3 land as a pair.** Lint + typecheck clean; prettier check on the two new files passes; pre-commit hook ran `prettier --write` cleanly with no further edits.
 
 This update:
 
-- **Phase 12 / Task 4** — `electron-builder` config. New `build` block in `package.json` targets NSIS (Windows x64), DMG (macOS x64+arm64), and AppImage (Linux x64). Renderer + main code lives in ASAR; Stockfish ships as `extraResources` so the OS can `exec` it from outside the archive. `electron/main.ts` gains an `engineRoot()` helper that picks `process.resourcesPath` when packaged and `app.getAppPath()` otherwise, so the existing `defaultStockfishPath` resolves correctly in both dev and installer runs. New npm scripts: `dist` and `dist:dir` (unpacked, faster). Code signing / notarization deferred — documented in ADR-005 alongside why.
+- **Phase 13 / Task 2** — `docs/USER_GUIDE.md`. End-to-end walkthrough: modes (Free / Vs engine / Review), board regions, right-click highlights + arrows, suggested-move arrows, grade badges, importing PGNs (file, paste, multi-game, manual), playing vs Stockfish, the review pipeline (annotations, motifs, alternatives, critical moments, summary), settings, annotated-PGN export, privacy guarantees, and troubleshooting for the Stockfish-missing dialog and the Windows `ELECTRON_RUN_AS_NODE` gotcha.
+- **Phase 13 / Task 3** — `docs/CONTRIBUTING.md`. Project layout map, local setup, full template-DSL reference (variables, conditionals, escapes, truthiness rules) with the complete render-context variable list, motif-detector authoring guide (including the `MOTIF_TAGS` invariant — never rename existing tags), opening-database rebuild instructions, translations notes, code style + commit conventions, PR checklist, and bug-report guidance.
 
-Manual UI verification: Vite + Electron boot clean, no console errors at startup. Installer build (`npm run dist`) not actually run in this session — needs platform-specific testing per OS; the config is validated structurally only.
+No code touched, no tests run beyond lint + typecheck (both docs are markdown-only).
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-One Phase 12 task remains:
+One Phase 12 task and two Phase 13 tasks remain.
 
 - **Phase 12 / Task 2** — SQLite persistence layer + saved-games list. Native module (better-sqlite3) + electron-rebuild + schema design + migration from the localStorage `useSettings` backend + a "saved games" list view. Wants a dedicated session — install + electron-rebuild on Windows can require MSVC build tools; surface that as a blocker if it bites.
-
-Then Phase 13 (documentation):
-
-- **Phase 13 / Tasks 2 + 3** — User guide and Contributor guide. Pure markdown writing; a clean pair to start Phase 13 once Phase 12 closes (or in parallel).
-- **Phase 13 / Task 1** — README screenshots. Needs interactive UI captures (user-driven).
-- **Phase 13 / Task 4** — Cut v0.1 release on GitHub. Depends on Phase 12 / Task 2 + an actual installer build via the new `npm run dist`.
+- **Phase 13 / Task 1** — README screenshots / GIFs. Needs interactive UI captures (user-driven).
+- **Phase 13 / Task 4** — Cut v0.1 release on GitHub. Depends on Phase 12 / Task 2 + an actual installer build via `npm run dist`.
 
 Carved-out follow-ups still pending: piece-set bundling (Task 8 second half), engine-path override UI (Task 1/5 deferred), PGN-error polish (Task 5 deferred).
 
@@ -176,8 +173,8 @@ _None._
 ## Phase 13 — Documentation
 
 - [ ] **Task 1** — Update README with screenshots / GIFs of the finished app.
-- [ ] **Task 2** — User guide (`docs/USER_GUIDE.md`).
-- [ ] **Task 3** — Contributor guide (`docs/CONTRIBUTING.md`) — how to add templates, motif detectors, translations.
+- [x] **Task 2** — User guide (`docs/USER_GUIDE.md`).
+- [x] **Task 3** — Contributor guide (`docs/CONTRIBUTING.md`) — how to add templates, motif detectors, translations.
 - [ ] **Task 4** — Cut a v0.1 release on GitHub with installers attached.
 
 ---
