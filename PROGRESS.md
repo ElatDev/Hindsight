@@ -4,16 +4,16 @@
 
 ## Current session
 
-**Phase 0 complete.** Repo live at https://github.com/ElatDev/Hindsight (public). Electron + React + TS scaffold builds and boots; lint, typecheck, prettier, husky pre-commit all green. Six commits on `main`.
+**Phase 1 / Tasks 1–2 done.** Stockfish fetcher (`scripts/fetch-stockfish.{sh,ps1}` + `fetch-stockfish.mjs` dispatcher) wired to `postinstall`; verified end-to-end on Windows (downloaded `sf_17` Windows x86-64 build, ~76MB, lands at `stockfish/bin/win32-x64/stockfish.exe`). Defaults to plain `x86-64` for broad CPU compatibility; `STOCKFISH_VARIANT` env var picks AVX2/BMI2/etc., `STOCKFISH_VERSION` overrides the release tag, `SKIP_STOCKFISH_DOWNLOAD=1` short-circuits. `electron/engine/stockfish.ts` spawns the binary, parses stdout into `line` events, runs the `uci`/`isready`/`ucinewgame`/`isready` handshake with timeout, and exposes `start()` / `send()` / `quit()` / `isRunning()`. Smoke-tested via `node --experimental-strip-types` — handshake completes in ~330ms, clean quit. Lint + typecheck green; husky pre-commit passes.
 
-Handoff for next session: pick up at Phase 1 / Task 1 (Stockfish fetcher script). The fetcher should download the latest Stockfish for the current OS into `stockfish/bin/{platform}-{arch}/` and wire into `package.json` `postinstall`. Note the Windows gotcha logged in DECISIONS.md: `unset ELECTRON_RUN_AS_NODE` before any `npm run dev` / direct electron invocation.
+Note: PowerShell scripts must be ASCII-safe — Windows PowerShell 5.1 reads `.ps1` as Windows-1252 unless there's a BOM, so any non-ASCII char (em-dash, smart quotes) breaks the parser. Avoid them in `.ps1` files going forward.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 1 / Task 1** — Write `scripts/fetch-stockfish.{ps1,sh}` to download the OS-appropriate Stockfish binary into `stockfish/bin/`. Hook into `postinstall` in `package.json`.
-- **Phase 1 / Task 2** — `electron/engine/stockfish.ts`: spawn the Stockfish process, handle UCI handshake (`uci`, `isready`, `ucinewgame`).
+- **Phase 1 / Task 3** — `electron/engine/analyze.ts`: `analyzePosition(fen, depth, multiPV)` returning `{ bestMove, evalCp, mateIn, pv[] }`. Build on `StockfishEngine.send()` / `line` events; parse `info depth N score cp X pv ...` and `bestmove`.
+- **Phase 1 / Task 4** — `electron/engine/__tests__/`: Vitest tests against the real Stockfish binary. Cover handshake (Task 2), bestmove on starting position, and mate-in-1 detection. Also adds Vitest as a dev dep + `npm test` script.
 
 ## Blockers
 
@@ -26,7 +26,7 @@ _None._
 | Phase | Scope                                              |   Status   |
 | ----: | -------------------------------------------------- | :--------: |
 |     0 | Repo + scaffold                                    |     ✅     |
-|     1 | Stockfish UCI integration                          | 🟡 next up |
+|     1 | Stockfish UCI integration                          | 🟡 in prog |
 |     2 | Chess logic layer (`chess.js`, PGN, FEN)           |     ⬜     |
 |     3 | Board GUI                                          |     ⬜     |
 |     4 | Play vs Stockfish                                  |     ⬜     |
@@ -57,8 +57,8 @@ _None._
 
 ## Phase 1 — Stockfish UCI integration
 
-- [ ] **Task 1** — Write `scripts/fetch-stockfish.{ps1,sh}` to download the OS-appropriate Stockfish binary into `stockfish/bin/`. Hook into `postinstall` in `package.json`.
-- [ ] **Task 2** — `electron/engine/stockfish.ts`: spawn the Stockfish process, handle UCI handshake (`uci`, `isready`, `ucinewgame`).
+- [x] **Task 1** — Write `scripts/fetch-stockfish.{ps1,sh}` to download the OS-appropriate Stockfish binary into `stockfish/bin/`. Hook into `postinstall` in `package.json`.
+- [x] **Task 2** — `electron/engine/stockfish.ts`: spawn the Stockfish process, handle UCI handshake (`uci`, `isready`, `ucinewgame`).
 - [ ] **Task 3** — `electron/engine/analyze.ts`: `analyzePosition(fen, depth, multiPV)` returning `{ bestMove, evalCp, mateIn, pv[] }`.
 - [ ] **Task 4** — `electron/engine/__tests__/`: unit tests using a real Stockfish (Vitest + child_process). Cover handshake, bestmove on starting position, mate-in-1 detection.
 - [ ] **Task 5** — IPC: expose `engine.analyze` / `engine.bestMove` via preload. Typed in `shared/ipc.ts`.
