@@ -4,7 +4,7 @@
 
 ## Current session
 
-**Phases 1-3 complete.** 34 tests pass. The app now boots into a working chess UI: drag-drop with legality + highlighting, move list with click-navigate, keyboard shortcuts, eval bar (placeholder), light/dark theme toggle.
+**Phases 1-3 complete; Phase 4 Tasks 1-2 done.** 34 tests pass. The app now plays vs Stockfish end-to-end through IPC.
 
 - Phase 1: Stockfish fetcher + UCI handshake + analyzePosition + Vitest engine tests (8) + IPC surface.
 - Phase 2: `chess.js@^1.4.0` wrapper with full typed surface, `GameEnd` const + union, 26 tests.
@@ -16,19 +16,21 @@
   - Task 5: NavControls (First/Prev/Next/Last/Flip) + Left/Right/Home/End shortcuts; reviewing past disables drag-drop.
   - Task 6: EvalBar with sigmoid(evalCp / 410) → white-share, mate clamps to 99/1. Currently fed evalCp=0 placeholder; Phase 6 will wire `analyzePosition` output.
   - Task 7: useTheme hook (localStorage + prefers-color-scheme fallback) writes `<html data-theme>`; index.css fully driven by CSS variables.
+- Phase 4 / Task 1: `src/ui/NewGameDialog.tsx` modal — mode (vs-engine / free play), color (white / black / random), Elo slider 1320..3190. Random color resolves on confirm. `App.tsx` now carries `{ game, mode, playerColor, elo }` and re-orients the board to the player's color on vs-engine start.
+- Phase 4 / Task 2: When `mode='vs-engine'` and it's the engine's turn, an effect calls `window.hindsight.engine.bestMove({ fen, depth: 12, elo })`; the main process applies `UCI_LimitStrength=true` + `UCI_Elo=<elo>` before the search and returns the bestMove UCI string. The renderer parses `e2e4` / `e7e8q` and applies via `Game.move({from, to, promotion})`. A `requestId` ref discards stale results when the user starts a new game mid-think. `BestMoveRequest` in `shared/ipc.ts` gained the optional `elo` field.
 
 Notes:
 
 - PowerShell scripts must be ASCII-safe.
-- IPC `window.hindsight.engine.bestMove(...)` round-trip still not manually verified through DevTools — Phase 6 / Task 1 will exercise it for real (orchestrating per-move eval pulls the entire engine→IPC→renderer pipeline).
-- Renderer bundle ~280kB. Acceptable for desktop.
+- The full IPC round-trip (renderer → main → engine → back) hasn't been hit through DevTools yet — needs a manual "New game → Black → Start" once. Auto-tests cover the underlying analyzePosition; the IPC layer is thin glue.
+- Renderer bundle ~280kB. Main bundle 9.79kB. Acceptable.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 4 / Task 1** — "New game vs engine" flow with Elo / skill-level chooser. Likely a small modal/header bar with an Elo slider; on accept, reset the Game and stash the chosen Elo for use when the engine plays its move (Task 2). Stockfish has built-in `UCI_LimitStrength` + `UCI_Elo` (1320–3190).
-- **Phase 4 / Task 2** — Engine plays its move on its turn. When it's the engine's colour, call `window.hindsight.engine.bestMove({ fen, depth })` and apply the returned UCI move. This is the first real exercise of the IPC pipeline end-to-end.
+- **Phase 4 / Task 3** — Game-end detection triggers "review this game?" prompt. When the active game ends (any `gameEnd()` non-null), surface a modal/banner offering to review it; "Review" pre-flags the position as the seed for Phase 6 analysis. For now (Phase 6 not yet built) the button can simply log the intent; it's a spec slot.
+- **Phase 5 / Task 1** — PGN file picker (Electron native dialog). Adds an `import:pgn` IPC channel that opens `dialog.showOpenDialog`, reads the file, and returns the PGN string for the renderer to feed into `Game.fromPgn`.
 
 ## Blockers
 
@@ -44,7 +46,7 @@ _None._
 |     1 | Stockfish UCI integration                          |     ✅     |
 |     2 | Chess logic layer (`chess.js`, PGN, FEN)           |     ✅     |
 |     3 | Board GUI                                          |     ✅     |
-|     4 | Play vs Stockfish                                  | 🟡 next up |
+|     4 | Play vs Stockfish                                  | 🟡 in prog |
 |     5 | Game import (PGN file/paste/manual)                |     ⬜     |
 |     6 | Analysis pipeline (per-move eval + classification) |     ⬜     |
 |     7 | Tactical motif detection                           |     ⬜     |
@@ -97,8 +99,8 @@ _None._
 
 ## Phase 4 — Play vs Stockfish
 
-- [ ] **Task 1** — "New game vs engine" flow with Elo / skill-level chooser.
-- [ ] **Task 2** — Engine plays its move on its turn (renderer requests `engine.bestMove` via IPC).
+- [x] **Task 1** — "New game vs engine" flow with Elo / skill-level chooser.
+- [x] **Task 2** — Engine plays its move on its turn (renderer requests `engine.bestMove` via IPC).
 - [ ] **Task 3** — Game-end detection triggers "review this game?" prompt.
 
 ## Phase 5 — Game import
