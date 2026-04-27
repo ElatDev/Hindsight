@@ -4,23 +4,22 @@
 
 ## Current session
 
-**Phase 1 / Tasks 1–4 done.** Engine layer is now end-to-end working with tests:
+**Phase 1 complete; Phase 2 / Task 1 done.** 17 tests pass across the engine and chess wrapper layers.
 
-- `scripts/fetch-stockfish.{sh,ps1}` + `fetch-stockfish.mjs` dispatcher wired to `postinstall`. Verified on Windows: `sf_17` Windows x86-64 build (~76MB) lands at `stockfish/bin/win32-x64/stockfish.exe`. Defaults to plain x86-64 for broad CPU compatibility; `STOCKFISH_VARIANT`, `STOCKFISH_VERSION`, and `SKIP_STOCKFISH_DOWNLOAD=1` env overrides supported.
-- `electron/engine/stockfish.ts` — `StockfishEngine` class spawns the binary, parses stdout into `line` events, runs the `uci`/`isready`/`ucinewgame`/`isready` handshake (~330ms on this machine), and exposes `start()` / `send()` / `quit()` / `isRunning()`.
-- `electron/engine/analyze.ts` — `analyzePosition(engine, fen, { depth, multiPV?, timeoutMs? })` drives `position fen` + `go depth N`, parses incremental `info ...` lines (latest per multipv index), and resolves on `bestmove` with `{ bestMove, lines[] }` where each line has pv, evalCp, mateIn, depth, multipv.
-- Vitest 2.1 added with dedicated `vitest.config.ts` (avoids the Electron plugin during tests). 8 tests pass against the real Stockfish binary in ~3.85s: handshake, isready, double-start guard, missing-options guard, quit lifecycle, best move from starting position, mate-in-1 detection (Rd1-d8#), MultiPV=3 returning 3 distinct first moves. `npm test` / `npm run test:run` scripts added.
+- Phase 1 / Task 5 (IPC): `shared/ipc.ts` exports the typed contract (AnalysisLine, AnalysisResult, AnalyzeRequest, BestMoveRequest, EngineApi, HindsightApi, IpcChannel constants, plus `declare global Window.hindsight`). `electron/main.ts` registers `engine:analyze` and `engine:bestMove` ipcMain handlers backed by a single lazily-started `StockfishEngine`, with clean shutdown on `before-quit`. `electron/preload.ts` bridges `window.hindsight.engine.{analyze,bestMove}` via `ipcRenderer.invoke`. `electron/engine/analyze.ts` was deduped to re-export the shared types so there's a single source of truth. `npm run build` produces a 4.92kB main bundle and 0.29kB preload.
+- Phase 2 / Task 1 (chess.js wrapper): `src/chess/game.ts` wraps `chess.js@^1.4.0`. Surface: `new Game()` plus `fromFen` / `fromPgn` static factories, instance `load(pgn)` / `loadFen(fen)`, `move(san)` returning Move|null (no throws on illegal), `undo`, `fen`, `turn`, `legalMoves`(+verbose), `history`(+verbose), `inCheck`, `isGameOver`, `gameEnd()` classifier returning `'checkmate' | 'stalemate' | 'threefold-repetition' | 'fifty-move' | 'insufficient-material' | 'draw' | null`, plus `raw()` escape hatch. 9 tests cover initial state, legal/illegal moves, Fool's Mate, stalemate, K-vs-K insufficient material, PGN round-trip, undo, and legal-move count.
 
-Phase 1 is one task short of complete: Task 5 wires the engine to the renderer over IPC.
+Notes:
 
-Note: PowerShell scripts must be ASCII-safe — Windows PowerShell 5.1 reads `.ps1` as Windows-1252 unless there's a BOM, so any non-ASCII char (em-dash, smart quotes) breaks the parser. Avoid them in `.ps1` files going forward.
+- PowerShell scripts must be ASCII-safe — Windows PowerShell 5.1 reads `.ps1` as Windows-1252 unless there's a BOM.
+- Engine + IPC layer is wired end-to-end but has not been runtime-verified through the renderer DevTools yet (build green, tests green, but no manual `window.hindsight.engine.bestMove(...)` round-trip yet). Worth a sanity check when next pair touches the renderer.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 1 / Task 5** — IPC: expose `engine.analyze` / `engine.bestMove` via preload. Typed in `shared/ipc.ts`. Owns the long-lived `StockfishEngine` instance in `electron/main.ts`; renderer calls through `window.hindsight.engine.*`.
-- **Phase 2 / Task 1** — Add `chess.js`. Wrap in `src/chess/game.ts` with our typed surface (`Game.load(pgn)`, `Game.move(san)`, `Game.fen()`, `Game.history()`, `Game.isGameOver()`).
+- **Phase 2 / Task 2** — PGN parsing edge cases: support headers, comments, NAGs, variations (we'll mostly ignore variations on import for v1 but parse without erroring). Build on the existing `Game.fromPgn` / `Game.load` paths.
+- **Phase 2 / Task 3** — Game-end detection: confirm `gameEnd()` covers checkmate, stalemate, threefold, fifty-move, insufficient material; surface as a typed `GameEnd` enum (already partially done — verify and extend tests).
 
 ## Blockers
 
@@ -33,8 +32,8 @@ _None._
 | Phase | Scope                                              |   Status   |
 | ----: | -------------------------------------------------- | :--------: |
 |     0 | Repo + scaffold                                    |     ✅     |
-|     1 | Stockfish UCI integration                          | 🟡 in prog |
-|     2 | Chess logic layer (`chess.js`, PGN, FEN)           |     ⬜     |
+|     1 | Stockfish UCI integration                          |     ✅     |
+|     2 | Chess logic layer (`chess.js`, PGN, FEN)           | 🟡 in prog |
 |     3 | Board GUI                                          |     ⬜     |
 |     4 | Play vs Stockfish                                  |     ⬜     |
 |     5 | Game import (PGN file/paste/manual)                |     ⬜     |
@@ -68,11 +67,11 @@ _None._
 - [x] **Task 2** — `electron/engine/stockfish.ts`: spawn the Stockfish process, handle UCI handshake (`uci`, `isready`, `ucinewgame`).
 - [x] **Task 3** — `electron/engine/analyze.ts`: `analyzePosition(fen, depth, multiPV)` returning `{ bestMove, evalCp, mateIn, pv[] }`.
 - [x] **Task 4** — `electron/engine/__tests__/`: unit tests using a real Stockfish (Vitest + child_process). Cover handshake, bestmove on starting position, mate-in-1 detection.
-- [ ] **Task 5** — IPC: expose `engine.analyze` / `engine.bestMove` via preload. Typed in `shared/ipc.ts`.
+- [x] **Task 5** — IPC: expose `engine.analyze` / `engine.bestMove` via preload. Typed in `shared/ipc.ts`.
 
 ## Phase 2 — Chess logic layer
 
-- [ ] **Task 1** — Add `chess.js`. Wrap in `src/chess/game.ts` with our typed surface (`Game.load(pgn)`, `Game.move(san)`, `Game.fen()`, `Game.history()`, `Game.isGameOver()`).
+- [x] **Task 1** — Add `chess.js`. Wrap in `src/chess/game.ts` with our typed surface (`Game.load(pgn)`, `Game.move(san)`, `Game.fen()`, `Game.history()`, `Game.isGameOver()`).
 - [ ] **Task 2** — PGN parsing: support headers, comments, NAGs, variations (we'll mostly ignore variations on import for v1 but parse without erroring).
 - [ ] **Task 3** — Game-end detection: checkmate, stalemate, threefold, fifty-move, insufficient material. Surface as a typed `GameEnd` enum.
 - [ ] **Task 4** — Tests for tricky PGN inputs (en passant, promotion, castling notation variants).
