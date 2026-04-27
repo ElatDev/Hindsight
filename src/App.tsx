@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Color, Square } from 'chess.js';
 import { Board } from './ui/Board';
 import { EvalBar } from './ui/EvalBar';
+import { GameEndBanner } from './ui/GameEndBanner';
 import { MoveList } from './ui/MoveList';
 import { NavControls } from './ui/NavControls';
 import {
@@ -37,6 +38,8 @@ function App(): JSX.Element {
   const [showNewGame, setShowNewGame] = useState(false);
   const [engineThinking, setEngineThinking] = useState(false);
   const [engineError, setEngineError] = useState<string | null>(null);
+  const [showEndBanner, setShowEndBanner] = useState(true);
+  const [pgnError, setPgnError] = useState<string | null>(null);
   const { toggle: toggleTheme } = useTheme();
 
   const history = useMemo(() => {
@@ -151,9 +154,41 @@ function App(): JSX.Element {
     setViewPly(0);
     setEngineError(null);
     setShowNewGame(false);
+    setShowEndBanner(true);
+    setPgnError(null);
     if (settings.mode === 'vs-engine') {
       setOrientation(settings.playerColor === 'w' ? 'white' : 'black');
     }
+  }, []);
+
+  const handleOpenPgn = useCallback(async (): Promise<void> => {
+    try {
+      const result = await window.hindsight.pgn.openFile();
+      if (!result) return; // user cancelled
+      const loaded = new Game();
+      loaded.load(result.pgn);
+      setState({
+        game: loaded,
+        mode: 'free',
+        playerColor: 'w',
+        elo: 1500,
+      });
+      setVersion((v) => v + 1);
+      setViewPly(loaded.history().length);
+      setEngineError(null);
+      setShowEndBanner(true);
+      setPgnError(null);
+    } catch (err: unknown) {
+      setPgnError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+
+  const handleReview = useCallback((): void => {
+    // Phase 6 will wire this to the analysis pipeline. For now jumping to the
+    // start of the game and dismissing the banner gets the user into the
+    // navigation UX they'll use during review.
+    setViewPly(0);
+    setShowEndBanner(false);
   }, []);
 
   const statusLine = (() => {
@@ -180,8 +215,35 @@ function App(): JSX.Element {
         >
           New game
         </button>
+        <button
+          type="button"
+          className="header-secondary-btn"
+          onClick={() => void handleOpenPgn()}
+        >
+          Open PGN
+        </button>
       </header>
       <p className="tagline">Free, offline, open-source chess game review.</p>
+
+      {pgnError ? (
+        <p className="status status--error">PGN error: {pgnError}</p>
+      ) : null}
+
+      {showEndBanner && state.game.isGameOver() ? (
+        <GameEndBanner
+          reason={state.game.gameEnd() ?? 'draw'}
+          winner={
+            state.game.gameEnd() === 'checkmate'
+              ? state.game.turn() === 'w'
+                ? 'black'
+                : 'white'
+              : null
+          }
+          onReview={handleReview}
+          onNewGame={() => setShowNewGame(true)}
+          onDismiss={() => setShowEndBanner(false)}
+        />
+      ) : null}
 
       <div className="play-area">
         <EvalBar evalCp={0} mateIn={null} orientation={orientation} />

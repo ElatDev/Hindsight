@@ -50,9 +50,19 @@ export type BestMoveRequest = {
 export const IpcChannel = {
   EngineAnalyze: 'engine:analyze',
   EngineBestMove: 'engine:bestMove',
+  PgnOpenFile: 'pgn:openFile',
 } as const;
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel];
+
+/** Result of opening a PGN file via the native dialog. `null` when the user
+ *  cancels; the renderer treats that as a no-op. */
+export type PgnOpenResult = {
+  /** Absolute path of the chosen file. */
+  path: string;
+  /** Raw PGN text. */
+  pgn: string;
+} | null;
 
 /** API surface exposed on `window.hindsight` by the preload script. */
 export type EngineApi = {
@@ -60,9 +70,14 @@ export type EngineApi = {
   bestMove(req: BestMoveRequest): Promise<string | null>;
 };
 
+export type PgnApi = {
+  openFile(): Promise<PgnOpenResult>;
+};
+
 export type HindsightApi = {
   version: string;
   engine: EngineApi;
+  pgn: PgnApi;
 };
 
 declare global {

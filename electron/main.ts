@@ -1,10 +1,12 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   IpcChannel,
   type AnalysisResult,
   type AnalyzeRequest,
   type BestMoveRequest,
+  type PgnOpenResult,
 } from '../shared/ipc';
 import { analyzePosition } from './engine/analyze';
 import { StockfishEngine } from './engine/stockfish';
@@ -53,6 +55,21 @@ function registerIpcHandlers(): void {
       });
     },
   );
+
+  ipcMain.handle(IpcChannel.PgnOpenFile, async (): Promise<PgnOpenResult> => {
+    const result = await dialog.showOpenDialog({
+      title: 'Open PGN',
+      filters: [
+        { name: 'PGN files', extensions: ['pgn'] },
+        { name: 'All files', extensions: ['*'] },
+      ],
+      properties: ['openFile'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    const filePath = result.filePaths[0];
+    const pgn = await readFile(filePath, 'utf8');
+    return { path: filePath, pgn };
+  });
 
   ipcMain.handle(
     IpcChannel.EngineBestMove,

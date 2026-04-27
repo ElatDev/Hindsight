@@ -5,6 +5,7 @@ import {
   type AnalyzeRequest,
   type BestMoveRequest,
   type HindsightApi,
+  type PgnOpenResult,
 } from '../shared/ipc';
 
 const api: HindsightApi = {
@@ -14,6 +15,10 @@ const api: HindsightApi = {
       ipcRenderer.invoke(IpcChannel.EngineAnalyze, req),
     bestMove: (req: BestMoveRequest): Promise<string | null> =>
       ipcRenderer.invoke(IpcChannel.EngineBestMove, req),
+  },
+  pgn: {
+    openFile: (): Promise<PgnOpenResult> =>
+      ipcRenderer.invoke(IpcChannel.PgnOpenFile),
   },
 };
 
