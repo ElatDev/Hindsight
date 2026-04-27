@@ -458,3 +458,89 @@ body,
 .dialog__primary:hover {
   filter: brightness(1.1);
 }
+
+.pgn-select-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem;
+}
+
+.pgn-select-list__row {
+  display: block;
+}
+
+.pgn-select-list__btn {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr auto auto auto;
+  align-items: baseline;
+  gap: 0.6rem;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.92rem;
+  background: var(--bg-button);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+}
+
+.pgn-select-list__btn:hover:not(:disabled) {
+  background: var(--bg-button-hover);
+}
+
+.pgn-select-list__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pgn-select-list__num {
+  color: var(--fg-subtle);
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.pgn-select-list__players {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pgn-select-list__vs {
+  color: var(--fg-subtle);
+  font-weight: 400;
+}
+
+.pgn-select-list__event {
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pgn-select-list__result {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  min-width: 3.5ch;
+  text-align: right;
+}
+
+.pgn-select-list__moves {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.8rem;
+  color: var(--fg-subtle);
+  min-width: 6ch;
+  text-align: right;
+}

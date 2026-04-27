@@ -10,9 +10,11 @@ import {
   type GameMode,
   type NewGameSettings,
 } from './ui/NewGameDialog';
+import { PgnGameSelectDialog } from './ui/PgnGameSelectDialog';
 import { PgnPasteDialog } from './ui/PgnPasteDialog';
 import { useTheme } from './ui/useTheme';
 import { Game } from './chess/game';
+import { previewPgnGames, type PgnGamePreview } from './chess/pgnSplit';
 
 type AppState = {
   game: Game;
@@ -42,6 +44,7 @@ function App(): JSX.Element {
   const [engineError, setEngineError] = useState<string | null>(null);
   const [showEndBanner, setShowEndBanner] = useState(true);
   const [pgnError, setPgnError] = useState<string | null>(null);
+  const [pgnGames, setPgnGames] = useState<PgnGamePreview[] | null>(null);
   const { toggle: toggleTheme } = useTheme();
 
   const history = useMemo(() => {
@@ -163,7 +166,7 @@ function App(): JSX.Element {
     }
   }, []);
 
-  const loadPgnText = useCallback((pgn: string): boolean => {
+  const loadSinglePgn = useCallback((pgn: string): boolean => {
     try {
       const loaded = new Game();
       loaded.load(pgn);
@@ -178,12 +181,39 @@ function App(): JSX.Element {
       setEngineError(null);
       setShowEndBanner(true);
       setPgnError(null);
+      setPgnGames(null);
       return true;
     } catch (err: unknown) {
       setPgnError(err instanceof Error ? err.message : String(err));
       return false;
     }
   }, []);
+
+  /** Load a (possibly multi-game) PGN. With one game the loader runs
+   *  immediately; with two or more we open the selector. Returns true if the
+   *  caller should treat the load as accepted (selector opened or single-game
+   *  load succeeded). */
+  const loadPgnText = useCallback(
+    (pgn: string): boolean => {
+      const previews = previewPgnGames(pgn);
+      if (previews.length === 0) {
+        setPgnError('No games found in PGN.');
+        return false;
+      }
+      if (previews.length === 1) {
+        const only = previews[0];
+        if (!only.ok) {
+          setPgnError(only.error);
+          return false;
+        }
+        return loadSinglePgn(only.pgn);
+      }
+      setPgnError(null);
+      setPgnGames(previews);
+      return true;
+    },
+    [loadSinglePgn],
+  );
 
   const handleOpenPgnFile = useCallback(async (): Promise<void> => {
     try {
@@ -308,6 +338,14 @@ function App(): JSX.Element {
             if (loadPgnText(pgn)) setShowPgnPaste(false);
           }}
           onCancel={() => setShowPgnPaste(false)}
+        />
+      ) : null}
+
+      {pgnGames ? (
+        <PgnGameSelectDialog
+          games={pgnGames}
+          onSelect={(pgn) => loadSinglePgn(pgn)}
+          onCancel={() => setPgnGames(null)}
         />
       ) : null}
     </main>

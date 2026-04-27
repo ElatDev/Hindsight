@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Game } from '../chess/game';
+import { previewPgnGames } from '../chess/pgnSplit';
 
 export type PgnPasteDialogProps = {
   onLoad: (pgn: string) => void;
@@ -7,22 +7,28 @@ export type PgnPasteDialogProps = {
 };
 
 type Preview =
-  | { ok: true; moves: number; headers: Record<string, string> }
+  | {
+      ok: true;
+      gameCount: number;
+      moves: number;
+      headers: Record<string, string>;
+    }
   | { ok: false; error: string }
   | { ok: 'empty' };
 
 function previewPgn(text: string): Preview {
   const trimmed = text.trim();
   if (!trimmed) return { ok: 'empty' };
-  try {
-    const g = Game.fromPgn(trimmed);
-    return { ok: true, moves: g.history().length, headers: g.headers() };
-  } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
+  const games = previewPgnGames(trimmed);
+  if (games.length === 0) return { ok: 'empty' };
+  const first = games[0];
+  if (!first.ok) return { ok: false, error: first.error };
+  return {
+    ok: true,
+    gameCount: games.length,
+    moves: first.moveCount,
+    headers: first.headers,
+  };
 }
 
 /**
@@ -64,7 +70,10 @@ export function PgnPasteDialog({
             </span>
           ) : preview.ok === true ? (
             <span className="dialog__preview-ok">
-              {preview.moves} half-move{preview.moves === 1 ? '' : 's'} parsed
+              {preview.gameCount > 1
+                ? `${preview.gameCount} games found — pick one after Load. First: `
+                : ''}
+              {preview.moves} half-move{preview.moves === 1 ? '' : 's'}
               {preview.headers.White || preview.headers.Black
                 ? ` — ${preview.headers.White ?? '?'} vs ${
                     preview.headers.Black ?? '?'
