@@ -4,23 +4,23 @@
 
 ## Current session
 
-**Phases 1-6 complete; Phase 7 Tasks 1-5 done.** 137 tests pass.
+**Phases 1-6 complete; Phase 7 Tasks 1-7 done.** 148 tests pass.
 
-- Phase 7 / Tasks 1-3: hanging, fork, pin detectors — covered in earlier commits.
-- Phase 7 / Task 4: `motifs/skewer.ts` — `findSkewers(game)` mirrors pin. Long-range piece through a more-valuable enemy to a less-valuable enemy behind. King's value (100) makes king-front the canonical "absolute skewer". 8 tests.
-- Phase 7 / Task 5: `motifs/discovered.ts` — `findDiscoveredAttacks(before, san)` replays the move and diffs attack-edge graphs (attacker → enemy-occupied target). New edges whose attacker is not the just-moved piece are discovered attacks. `isCheck` flag for discovered checks. `isDiscoveredCheck()` predicate. Castling (two-piece moves) is a known v1 imprecision. 9 tests.
+- Phase 7 / Tasks 1-5: hanging, fork, pin, skewer, discovered-attack — covered in earlier commits.
+- Phase 7 / Task 6: `motifs/doubleAttack.ts` — value-agnostic cousin of forks. Any piece attacking 2+ enemies. 5 tests.
+- Phase 7 / Task 7: `motifs/backRank.ts` — king on back rank with every forward escape square (≤3 candidates, fewer at corners) blocked by own pieces. Static check only — doesn't reach for whether the opponent has the heavy piece to exploit (engine eval handles that). 6 tests.
 
 Notes:
 
-- 19 pairs / 38 tasks landed this session. Phase 6 closed; Phase 7 5/8 done.
-- Lint + typecheck + 137-test suite all green. Manual DevTools smoke still owed for the renderer-side analysis pipeline.
+- 20 pairs / 40 tasks landed this session. Phase 7 7/8 done — only Task 8 (removing-defender / overloaded piece) left.
+- Lint + typecheck + 148-test suite all green. Manual DevTools smoke still owed for the renderer-side analysis pipeline.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 7 / Task 6** — Double-attack detector. Like fork but doesn't require equal-or-greater-value targets — any move that creates a second simultaneous attack on a previously-unattacked piece counts. Operates on (move, before/after) triples like discovered.
-- **Phase 7 / Task 7** — Back-rank weakness detector. Pure-position: king on the back rank, no escape squares (own pawns block king's flight squares), and a heavy piece on the same rank or file ready to deliver mate.
+- **Phase 7 / Task 8** — Removing-the-defender + overloaded-piece detector. Two related ideas: a defender protecting a key piece is captured/deflected (so the piece becomes hanging), and an overloaded piece is forced to defend two things and can't do both. Likely implemented by enumerating defenders for hanging-able pieces and tagging when one defender covers ≥2 pieces.
+- **Phase 8 / Task 1** — Pawn structure (doubled, isolated, backward, passed). First positional analysis task. Pure pawn-bitboard math; no engine calls.
 
 ## Blockers
 
@@ -116,8 +116,8 @@ _None._
 - [x] **Task 3** — Pin detector (absolute + relative).
 - [x] **Task 4** — Skewer detector.
 - [x] **Task 5** — Discovered-attack and discovered-check detector.
-- [ ] **Task 6** — Double-attack detector.
-- [ ] **Task 7** — Back-rank weakness detector.
+- [x] **Task 6** — Double-attack detector.
+- [x] **Task 7** — Back-rank weakness detector.
 - [ ] **Task 8** — Removing-the-defender + overloaded-piece detector.
 
 ## Phase 8 — Positional analysis
