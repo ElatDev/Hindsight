@@ -4,30 +4,45 @@
 
 ## Current session
 
-**README v0.1 accuracy pass.** Phase 13 / Task 1's prose half is done; the actual screenshot capture is the only remaining user-driven piece.
+**Post-audit bug sweep + Phase 8 surfacing.** A code-level audit (boot the dev server, drive every UI / chess module, cross-reference PROGRESS "✅" claims) flagged seven gaps where the checklist had marked things done but the user-facing reality didn't match. This session closes them.
 
-This session:
+Headline fix:
 
-- Rewrote the README "Features" list against what actually ships (saved-games, live eval bar, knight-style arrows, board palettes, grade badges, single-pass multi-PV — features that landed during Phase 11–12 but never made it back into the feature bullets).
-- Added an **Install** section pointing readers at [GitHub Releases](https://github.com/ElatDev/Hindsight/releases) so non-developer visitors land on the installer instead of the dev quickstart.
-- Replaced the Build table's mythical `build:win` / `build:mac` / `build:linux` scripts with the real `npm run dist` plus a `dist:dir` smoke-test variant; called out the no-cross-compilation reality.
-- Roadmap table updated to match this file (phases 1-12 are ✅, phase 13 in progress).
-- Stale annotations dropped (`react-chessboard (Phase 3)`, "Screenshots coming once Phase 11 lands") and a new **Screenshots** section drops a v0.1-release-thread placeholder.
-- Quickstart picked up the `ELECTRON_RUN_AS_NODE` one-liner inline so a fresh Windows clone doesn't trip on it.
-- Linked `docs/CONTRIBUTING.md` from the Contributing section so the contributor guide that landed last week actually has a discoverability path.
+- **Phase 8 positional analysis is no longer dead code.** `analyzePawnStructure`, `analyzeKingSafety`, `analyzePieceActivity`, and `analyzeMaterial` were fully implemented + tested but never invoked from the review pipeline or the UI. New `src/ui/PositionalPanel.tsx` runs all four against the position at the current review ply and renders a compact "Position notes" block (material delta with imbalance breakdown + bishop pair, pawn structure, king-safety exposure, piece activity). Empty rows omitted so quiet positions stay clean. Wired into `src/ui/Review.tsx` below the explanation panel; updates as the user navigates plies.
 
-Markdown-only changes; lint + typecheck stayed green; pre-commit hook ran prettier on the file with no further edits needed.
+Bug fixes:
+
+- **Settings "Restore defaults" stops fighting Save/Cancel** — the reset now only repopulates the dialog's local form state; nothing persists until Save. Previously the dialog's `useState` was seeded once on mount and didn't refresh when the parent's settings changed, so Save would overwrite the just-applied defaults and Cancel would orphan them. Drops `onReset` from the dialog API.
+- **Saved-games load surfaces its own parse errors** — `onLoad` is now `(pgn) => boolean`; the dialog renders an inline error and stays open on failure. Before, a corrupt saved PGN set `pgnError` _behind_ the still-open dialog, so the user saw a click that did nothing.
+- **Right-click annotations stop leaking across games** — new `gameInstanceId` counter bumps on `startNewGame` / `loadSinglePgn` (not on every move). Play-view Board is keyed on it so its internal highlight/arrow state flushes when the user starts a fresh game; navigation within the same game doesn't trigger a remount.
+- **`useSettings` stops echoing the seeded state to disk on cold launch** — a `persistReadyRef` gate keeps the mirror effect dormant until the load effect has reconciled. Cold launches no longer fire a redundant `settings:save(DEFAULT_SETTINGS)` IPC.
+- **PGN export status is visually distinct success vs. error** — `exportStatus` is now a discriminated union with `role="alert"` on errors, and `.review-export-status--{success,error}` got its missing CSS rules.
+
+Polish:
+
+- Dropped the stale "placeholder data" comment on `EvalBar.tsx` (live-eval-driven since Phase 12 / Task 7).
+- Dropped the "live eval ships in a later Phase 12 task" hint in `SettingsDialog.tsx` (the feature shipped).
+- Reworded the piece-set hint to make it explicit that the radio is preview-only — selecting Merida or Alpha records the preference but the on-board pieces stay Cburnett until the asset bundle ships.
+
+Lint + typecheck green; full vitest suite (572 tests) green; dev server boots cleanly with no IPC errors. The audit also verified that the analysis pipeline (`runGameReview`, `classify`, `accuracy`, `critical`, `alternatives`, `pgnExport`) is _not_ buggy — every claim there held up.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-Two Phase 13 deliverables still need user input. Phase 13 / Task 1's prose half landed today; the rest is pure user action.
+Two Phase 13 deliverables still need user input. Everything inside the app's surface area has been audited against PROGRESS this session; the audit-driven backlog below captures what's still on the list.
 
-- **Phase 13 / Task 1** — Screenshot capture. The README has the **Screenshots** section already; what's missing is the actual captures of the play view, the post-game review (annotations + suggested-move arrow + grade badges), the critical-moments / alternatives panel, the saved-games browser, and the settings dialog. Task 1 stays unchecked until those land.
+- **Phase 13 / Task 1** — Screenshot capture. The README has the **Screenshots** section already; what's missing is the actual captures of the play view, the post-game review (annotations + suggested-move arrow + grade badges + new positional notes panel), the critical-moments / alternatives panel, the saved-games browser, and the settings dialog. Task 1 stays unchecked until those land.
 - **Phase 13 / Task 4** — Cut a v0.1 release on GitHub. The build path is verified; remaining steps are: bump `package.json` `version` from `0.0.0` to `0.1.0`, re-run `npm run dist` to produce `Hindsight-0.1.0-windows-x64.exe`, then `gh release create v0.1.0 release/Hindsight-0.1.0-windows-x64.exe ...` with release notes drawn from the recent commit log. macOS DMG + Linux AppImage need their respective hosts or a CI matrix; ship Windows-only for v0.1 unless those are easy to obtain.
 
-Carved-out follow-ups still pending: piece-set bundling (Task 8 second half), engine-path override UI (Task 1/5 deferred), PGN-error polish (Task 5 deferred). Also worth flagging for v0.2: an analysis-cache table keyed on `(pgn_hash, depth)` so re-opening a saved review is instant — the `electron/storage/` layer is now the natural home for it.
+Audit-driven backlog (smaller polish items, none blocking v0.1 — promote to a real fix pass when convenient):
+
+- **No Esc-key / overlay-click dismiss** on any dialog (NewGame, Settings, SavedGames, PgnPaste, PgnGameSelect, EngineMissing). Forces a button click; non-standard. Cleanest fix is a shared `useDialogDismiss` hook applied across the set.
+- **Engine-error toast doesn't auto-clear** on idle — it does clear on the next engine request, but a transient error shown after the final move of a game stays up forever.
+- **Multi-game PGN with unclosed-brace comments mis-splits** in `pgnSplit.ts` — the line-by-line tag scan can be fooled by a comment that contains `[`. Single-game malformed input throws cleanly; multi-game malformed is the gap.
+- **Motif test suite uses weak assertions** (`expect(pins.length).toBeGreaterThanOrEqual(2)` instead of checking exact squares). Tighten when adding new motif tests.
+
+Carved-out follow-ups still pending: piece-set bundling (Task 8 second half), engine-path override UI (Task 1/5 deferred). Also worth flagging for v0.2: an analysis-cache table keyed on `(pgn_hash, depth)` so re-opening a saved review is instant — the `electron/storage/` layer is now the natural home for it.
 
 ## Blockers
 
