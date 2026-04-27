@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { defaultStockfishPath, StockfishEngine } from '../stockfish';
+import {
+  defaultStockfishPath,
+  StockfishEngine,
+  StockfishNotFoundError,
+} from '../stockfish';
 import { existsSync } from 'node:fs';
 
 const binaryPath = defaultStockfishPath(process.cwd());
@@ -50,6 +54,15 @@ describe('StockfishEngine', () => {
 
   it('throws when constructed without a binary path or app root', () => {
     expect(() => new StockfishEngine({})).toThrow(/binaryPath.*appRoot/);
+  });
+
+  it('throws StockfishNotFoundError when start() runs against a missing binary', async () => {
+    const e = new StockfishEngine({ binaryPath: '/nonexistent/stockfish-x' });
+    await expect(e.start()).rejects.toBeInstanceOf(StockfishNotFoundError);
+    await expect(e.start()).rejects.toMatchObject({
+      message: expect.stringContaining(StockfishNotFoundError.MARKER),
+      binaryPath: '/nonexistent/stockfish-x',
+    });
   });
 });
 

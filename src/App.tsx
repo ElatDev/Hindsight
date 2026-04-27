@@ -14,11 +14,13 @@ import { PgnGameSelectDialog } from './ui/PgnGameSelectDialog';
 import { PgnPasteDialog } from './ui/PgnPasteDialog';
 import { Review } from './ui/Review';
 import { SettingsDialog } from './ui/SettingsDialog';
+import { EngineMissingDialog } from './ui/EngineMissingDialog';
 import { useLiveEval } from './ui/useLiveEval';
 import { useSettings } from './ui/useSettings';
 import { useTheme } from './ui/useTheme';
 import { Game } from './chess/game';
 import { previewPgnGames, type PgnGamePreview } from './chess/pgnSplit';
+import { parseStockfishNotFound } from '../shared/ipc';
 
 type AppState = {
   game: Game;
@@ -255,7 +257,14 @@ function App(): JSX.Element {
     setReviewing(false);
   }, []);
 
+  const stockfishMissingPath = engineError
+    ? parseStockfishNotFound(engineError)
+    : null;
+
   const statusLine = (() => {
+    if (stockfishMissingPath) {
+      return 'Stockfish not found — engine features are disabled until you install it.';
+    }
     if (engineError) return `Engine error: ${engineError}`;
     if (displayed.isGameOver()) return `Game over — ${displayed.gameEnd()}.`;
     if (!atTip) return 'Reviewing — jump to the end to play.';
@@ -413,6 +422,13 @@ function App(): JSX.Element {
           }}
           onReset={resetSettings}
           onCancel={() => setShowSettings(false)}
+        />
+      ) : null}
+
+      {stockfishMissingPath ? (
+        <EngineMissingDialog
+          binaryPath={stockfishMissingPath}
+          onDismiss={() => setEngineError(null)}
         />
       ) : null}
     </main>

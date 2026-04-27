@@ -54,6 +54,22 @@ export const IpcChannel = {
   PgnSaveFile: 'pgn:saveFile',
 } as const;
 
+/** Sentinel substring stamped onto engine errors when the Stockfish binary
+ *  isn't on disk. IPC errors round-trip as plain strings, so the renderer
+ *  matches on this prefix to swap a generic "engine error" toast for the
+ *  fix-it dialog. Kept in `shared/` so both sides agree on the wire format. */
+export const STOCKFISH_NOT_FOUND_MARKER = '[STOCKFISH_NOT_FOUND]';
+
+/** Extract the path portion of a STOCKFISH_NOT_FOUND error message, or null
+ *  if the message doesn't carry one. The format produced by the main process
+ *  is `[STOCKFISH_NOT_FOUND] Stockfish binary not found at <path>`. */
+export function parseStockfishNotFound(message: string): string | null {
+  if (!message.includes(STOCKFISH_NOT_FOUND_MARKER)) return null;
+  const idx = message.indexOf('not found at ');
+  if (idx === -1) return null;
+  return message.slice(idx + 'not found at '.length).trim();
+}
+
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel];
 
 /** Result of opening a PGN file via the native dialog. `null` when the user

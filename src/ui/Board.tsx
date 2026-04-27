@@ -10,6 +10,7 @@ import { Chessboard } from 'react-chessboard';
 import type { Square } from 'chess.js';
 import type { Classification } from '../chess/classify';
 import type { Game } from '../chess/game';
+import { ArrowOverlay } from './ArrowOverlay';
 
 /** `[from, to, color?]` — passed straight through to react-chessboard's
  *  `customArrows`. Color is any CSS color string; library default is amber. */
@@ -178,36 +179,59 @@ export function Board({
     });
   };
 
+  // Merge engine-supplied arrows (from props) with the user's right-click
+  // arrows. Engine arrows render first so the user's overlay sits on top
+  // when they share endpoints. Each tuple keeps its colour for the SVG
+  // overlay; the library copy below is force-coloured transparent so the
+  // straight react-chessboard arrows don't ghost behind our L-shapes.
+  const mergedArrows = useMemo<readonly ArrowSpec[]>(
+    () =>
+      [...(arrows ?? []), ...userArrows].map(
+        (a) => [a[0], a[1], a[2] ?? RIGHT_CLICK_ARROW_COLOR] as ArrowSpec,
+      ),
+    [arrows, userArrows],
+  );
+
   // react-chessboard mutates the `customArrows` array (filters in place), so
-  // hand it a fresh mutable copy each render. Engine arrows from props come
-  // first so the user's overlay sits on top.
-  const customArrows = useMemo(() => {
-    const all = [...(arrows ?? []), ...userArrows];
-    if (all.length === 0) return undefined;
-    return all.map((a) => [...a]) as [Square, Square, string?][];
-  }, [arrows, userArrows]);
+  // hand it a fresh mutable copy each render. Stamping `'transparent'` on
+  // every entry hides the library's straight rendering — we only want it as
+  // an input source (right-click drag detection); the visible arrows come
+  // from `<ArrowOverlay>`.
+  const libraryArrows = useMemo(() => {
+    if (mergedArrows.length === 0) return undefined;
+    return mergedArrows.map(
+      (a) => [a[0], a[1], 'transparent'] as [Square, Square, string],
+    );
+  }, [mergedArrows]);
 
   return (
     <GradeBadgeContext.Provider value={gradeBadge ?? null}>
-      <Chessboard
-        position={game.fen()}
-        boardOrientation={orientation}
-        boardWidth={width}
-        arePiecesDraggable={interactive}
-        onPieceDrop={interactive ? handlePieceDrop : undefined}
-        onSquareClick={handleSquareClick}
-        onSquareRightClick={handleSquareRightClick}
-        onArrowsChange={handleArrowsChange}
-        customSquareStyles={customSquareStyles}
-        customSquare={
-          SquareWithBadge as unknown as ComponentProps<
-            typeof Chessboard
-          >['customSquare']
-        }
-        customArrows={customArrows}
-        customArrowColor={RIGHT_CLICK_ARROW_COLOR}
-        autoPromoteToQueen
-      />
+      <div className="board-arrow-host">
+        <Chessboard
+          position={game.fen()}
+          boardOrientation={orientation}
+          boardWidth={width}
+          arePiecesDraggable={interactive}
+          onPieceDrop={interactive ? handlePieceDrop : undefined}
+          onSquareClick={handleSquareClick}
+          onSquareRightClick={handleSquareRightClick}
+          onArrowsChange={handleArrowsChange}
+          customSquareStyles={customSquareStyles}
+          customSquare={
+            SquareWithBadge as unknown as ComponentProps<
+              typeof Chessboard
+            >['customSquare']
+          }
+          customArrows={libraryArrows}
+          customArrowColor="transparent"
+          autoPromoteToQueen
+        />
+        <ArrowOverlay
+          arrows={mergedArrows}
+          orientation={orientation}
+          defaultColor={RIGHT_CLICK_ARROW_COLOR}
+        />
+      </div>
     </GradeBadgeContext.Provider>
   );
 }

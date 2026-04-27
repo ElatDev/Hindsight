@@ -190,6 +190,25 @@ body,
   aspect-ratio: 1 / 1;
 }
 
+/* Wraps the Chessboard so the SVG arrow overlay can absolutely-position
+   itself over the same bounding box. The overlay is pointer-events: none
+   so right-click drag, click-to-select, and drag-drop fall through to the
+   board underneath. */
+.board-arrow-host {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.arrow-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 4;
+}
+
 .eval-bar {
   display: flex;
   width: 28px;
@@ -799,6 +818,32 @@ body,
 .settings__hint--pending {
   color: var(--fg-subtle);
   font-style: italic;
+}
+
+.dialog__code {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.85rem;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem 0.7rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.dialog__hint {
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  line-height: 1.4;
+}
+
+.dialog__hint code {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.82rem;
+  background: var(--bg);
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
 }
 
 .dialog-overlay {

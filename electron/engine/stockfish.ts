@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { EventEmitter } from 'node:events';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 export type StockfishOptions = {
@@ -32,6 +33,24 @@ export function defaultStockfishPath(appRoot: string): string {
   return path.join(appRoot, 'stockfish', 'bin', dir, exe);
 }
 
+/** Marker error thrown when the configured Stockfish binary is missing on
+ *  disk. Carries the absolute path so the renderer can show a fix-it dialog
+ *  ("Run npm run fetch-stockfish" / "Choose binary…") with the path filled
+ *  in. The message is prefixed with `[STOCKFISH_NOT_FOUND]` so the renderer
+ *  can recognise it across the IPC boundary, where structured errors don't
+ *  survive JSON marshalling. */
+export class StockfishNotFoundError extends Error {
+  static readonly MARKER = '[STOCKFISH_NOT_FOUND]';
+  readonly binaryPath: string;
+  constructor(binaryPath: string) {
+    super(
+      `${StockfishNotFoundError.MARKER} Stockfish binary not found at ${binaryPath}`,
+    );
+    this.name = 'StockfishNotFoundError';
+    this.binaryPath = binaryPath;
+  }
+}
+
 /**
  * Thin UCI wrapper around a Stockfish subprocess. This module is responsible
  * only for process lifecycle and the initial handshake — analysis logic
@@ -61,6 +80,9 @@ export class StockfishEngine extends EventEmitter {
   async start(): Promise<void> {
     if (this.proc) {
       throw new Error('Stockfish process already running.');
+    }
+    if (!existsSync(this.binaryPath)) {
+      throw new StockfishNotFoundError(this.binaryPath);
     }
 
     const proc = spawn(this.binaryPath, [], { stdio: 'pipe' });

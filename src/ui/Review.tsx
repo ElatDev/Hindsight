@@ -105,6 +105,8 @@ export function Review({
   const [result, setResult] = useState<GameReview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  // Bumped to force the analysis effect to re-run on user-requested retry.
+  const [retryToken, setRetryToken] = useState(0);
 
   const displayed = useMemo(() => {
     const g = new Game();
@@ -145,7 +147,7 @@ export function Review({
       cancelled = true;
       ac.abort();
     };
-  }, [game, totalPlies, analysisDepth]);
+  }, [game, totalPlies, analysisDepth, retryToken]);
 
   const evalForView = useMemo(
     () => computeEvalForView(viewPly, totalPlies, result?.perMove ?? null),
@@ -218,7 +220,16 @@ export function Review({
     if (status === 'analyzing') {
       return `Analyzing… ${progress.done} / ${progress.total} plies.`;
     }
-    if (status === 'error') return `Analysis failed: ${error ?? 'unknown'}.`;
+    if (status === 'error') {
+      const msg = error ?? 'unknown';
+      // Stockfish-not-found is rendered separately as a modal in the play
+      // shell; the inline header just nods to it so the user knows why
+      // analysis bailed.
+      if (msg.includes('[STOCKFISH_NOT_FOUND]')) {
+        return 'Analysis paused — Stockfish binary missing.';
+      }
+      return `Analysis failed: ${msg}.`;
+    }
     if (totalPlies === 0) return 'No moves to review.';
     if (!result?.opening) return 'Review';
     return `${result.opening.eco}: ${result.opening.name}`;
@@ -262,6 +273,15 @@ export function Review({
           <ExplanationPanel move={currentMove} />
         ) : status === 'ready' && totalPlies > 0 ? (
           <p className="status">Use Next to step through the game.</p>
+        ) : null}
+        {status === 'error' ? (
+          <button
+            type="button"
+            className="header-secondary-btn"
+            onClick={() => setRetryToken((t) => t + 1)}
+          >
+            Retry analysis
+          </button>
         ) : null}
         {status === 'ready' && totalPlies > 0 && result ? (
           <>
