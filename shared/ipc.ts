@@ -51,6 +51,7 @@ export const IpcChannel = {
   EngineAnalyze: 'engine:analyze',
   EngineBestMove: 'engine:bestMove',
   PgnOpenFile: 'pgn:openFile',
+  PgnSaveFile: 'pgn:saveFile',
 } as const;
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel];
@@ -64,6 +65,21 @@ export type PgnOpenResult = {
   pgn: string;
 } | null;
 
+/** Renderer-supplied payload for the native save dialog. */
+export type PgnSaveRequest = {
+  /** PGN text to write to the chosen path. */
+  pgn: string;
+  /** Suggested file name (no path). The dialog still lets the user override. */
+  defaultFileName?: string;
+};
+
+/** Result of saving a PGN file via the native dialog. `null` when the user
+ *  cancels; the renderer treats that as a no-op. */
+export type PgnSaveResult = {
+  /** Absolute path the user chose. */
+  path: string;
+} | null;
+
 /** API surface exposed on `window.hindsight` by the preload script. */
 export type EngineApi = {
   analyze(req: AnalyzeRequest): Promise<AnalysisResult>;
@@ -72,6 +88,7 @@ export type EngineApi = {
 
 export type PgnApi = {
   openFile(): Promise<PgnOpenResult>;
+  saveFile(req: PgnSaveRequest): Promise<PgnSaveResult>;
 };
 
 export type HindsightApi = {

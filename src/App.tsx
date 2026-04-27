@@ -14,6 +14,7 @@ import { PgnGameSelectDialog } from './ui/PgnGameSelectDialog';
 import { PgnPasteDialog } from './ui/PgnPasteDialog';
 import { Review } from './ui/Review';
 import { SettingsDialog } from './ui/SettingsDialog';
+import { useLiveEval } from './ui/useLiveEval';
 import { useSettings } from './ui/useSettings';
 import { useTheme } from './ui/useTheme';
 import { Game } from './chess/game';
@@ -74,6 +75,13 @@ function App(): JSX.Element {
     atTip &&
     !state.game.isGameOver() &&
     (state.mode === 'free' || state.game.turn() === state.playerColor);
+
+  const liveEvalSnap = useLiveEval({
+    enabled: settings.liveEval && !reviewing,
+    paused: engineThinking || !atTip || state.game.isGameOver(),
+    fen: displayed.fen(),
+    depth: ENGINE_DEPTH,
+  });
 
   const handleMove = useCallback(
     (from: Square, to: Square, promotion?: 'q' | 'r' | 'b' | 'n'): boolean => {
@@ -335,7 +343,11 @@ function App(): JSX.Element {
         />
       ) : (
         <div className="play-area">
-          <EvalBar evalCp={0} mateIn={null} orientation={orientation} />
+          <EvalBar
+            evalCp={liveEvalSnap.cp}
+            mateIn={liveEvalSnap.mate}
+            orientation={orientation}
+          />
           <div className="board-frame">
             <Board
               game={displayed}

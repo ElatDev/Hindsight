@@ -14,6 +14,7 @@ import {
 } from '../chess/review';
 import type { CriticalMoment } from '../chess/critical';
 import type { MotifTag } from '../chess/templates/selector';
+import { exportAnnotatedPgn } from '../chess/pgnExport';
 import { Board, type ArrowSpec, type GradeBadge } from './Board';
 import { EvalBar } from './EvalBar';
 import { MoveList } from './MoveList';
@@ -103,6 +104,7 @@ export function Review({
   const [progress, setProgress] = useState({ done: 0, total: totalPlies });
   const [result, setResult] = useState<GameReview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
 
   const displayed = useMemo(() => {
     const g = new Game();
@@ -186,6 +188,32 @@ export function Review({
     };
   }, [currentMove]);
 
+  const handleSaveAnnotatedPgn = async (): Promise<void> => {
+    if (!result || totalPlies === 0) return;
+    try {
+      const pgn = exportAnnotatedPgn(game, result);
+      const headers = game.headers();
+      const slug = (headers.White ?? 'white')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      const opp = (headers.Black ?? 'black')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      const defaultFileName = `${slug}-vs-${opp}-hindsight.pgn`;
+      const saved = await window.hindsight.pgn.saveFile({
+        pgn,
+        defaultFileName,
+      });
+      setExportStatus(saved ? `Saved to ${saved.path}` : null);
+    } catch (err: unknown) {
+      setExportStatus(
+        `Export failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
+
   const headerLine = (() => {
     if (status === 'analyzing') {
       return `Analyzing… ${progress.done} / ${progress.total} plies.`;
@@ -244,6 +272,16 @@ export function Review({
                 currentPly={viewPly}
                 onSelect={setViewPly}
               />
+            ) : null}
+            <button
+              type="button"
+              className="header-secondary-btn"
+              onClick={() => void handleSaveAnnotatedPgn()}
+            >
+              Save annotated PGN
+            </button>
+            {exportStatus ? (
+              <p className="status review-export-status">{exportStatus}</p>
             ) : null}
           </>
         ) : null}

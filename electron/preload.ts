@@ -6,6 +6,8 @@ import {
   type BestMoveRequest,
   type HindsightApi,
   type PgnOpenResult,
+  type PgnSaveRequest,
+  type PgnSaveResult,
 } from '../shared/ipc';
 
 const api: HindsightApi = {
@@ -19,6 +21,8 @@ const api: HindsightApi = {
   pgn: {
     openFile: (): Promise<PgnOpenResult> =>
       ipcRenderer.invoke(IpcChannel.PgnOpenFile),
+    saveFile: (req: PgnSaveRequest): Promise<PgnSaveResult> =>
+      ipcRenderer.invoke(IpcChannel.PgnSaveFile, req),
   },
 };
 

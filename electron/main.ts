@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   IpcChannel,
@@ -7,6 +7,8 @@ import {
   type AnalyzeRequest,
   type BestMoveRequest,
   type PgnOpenResult,
+  type PgnSaveRequest,
+  type PgnSaveResult,
 } from '../shared/ipc';
 import { analyzePosition } from './engine/analyze';
 import { StockfishEngine } from './engine/stockfish';
@@ -43,16 +45,29 @@ async function shutdownEngine(): Promise<void> {
   if (e) await e.quit();
 }
 
+// Stockfish is a single UCI process — concurrent `go` calls would race on
+// the shared `bestmove` output stream. Serialize every engine task through
+// this chain so live-eval (Phase 12 / Task 7) can run alongside the play
+// loop's bestMove without their stdout listeners interleaving.
+let engineQueue: Promise<unknown> = Promise.resolve();
+function runEngineTask<T>(task: () => Promise<T>): Promise<T> {
+  const next = engineQueue.then(task, task);
+  engineQueue = next.catch(() => undefined);
+  return next;
+}
+
 function registerIpcHandlers(): void {
   ipcMain.handle(
     IpcChannel.EngineAnalyze,
     async (_evt, req: AnalyzeRequest): Promise<AnalysisResult> => {
       const engine = await getEngine();
-      return analyzePosition(engine, req.fen, {
-        depth: req.depth,
-        multiPV: req.multiPV,
-        timeoutMs: req.timeoutMs,
-      });
+      return runEngineTask(() =>
+        analyzePosition(engine, req.fen, {
+          depth: req.depth,
+          multiPV: req.multiPV,
+          timeoutMs: req.timeoutMs,
+        }),
+      );
     },
   );
 
@@ -72,20 +87,39 @@ function registerIpcHandlers(): void {
   });
 
   ipcMain.handle(
+    IpcChannel.PgnSaveFile,
+    async (_evt, req: PgnSaveRequest): Promise<PgnSaveResult> => {
+      const result = await dialog.showSaveDialog({
+        title: 'Save annotated PGN',
+        defaultPath: req.defaultFileName ?? 'hindsight-review.pgn',
+        filters: [
+          { name: 'PGN files', extensions: ['pgn'] },
+          { name: 'All files', extensions: ['*'] },
+        ],
+      });
+      if (result.canceled || !result.filePath) return null;
+      await writeFile(result.filePath, req.pgn, 'utf8');
+      return { path: result.filePath };
+    },
+  );
+
+  ipcMain.handle(
     IpcChannel.EngineBestMove,
     async (_evt, req: BestMoveRequest): Promise<string | null> => {
       const engine = await getEngine();
-      if (req.elo !== undefined) {
-        engine.send('setoption name UCI_LimitStrength value true');
-        engine.send(`setoption name UCI_Elo value ${Math.round(req.elo)}`);
-      } else {
-        engine.send('setoption name UCI_LimitStrength value false');
-      }
-      const result = await analyzePosition(engine, req.fen, {
-        depth: req.depth,
-        timeoutMs: req.timeoutMs,
+      return runEngineTask(async () => {
+        if (req.elo !== undefined) {
+          engine.send('setoption name UCI_LimitStrength value true');
+          engine.send(`setoption name UCI_Elo value ${Math.round(req.elo)}`);
+        } else {
+          engine.send('setoption name UCI_LimitStrength value false');
+        }
+        const result = await analyzePosition(engine, req.fen, {
+          depth: req.depth,
+          timeoutMs: req.timeoutMs,
+        });
+        return result.bestMove;
       });
-      return result.bestMove;
     },
   );
 }
