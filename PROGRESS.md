@@ -4,22 +4,24 @@
 
 ## Current session
 
-**Phase 1 complete; Phase 2 / Task 1 done.** 17 tests pass across the engine and chess wrapper layers.
+**Phase 1 complete; Phase 2 / Tasks 1–3 done.** 25 tests pass across engine + chess wrapper.
 
-- Phase 1 / Task 5 (IPC): `shared/ipc.ts` exports the typed contract (AnalysisLine, AnalysisResult, AnalyzeRequest, BestMoveRequest, EngineApi, HindsightApi, IpcChannel constants, plus `declare global Window.hindsight`). `electron/main.ts` registers `engine:analyze` and `engine:bestMove` ipcMain handlers backed by a single lazily-started `StockfishEngine`, with clean shutdown on `before-quit`. `electron/preload.ts` bridges `window.hindsight.engine.{analyze,bestMove}` via `ipcRenderer.invoke`. `electron/engine/analyze.ts` was deduped to re-export the shared types so there's a single source of truth. `npm run build` produces a 4.92kB main bundle and 0.29kB preload.
-- Phase 2 / Task 1 (chess.js wrapper): `src/chess/game.ts` wraps `chess.js@^1.4.0`. Surface: `new Game()` plus `fromFen` / `fromPgn` static factories, instance `load(pgn)` / `loadFen(fen)`, `move(san)` returning Move|null (no throws on illegal), `undo`, `fen`, `turn`, `legalMoves`(+verbose), `history`(+verbose), `inCheck`, `isGameOver`, `gameEnd()` classifier returning `'checkmate' | 'stalemate' | 'threefold-repetition' | 'fifty-move' | 'insufficient-material' | 'draw' | null`, plus `raw()` escape hatch. 9 tests cover initial state, legal/illegal moves, Fool's Mate, stalemate, K-vs-K insufficient material, PGN round-trip, undo, and legal-move count.
+- Phase 1 / Task 5 (IPC): `shared/ipc.ts` is the typed contract; `electron/main.ts` owns a lazily-started long-lived `StockfishEngine` and registers `engine:analyze` / `engine:bestMove` handlers; `electron/preload.ts` bridges `window.hindsight.engine.*`. `analyze.ts` re-exports shared types so there's a single source of truth. Build green (4.92kB main, 0.29kB preload).
+- Phase 2 / Task 1: `src/chess/game.ts` wraps `chess.js@^1.4.0` with our typed surface — factories, load/loadFen, move (Move|null on illegal, no throw), undo, fen, turn, legalMoves(+verbose), history(+verbose), inCheck, isGameOver, gameEnd, raw escape hatch.
+- Phase 2 / Task 2: PGN edge cases verified through chess.js — headers, brace comments, NAG glyphs (`$1` etc.) and shorthand annotations (`!`, `?`, `?!`), and parenthesised variations all parse without error. Variations are dropped from `history()` per the v1 policy. Wrapper now exposes `headers()` and `comments()`.
+- Phase 2 / Task 3: `GameEnd` is now both a const and a string-literal union (`GameEnd.ThreefoldRepetition === 'threefold-repetition'`), so callers can match against the const without losing exhaustive type checking. Tests added for threefold (knight-shuffle setup) and fifty-move rule (high halfmove clock FEN).
 
 Notes:
 
 - PowerShell scripts must be ASCII-safe — Windows PowerShell 5.1 reads `.ps1` as Windows-1252 unless there's a BOM.
-- Engine + IPC layer is wired end-to-end but has not been runtime-verified through the renderer DevTools yet (build green, tests green, but no manual `window.hindsight.engine.bestMove(...)` round-trip yet). Worth a sanity check when next pair touches the renderer.
+- Engine + IPC layer is wired end-to-end but has not yet been runtime-verified through the renderer DevTools (build green, tests green, but no manual `window.hindsight.engine.bestMove(...)` round-trip). Worth a sanity check when the first renderer-touching task lands (Phase 3 / Task 1).
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 2 / Task 2** — PGN parsing edge cases: support headers, comments, NAGs, variations (we'll mostly ignore variations on import for v1 but parse without erroring). Build on the existing `Game.fromPgn` / `Game.load` paths.
-- **Phase 2 / Task 3** — Game-end detection: confirm `gameEnd()` covers checkmate, stalemate, threefold, fifty-move, insufficient material; surface as a typed `GameEnd` enum (already partially done — verify and extend tests).
+- **Phase 2 / Task 4** — Tests for tricky PGN inputs (en passant, promotion, castling notation variants). Some coverage already in place from Task 2; expand to underpromotion, queenside castling, ambiguous SAN disambiguation (e.g., `Nbd2` vs `Nfd2`), and capture+promotion (`exd8=Q+`).
+- **Phase 3 / Task 1** — Add `react-chessboard`. Render board in `src/ui/Board.tsx` with the current `Game` state. First renderer-touching task — also a chance to manually smoke-test the IPC wiring via DevTools (`window.hindsight.engine.bestMove(...)`).
 
 ## Blockers
 
@@ -72,8 +74,8 @@ _None._
 ## Phase 2 — Chess logic layer
 
 - [x] **Task 1** — Add `chess.js`. Wrap in `src/chess/game.ts` with our typed surface (`Game.load(pgn)`, `Game.move(san)`, `Game.fen()`, `Game.history()`, `Game.isGameOver()`).
-- [ ] **Task 2** — PGN parsing: support headers, comments, NAGs, variations (we'll mostly ignore variations on import for v1 but parse without erroring).
-- [ ] **Task 3** — Game-end detection: checkmate, stalemate, threefold, fifty-move, insufficient material. Surface as a typed `GameEnd` enum.
+- [x] **Task 2** — PGN parsing: support headers, comments, NAGs, variations (we'll mostly ignore variations on import for v1 but parse without erroring).
+- [x] **Task 3** — Game-end detection: checkmate, stalemate, threefold, fifty-move, insufficient material. Surface as a typed `GameEnd` enum.
 - [ ] **Task 4** — Tests for tricky PGN inputs (en passant, promotion, castling notation variants).
 
 ## Phase 3 — Board GUI
