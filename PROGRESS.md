@@ -4,7 +4,7 @@
 
 ## Current session
 
-**Phases 1-4 complete; Phase 5 / Task 1 done.** 34 tests pass.
+**Phases 1-4 complete; Phase 5 Tasks 1-3 done.** 34 tests pass.
 
 - Phase 1: Stockfish fetcher + UCI handshake + analyzePosition + Vitest engine tests (8) + IPC surface.
 - Phase 2: `chess.js@^1.4.0` wrapper with full typed surface, `GameEnd` const + union, 26 tests.
@@ -20,6 +20,8 @@
 - Phase 4 / Task 2: When `mode='vs-engine'` and it's the engine's turn, an effect calls `window.hindsight.engine.bestMove({ fen, depth: 12, elo })`; the main process applies `UCI_LimitStrength=true` + `UCI_Elo=<elo>` before the search and returns the bestMove UCI string. The renderer parses `e2e4` / `e7e8q` and applies via `Game.move({from, to, promotion})`. `requestId` ref discards stale results.
 - Phase 4 / Task 3: `src/ui/GameEndBanner.tsx` shows on game end with result headline + reason (checkmate / stalemate / threefold / fifty-move / insufficient material / draw). Actions: Review (placeholder — jumps to ply 0 today, will seed Phase 6 analysis later), New game, Dismiss. Winner derived from the side NOT to move on a mate FEN.
 - Phase 5 / Task 1: `pgn:openFile` IPC channel — main process spawns `dialog.showOpenDialog` with a PGN filter, reads the file via `fs/promises.readFile`, returns `{ path, pgn } | null`. "Open PGN" header button calls it and loads the file into a fresh Game in free-play mode at the final ply.
+- Phase 5 / Task 2: `src/ui/PgnPasteDialog.tsx` modal — textarea + live preview (move count + W/B/Result headers, or parser error inline). Load button disabled until parsing succeeds. "Paste PGN" header button opens it.
+- Phase 5 / Task 3: Manual move-entry mode confirmed — already provided by the existing 'free' mode. Relabeled in `NewGameDialog` to "Free play / manual entry (no engine)" for discoverability.
 
 Notes:
 
@@ -31,8 +33,8 @@ Notes:
 
 ## Next up
 
-- **Phase 5 / Task 2** — PGN paste textarea with parse-on-paste preview. A small modal/inline panel where the user pastes PGN text; the panel shows the parsed move count + result header before "Load" applies it to a fresh Game. Build on the existing `Game.fromPgn` + `headers()` surface.
-- **Phase 5 / Task 3** — Manual move-entry mode (board accepts moves, no engine). Already mostly true: free play mode with mode='free' is exactly this. Task probably resolves to confirming the UX is acceptable + perhaps a "Manual entry" preset in the new-game dialog (vs vs-engine vs free vs manual = all the same minus the engine-thinking path).
+- **Phase 5 / Task 4** — Multi-game PGN: list selector for which game to load. Today the file/paste paths feed the entire PGN text to `Game.fromPgn`, which only retains the first game. Need a multi-game splitter (`split-pgn`-style) and a small list UI (Event/White/Black/Result columns) inside the open + paste flows.
+- **Phase 6 / Task 1** — `src/chess/analysis.ts`: orchestrate per-move eval over a `Game.history()`. Wire to `window.hindsight.engine.analyze` (depth 16 first pass), record `{ ply, fen, evalCp/mateIn, bestMove }` per move. This finally exercises the full engine→IPC→renderer pipeline in earnest.
 
 ## Blockers
 
@@ -108,8 +110,8 @@ _None._
 ## Phase 5 — Game import
 
 - [x] **Task 1** — PGN file picker (Electron native dialog).
-- [ ] **Task 2** — PGN paste textarea with parse-on-paste preview.
-- [ ] **Task 3** — Manual move-entry mode (board accepts moves, no engine).
+- [x] **Task 2** — PGN paste textarea with parse-on-paste preview.
+- [x] **Task 3** — Manual move-entry mode (board accepts moves, no engine).
 - [ ] **Task 4** — Multi-game PGN: list selector for which game to load.
 
 ## Phase 6 — Analysis pipeline
