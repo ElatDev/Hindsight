@@ -6,6 +6,8 @@ export type NavControlsProps = {
   onNext: () => void;
   onLast: () => void;
   onFlip: () => void;
+  /** Optional theme toggle. When provided, a "Theme" button is appended. */
+  onToggleTheme?: () => void;
 };
 
 /**
@@ -21,6 +23,7 @@ export function NavControls({
   onNext,
   onLast,
   onFlip,
+  onToggleTheme,
 }: NavControlsProps): JSX.Element {
   return (
     <div className="nav-controls">
@@ -68,6 +71,16 @@ export function NavControls({
       >
         Flip
       </button>
+      {onToggleTheme ? (
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          title="Toggle light/dark theme"
+          aria-label="Toggle theme"
+        >
+          Theme
+        </button>
+      ) : null}
     </div>
   );
 }

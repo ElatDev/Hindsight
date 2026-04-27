@@ -1,5 +1,41 @@
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #1a1a1a;
+  --bg-elevated: #1f1f1f;
+  --bg-hover: #2c2c2c;
+  --bg-button: #2b2b2b;
+  --bg-button-hover: #3a3a3a;
+  --border: #333;
+  --border-strong: #444;
+  --fg: #e8e8e8;
+  --fg-muted: #999;
+  --fg-subtle: #777;
+  --accent: #6aa84f;
+  --accent-soft: #4a4a1a;
+  --eval-white: #f1f1f1;
+  --eval-black: #111;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f5f5f4;
+  --bg-elevated: #ffffff;
+  --bg-hover: #e7e7e6;
+  --bg-button: #ffffff;
+  --bg-button-hover: #ececeb;
+  --border: #d4d4d2;
+  --border-strong: #b4b4b1;
+  --fg: #1a1a1a;
+  --fg-muted: #555;
+  --fg-subtle: #888;
+  --accent: #3f7a26;
+  --accent-soft: #fff3b0;
+  --eval-white: #ffffff;
+  --eval-black: #2a2a2a;
+}
+
 :root {
-  color-scheme: light dark;
   font-family:
     'Inter',
     -apple-system,
@@ -7,8 +43,8 @@
     'Segoe UI',
     Roboto,
     sans-serif;
-  background: #1a1a1a;
-  color: #e8e8e8;
+  background: var(--bg);
+  color: var(--fg);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -22,6 +58,8 @@ html,
 body,
 #root {
   height: 100%;
+  background: var(--bg);
+  color: var(--fg);
 }
 
 .app-shell {
@@ -34,11 +72,29 @@ body,
   text-align: center;
 }
 
+.app-shell h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.tagline {
+  font-size: 1.1rem;
+  color: var(--fg-muted);
+}
+
+.status {
+  font-size: 0.95rem;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  margin-top: 0.5rem;
+}
+
 .play-area {
   display: flex;
   flex-direction: row;
-  gap: 1.5rem;
-  align-items: flex-start;
+  gap: 1.25rem;
+  align-items: stretch;
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -46,6 +102,38 @@ body,
 .board-frame {
   width: min(520px, 80vmin);
   aspect-ratio: 1 / 1;
+}
+
+.eval-bar {
+  display: flex;
+  width: 28px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.7rem;
+}
+
+.eval-bar__white {
+  background: var(--eval-white);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0.25rem 0;
+  color: var(--eval-black);
+}
+
+.eval-bar__black {
+  background: var(--eval-black);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0.25rem 0;
+  color: var(--eval-white);
+}
+
+.eval-bar__label {
+  font-weight: 600;
 }
 
 .side-panel {
@@ -60,21 +148,22 @@ body,
   display: flex;
   gap: 0.4rem;
   justify-content: flex-start;
+  flex-wrap: wrap;
 }
 
 .nav-controls button {
   font-family: 'JetBrains Mono', 'Consolas', monospace;
   font-size: 0.85rem;
   padding: 0.35rem 0.55rem;
-  background: #2b2b2b;
-  color: #e8e8e8;
-  border: 1px solid #444;
+  background: var(--bg-button);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   cursor: pointer;
 }
 
 .nav-controls button:hover:not(:disabled) {
-  background: #3a3a3a;
+  background: var(--bg-button-hover);
 }
 
 .nav-controls button:disabled {
@@ -90,8 +179,8 @@ body,
   align-items: baseline;
   font-family: 'JetBrains Mono', 'Consolas', monospace;
   font-size: 0.95rem;
-  background: #1f1f1f;
-  border: 1px solid #333;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 0.6rem 0.75rem;
   max-height: 360px;
@@ -99,7 +188,7 @@ body,
 }
 
 .move-list--empty {
-  color: #777;
+  color: var(--fg-subtle);
   font-style: italic;
   padding: 0.6rem 0.75rem;
 }
@@ -109,14 +198,14 @@ body,
 }
 
 .move-list__number {
-  color: #777;
+  color: var(--fg-subtle);
   text-align: right;
 }
 
 .move-list__move {
   background: none;
   border: none;
-  color: #e8e8e8;
+  color: var(--fg);
   text-align: left;
   font: inherit;
   cursor: pointer;
@@ -125,32 +214,14 @@ body,
 }
 
 .move-list__move:hover {
-  background: #2c2c2c;
+  background: var(--bg-hover);
 }
 
 .move-list__move--current {
-  background: #4a4a1a;
-  color: #fff;
+  background: var(--accent-soft);
+  color: var(--fg);
 }
 
 .move-list__move--placeholder {
   cursor: default;
-}
-
-.app-shell h1 {
-  font-size: 3rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.tagline {
-  font-size: 1.1rem;
-  color: #999;
-}
-
-.status {
-  font-size: 0.95rem;
-  color: #6aa84f;
-  font-family: 'JetBrains Mono', 'Consolas', monospace;
-  margin-top: 1rem;
 }

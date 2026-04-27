@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Square } from 'chess.js';
 import { Board } from './ui/Board';
+import { EvalBar } from './ui/EvalBar';
 import { MoveList } from './ui/MoveList';
 import { NavControls } from './ui/NavControls';
+import { useTheme } from './ui/useTheme';
 import { Game } from './chess/game';
 
 function App(): JSX.Element {
@@ -15,6 +17,7 @@ function App(): JSX.Element {
   const [version, setVersion] = useState(0);
   const [viewPly, setViewPly] = useState(0);
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
+  const { toggle: toggleTheme } = useTheme();
 
   const history = useMemo(() => {
     // `version` is a dependency marker: the Game wrapper mutates in place,
@@ -75,6 +78,7 @@ function App(): JSX.Element {
       <h1>Hindsight</h1>
       <p className="tagline">Free, offline, open-source chess game review.</p>
       <div className="play-area">
+        <EvalBar evalCp={0} mateIn={null} orientation={orientation} />
         <div className="board-frame">
           <Board
             game={displayed}
@@ -92,6 +96,7 @@ function App(): JSX.Element {
             onNext={() => goTo(viewPly + 1)}
             onLast={() => goTo(totalPlies)}
             onFlip={flip}
+            onToggleTheme={toggleTheme}
           />
           <MoveList history={history} currentPly={viewPly} onSelect={goTo} />
           <p className="status">
