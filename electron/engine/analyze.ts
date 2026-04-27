@@ -1,26 +1,7 @@
+import type { AnalysisLine, AnalysisResult } from '../../shared/ipc';
 import type { StockfishEngine } from './stockfish';
 
-export type AnalysisLine = {
-  /** Principal variation as UCI move strings (e.g., 'e2e4', 'g8f6'). */
-  pv: string[];
-  /** Centipawn score from the side-to-move POV; null if this line is a mate. */
-  evalCp: number | null;
-  /** Mate distance (positive = side-to-move mates; negative = side-to-move
-   *  is mated); null if this line has a centipawn score instead. */
-  mateIn: number | null;
-  /** Depth this line was searched to. */
-  depth: number;
-  /** 1-based MultiPV index. Always 1 when MultiPV is unset. */
-  multipv: number;
-};
-
-export type AnalysisResult = {
-  /** UCI move string, or null if the position has no legal moves
-   *  (Stockfish reports `bestmove (none)`). */
-  bestMove: string | null;
-  /** PV lines sorted by `multipv` ascending. Length 1 when `multiPV` is 1. */
-  lines: AnalysisLine[];
-};
+export type { AnalysisLine, AnalysisResult };
 
 export type AnalyzeOptions = {
   /** Search depth (plies). */

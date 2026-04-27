@@ -1,13 +1,20 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
+import {
+  IpcChannel,
+  type AnalysisResult,
+  type AnalyzeRequest,
+  type BestMoveRequest,
+  type HindsightApi,
+} from '../shared/ipc';
 
-contextBridge.exposeInMainWorld('hindsight', {
+const api: HindsightApi = {
   version: '0.0.0',
-});
+  engine: {
+    analyze: (req: AnalyzeRequest): Promise<AnalysisResult> =>
+      ipcRenderer.invoke(IpcChannel.EngineAnalyze, req),
+    bestMove: (req: BestMoveRequest): Promise<string | null> =>
+      ipcRenderer.invoke(IpcChannel.EngineBestMove, req),
+  },
+};
 
-declare global {
-  interface Window {
-    hindsight: {
-      version: string;
-    };
-  }
-}
+contextBridge.exposeInMainWorld('hindsight', api);

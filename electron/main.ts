@@ -1,5 +1,13 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import {
+  IpcChannel,
+  type AnalysisResult,
+  type AnalyzeRequest,
+  type BestMoveRequest,
+} from '../shared/ipc';
+import { analyzePosition } from './engine/analyze';
+import { StockfishEngine } from './engine/stockfish';
 
 process.env.APP_ROOT = path.join(__dirname, '..');
 
@@ -7,6 +15,57 @@ const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist');
 
 let mainWindow: BrowserWindow | null = null;
+
+// One Stockfish process for the lifetime of the app. Started lazily on the
+// first IPC call so a `quit()` can be awaited cleanly during shutdown.
+let engineInstance: StockfishEngine | null = null;
+let enginePending: Promise<StockfishEngine> | null = null;
+
+async function getEngine(): Promise<StockfishEngine> {
+  if (engineInstance) return engineInstance;
+  if (enginePending) return enginePending;
+  enginePending = (async (): Promise<StockfishEngine> => {
+    const e = new StockfishEngine({ appRoot: app.getAppPath() });
+    await e.start();
+    engineInstance = e;
+    enginePending = null;
+    return e;
+  })();
+  return enginePending;
+}
+
+async function shutdownEngine(): Promise<void> {
+  const e = engineInstance;
+  engineInstance = null;
+  enginePending = null;
+  if (e) await e.quit();
+}
+
+function registerIpcHandlers(): void {
+  ipcMain.handle(
+    IpcChannel.EngineAnalyze,
+    async (_evt, req: AnalyzeRequest): Promise<AnalysisResult> => {
+      const engine = await getEngine();
+      return analyzePosition(engine, req.fen, {
+        depth: req.depth,
+        multiPV: req.multiPV,
+        timeoutMs: req.timeoutMs,
+      });
+    },
+  );
+
+  ipcMain.handle(
+    IpcChannel.EngineBestMove,
+    async (_evt, req: BestMoveRequest): Promise<string | null> => {
+      const engine = await getEngine();
+      const result = await analyzePosition(engine, req.fen, {
+        depth: req.depth,
+        timeoutMs: req.timeoutMs,
+      });
+      return result.bestMove;
+    },
+  );
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -35,7 +94,10 @@ function createWindow(): void {
   });
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  registerIpcHandlers();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -46,5 +108,14 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+  }
+});
+
+app.on('before-quit', (event) => {
+  if (engineInstance || enginePending) {
+    event.preventDefault();
+    void shutdownEngine().finally(() => {
+      app.exit(0);
+    });
   }
 });
