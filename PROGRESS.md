@@ -154,15 +154,20 @@ _None._
 - [ ] **Task 5** — End-of-game summary (accuracy, blunders, mistakes count, opening).
 - [ ] **Task 6** — Critical-moments quick-jump list.
 - [ ] **Task 7** — Multi-PV alternatives panel for flagged moves.
+- [ ] **Task 8** — Right-click square highlights + arrows (Lichess-style: persistent across nav, cleared on left-click). Both review and play views.
+- [ ] **Task 9** — On-piece grade badges during review: Chess.com-style overlay icons (green check on best, blue spark on brilliant, orange `?!` on inaccuracy, red `??` on blunder, etc.) rendered over the destination square so the grade is readable from the board itself, not just the side panel.
 
 ## Phase 12 — Polish + distribution
 
-- [ ] **Task 1** — Settings panel (analysis depth, theme, engine path override).
+- [ ] **Task 1** — Settings panel (analysis depth, theme, engine path override, live-eval toggle, board/piece themes).
 - [ ] **Task 2** — SQLite persistence layer + saved-games list.
 - [ ] **Task 3** — Export annotated PGN.
 - [ ] **Task 4** — `electron-builder` config for Windows / macOS / Linux installers.
 - [ ] **Task 5** — Error handling pass: friendly messages for missing Stockfish, malformed PGN, etc.
 - [ ] **Task 6** — Performance pass: profile the analysis loop, parallelize where it helps.
+- [ ] **Task 7** — Live eval bar during play. Subscribes to engine.analyze on every position change, gated behind the settings toggle from Task 1 so non-coaching purists can keep play "blind".
+- [ ] **Task 8** — Board / piece theme picker. Bundle 3-4 board palettes (classic brown, blue, green, gray) and 2-3 piece sets (Cburnett, Merida, Alpha) selectable from the settings panel.
+- [ ] **Task 9** — Knight-style L-shaped arrows (custom SVG overlay; Lichess-style) for the suggested-move and right-click arrows. Replaces the straight-line arrows shipped in Phase 11 / Task 4.
 
 ## Phase 13 — Documentation
 
@@ -170,3 +175,16 @@ _None._
 - [ ] **Task 2** — User guide (`docs/USER_GUIDE.md`).
 - [ ] **Task 3** — Contributor guide (`docs/CONTRIBUTING.md`) — how to add templates, motif detectors, translations.
 - [ ] **Task 4** — Cut a v0.1 release on GitHub with installers attached.
+
+---
+
+## Backlog (post-v0.1 ideas)
+
+Not committed for v0.1. Recorded so we don't lose them, and so future sessions don't have to re-decide. Promote to a phase once there's signal that v0.1 needs them.
+
+- **Live coach mode** — eval bar, classification, motif callouts, and rendered explanations live during play (the same pipeline the Review screen runs, applied per-move while a game is in progress). Adds a "second product" to the app, so deferred until v0.1 ships and we know whether users actually want it. Risk worth flagging: live coaching during play can become a crutch — the post-game review loop is more honest about how training works.
+- **Threat arrows** — show what the opponent threatens if you pass. Static analysis pass over the position. Naturally pairs with live coach mode.
+- **Hint mode during play** — explicit "show me a good move + why" affordance. Pairs with coach mode.
+- **PGN-only headless review** — `hindsight review game.pgn -o annotated.pgn` CLI for batch processing. The orchestration in `src/chess/review.ts` is already React-free; just needs a node entry point.
+- **Translations of the explanation library** — DSL-friendly format means localising means swapping the source strings, not the engine.
+- **Engine-strength ladder for review** — let the user pick depth-12 / depth-18 / depth-25 per review (Phase 12 Task 1 lands the global setting; per-review override is a stretch).
