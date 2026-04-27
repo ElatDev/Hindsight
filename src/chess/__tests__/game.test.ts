@@ -71,6 +71,32 @@ describe('Game', () => {
     const g = new Game();
     expect(g.legalMoves()).toHaveLength(20); // 16 pawn moves + 4 knight moves
   });
+
+  it('move() accepts a { from, to, promotion } object (drag-drop form)', () => {
+    const g = new Game();
+    const move = g.move({ from: 'e2', to: 'e4' });
+    expect(move?.san).toBe('e4');
+    expect(g.history()).toEqual(['e4']);
+  });
+
+  it('move() with promotion picks the promoted piece', () => {
+    const g = Game.fromFen('4k3/P7/8/8/8/8/8/4K3 w - - 0 1');
+    const move = g.move({ from: 'a7', to: 'a8', promotion: 'n' });
+    expect(move?.promotion).toBe('n');
+  });
+
+  it('legalMovesFrom returns moves only from the given square', () => {
+    const g = new Game();
+    const fromE2 = g.legalMovesFrom('e2');
+    expect(fromE2).toHaveLength(2); // e3 and e4
+    expect(fromE2.map((m) => m.to).sort()).toEqual(['e3', 'e4']);
+
+    // Empty square → no moves.
+    expect(g.legalMovesFrom('e4')).toHaveLength(0);
+
+    // Black piece while it's white to move → no moves.
+    expect(g.legalMovesFrom('e7')).toHaveLength(0);
+  });
 });
 
 describe('Game / PGN parsing edge cases', () => {

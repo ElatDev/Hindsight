@@ -1,6 +1,6 @@
-import { Chess, type Color, type Move } from 'chess.js';
+import { Chess, type Color, type Move, type Square } from 'chess.js';
 
-export type { Color, Move };
+export type { Color, Move, Square };
 
 export type Fen = string;
 export type Pgn = string;
@@ -86,10 +86,20 @@ export class Game {
   }
 
   /**
-   * Apply a move (SAN like "Nf3" or "exd5", or UCI-style "e2e4"/"e7e8q").
+   * Apply a move. Accepts SAN ("Nf3", "exd5"), UCI-style coordinate strings
+   * ("e2e4", "e7e8q"), or a `{ from, to, promotion? }` object — handy when
+   * the caller already has source/target squares from a drag-drop event.
    * Returns the resulting `Move` on success, `null` if the move is illegal.
    */
-  move(move: SanMove): Move | null {
+  move(
+    move:
+      | SanMove
+      | {
+          from: string;
+          to: string;
+          promotion?: 'q' | 'r' | 'b' | 'n';
+        },
+  ): Move | null {
     try {
       return this.chess.move(move);
     } catch {
@@ -120,6 +130,13 @@ export class Game {
   /** All legal moves with full `Move` objects (from/to squares, captured piece, flags). */
   legalMovesVerbose(): Move[] {
     return this.chess.moves({ verbose: true });
+  }
+
+  /** Legal moves originating from `square`, with full `Move` objects.
+   *  Empty array if there's no piece on the square, the piece can't move, or
+   *  it's not the side-to-move's piece. */
+  legalMovesFrom(square: Square): Move[] {
+    return this.chess.moves({ verbose: true, square });
   }
 
   /** Move history in SAN. */
