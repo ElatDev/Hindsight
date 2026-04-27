@@ -1,13 +1,8 @@
-import type { Color, PieceSymbol, Square } from 'chess.js';
+import type { Color } from 'chess.js';
 import type { Game } from '../game';
+import { enemyOf, type PieceLocation } from './util';
 
-export type HangingPiece = {
-  square: Square;
-  type: PieceSymbol;
-  color: Color;
-};
-
-const opposite = (c: Color): Color => (c === 'w' ? 'b' : 'w');
+export type HangingPiece = PieceLocation;
 
 /**
  * Find pieces that are attacked but not defended in the current position.
@@ -30,7 +25,7 @@ export function findHangingPieces(game: Game): HangingPiece[] {
     for (const cell of row) {
       if (!cell) continue;
       if (cell.type === 'k') continue;
-      const enemyAttacks = chess.isAttacked(cell.square, opposite(cell.color));
+      const enemyAttacks = chess.isAttacked(cell.square, enemyOf(cell.color));
       if (!enemyAttacks) continue;
       const defended = chess.isAttacked(cell.square, cell.color);
       if (!defended) {
