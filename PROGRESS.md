@@ -13,6 +13,8 @@ Latest pair (this update):
 
 Earlier this session: Phase 10 / Tasks 1-2 (DSL + registry), Phase 9 / Tasks 1-2 (ECO bundle + matcher).
 
+**Session stop.** Two pairs landed this run (Phase 10/1-2 and Phase 10/3-4). All Phase 10 _infrastructure_ is in place — DSL, registry, selector, picker. Tree clean, all pushed, lint + typecheck + 275-test suite green. Next session is the content drop (Task 5: 100+ templates + Task 6: smoke tests) — recommend designing the render-context schema first (what variables each template can reference: piece, square, captured, suggestedSan, opponentThreat, etc.) since revising 100 templates later is painful. Start by sketching that schema, then group templates under `${classification}.${motif?}.${phase?}` ids and feed them into `TemplateRegistry.loadFromRecord` + `TemplateSelector.add`.
+
 **Last updated:** 2026-04-27
 
 ## Next up
