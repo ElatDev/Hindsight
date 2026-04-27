@@ -12,6 +12,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md,css,html}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md,css,html}\"",
     "typecheck": "tsc -b --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
     "prepare": "husky",
     "fetch-stockfish": "node scripts/fetch-stockfish.mjs",
     "postinstall": "node scripts/fetch-stockfish.mjs"
@@ -38,7 +40,8 @@
     "typescript": "^5.6.2",
     "vite": "^5.4.8",
     "vite-plugin-electron": "^0.28.8",
-    "vite-plugin-electron-renderer": "^0.14.6"
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vitest": "^2.1.9"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
