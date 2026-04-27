@@ -4,27 +4,29 @@
 
 ## Current session
 
-**Phase 12 / Tasks 6 + 8 land.** 567 tests pass (+5: 2 multi-PV plumbing in analysis, 1 alternatives-from-first-pass in review, 2 board-palette shape); lint + typecheck + build clean.
+**Phase 12 / Task 4 lands solo.** 567 tests pass; lint + typecheck + build clean. Single-task commit was justified since the only well-scoped pair partner — Task 2 (SQLite + saved-games) — is too big to bundle responsibly.
 
-Latest pair (this update):
+This update:
 
-- **Phase 12 / Task 6** — Performance pass. `analyzeGame` now accepts a `multiPV` option, forwards it to the pre-move engine call, and surfaces the full `AnalysisLine[]` via the new `MoveAnalysis.linesBefore`. `runGameReview` defaults to `multiPV=3` and the new `attachAlternativesFromFirstPass` helper hoists those lines onto each flagged `ClassifiedMove.alternatives`. The dedicated `analyzeAlternatives` second pass is no longer called from the review path — flagged moves no longer pay an extra engine call, shaving ~K calls per game (one per flagged ply). `analyzeAlternatives` itself is kept around so its existing test surface stays valid; future Phase 12 work can drop or repurpose it.
-- **Phase 12 / Task 8** — Board palette picker (the visual half — piece-set asset bundling explicitly carved out for a follow-up). New `src/ui/boardThemes.ts` defines four (light, dark) hex pairs (`classic`, `blue`, `green`, `gray`); `Board.tsx` wires the chosen palette to react-chessboard's `customLightSquareStyle` / `customDarkSquareStyle`; `App.tsx` and `Review.tsx` thread `settings.boardTheme` through. `SettingsDialog` drops the "pending" hint on the board theme fieldset (now active); the piece-set hint stays.
+- **Phase 12 / Task 4** — `electron-builder` config. New `build` block in `package.json` targets NSIS (Windows x64), DMG (macOS x64+arm64), and AppImage (Linux x64). Renderer + main code lives in ASAR; Stockfish ships as `extraResources` so the OS can `exec` it from outside the archive. `electron/main.ts` gains an `engineRoot()` helper that picks `process.resourcesPath` when packaged and `app.getAppPath()` otherwise, so the existing `defaultStockfishPath` resolves correctly in both dev and installer runs. New npm scripts: `dist` and `dist:dir` (unpacked, faster). Code signing / notarization deferred — documented in ADR-005 alongside why.
 
-Manual UI verification: Vite + Electron boot clean, no console errors at startup. Interactive verification (palette swap takes effect, alternatives populate without a second engine pass) still pending — needs an interactive dev session.
+Manual UI verification: Vite + Electron boot clean, no console errors at startup. Installer build (`npm run dist`) not actually run in this session — needs platform-specific testing per OS; the config is validated structurally only.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-Two Phase 12 tasks remain, both distribution-sized:
+One Phase 12 task remains:
 
-- **Phase 12 / Task 2** — SQLite persistence layer + saved-games list. Native module (better-sqlite3) + electron-rebuild + schema design + migration from the localStorage `useSettings` backend + a "saved games" list view. Worth a dedicated session.
-- **Phase 12 / Task 4** — `electron-builder` config for Windows / macOS / Linux installers. Config + icons + signing setup for at least Windows.
+- **Phase 12 / Task 2** — SQLite persistence layer + saved-games list. Native module (better-sqlite3) + electron-rebuild + schema design + migration from the localStorage `useSettings` backend + a "saved games" list view. Wants a dedicated session — install + electron-rebuild on Windows can require MSVC build tools; surface that as a blocker if it bites.
 
-Plus the carved-out follow-ups inside completed tasks: piece-set bundling (Task 8 second half), engine-path override (Task 1 / Task 5 deferred), PGN-error polish (Task 5 deferred).
+Then Phase 13 (documentation):
 
-After Phase 12: Phase 13 documentation + v0.1 release cut.
+- **Phase 13 / Tasks 2 + 3** — User guide and Contributor guide. Pure markdown writing; a clean pair to start Phase 13 once Phase 12 closes (or in parallel).
+- **Phase 13 / Task 1** — README screenshots. Needs interactive UI captures (user-driven).
+- **Phase 13 / Task 4** — Cut v0.1 release on GitHub. Depends on Phase 12 / Task 2 + an actual installer build via the new `npm run dist`.
+
+Carved-out follow-ups still pending: piece-set bundling (Task 8 second half), engine-path override UI (Task 1/5 deferred), PGN-error polish (Task 5 deferred).
 
 ## Blockers
 
@@ -164,7 +166,7 @@ _None._
 - [x] **Task 1** — Settings panel (analysis depth, theme, engine path override, live-eval toggle, board/piece themes). Engine path override deferred — needs main-process IPC + restart logic; will be folded back in alongside Task 5's error-handling pass.
 - [ ] **Task 2** — SQLite persistence layer + saved-games list.
 - [x] **Task 3** — Export annotated PGN.
-- [ ] **Task 4** — `electron-builder` config for Windows / macOS / Linux installers.
+- [x] **Task 4** — `electron-builder` config for Windows / macOS / Linux installers. NSIS / DMG / AppImage targets land in v0.1; code signing + notarization deferred (paid certs + per-OS workflows).
 - [x] **Task 5** — Error handling pass: friendly missing-Stockfish dialog + retry on engine failures during review. Engine-path override and PGN-error polish remain deferred — both need their own targeted follow-ups.
 - [x] **Task 6** — Performance pass: collapsed the multi-PV second pass into the first-pass `multiPV=3` request, saving one engine call per flagged ply. Engine-pool / parallel analyses still possible as a future v0.2 win.
 - [x] **Task 7** — Live eval bar during play. Subscribes to engine.analyze on every position change, gated behind the settings toggle from Task 1 so non-coaching purists can keep play "blind".
