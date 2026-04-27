@@ -4,26 +4,26 @@
 
 ## Current session
 
-**Phases 1-2 complete; Phase 3 Tasks 1-3 done.** 34 tests pass.
+**Phases 1-2 complete; Phase 3 Tasks 1-5 done.** 34 tests pass.
 
-- Phase 1: Stockfish fetcher + UCI handshake + analyzePosition + Vitest engine tests (8) + IPC surface (`shared/ipc.ts`, lazily-started long-lived engine in main, preload bridges `window.hindsight.engine.*`).
-- Phase 2: `chess.js@^1.4.0` wrapper in `src/chess/game.ts` (factories, load/loadFen, move(SAN | UCI | object), legalMoves(+verbose), legalMovesFrom, history(+verbose), turn, undo, inCheck, isGameOver, `gameEnd()`, headers, comments, raw escape hatch). `GameEnd` is a const + string-literal union. 26 tests across initial state, legality, Fool's Mate, stalemate, threefold, fifty-move, PGN headers/comments/NAGs/variations, ambiguous SAN, queenside castle, underpromotion, capture+promotion, check/mate suffixes, coord-form move, legalMovesFrom.
-- Phase 3 / Task 1: `src/ui/Board.tsx` wraps `react-chessboard@^4.7.3` (5.x requires React 19, we're on 18). Pure render of `game.fen()`.
-- Phase 3 / Task 2: Drag-and-drop with legal-move enforcement. `Board` takes an `onMove(from, to, promotion?)` prop; when provided, pieces become draggable and `onPieceDrop` invokes the callback (returns true/false to keep/snap). `App.tsx` mutates the Game and bumps a version counter to re-render. `autoPromoteToQueen=true` for now.
-- Phase 3 / Task 3: Click-to-select with legal-target highlighting. `Board` manages selection state internally; clicking a piece for the side-to-move highlights the square in yellow and dots all legal destinations (red ring on captures). Second click on a legal target plays the move; clicking elsewhere reselects or deselects.
+- Phase 1: Stockfish fetcher + UCI handshake + analyzePosition + Vitest engine tests (8) + IPC surface.
+- Phase 2: `chess.js@^1.4.0` wrapper with full typed surface, `GameEnd` const + union, 26 tests.
+- Phase 3 / Tasks 1-3: `react-chessboard@^4.7.3` board with drag-drop legality enforcement and click-to-select highlighting (legal targets dotted, captures ringed in red).
+- Phase 3 / Task 4: `src/ui/MoveList.tsx` renders numbered move pairs as buttons; click any to jump the board; current ply highlighted in yellow. Empty state shown when history is empty.
+- Phase 3 / Task 5: `src/ui/NavControls.tsx` provides First/Prev/Next/Last/Flip buttons (ASCII-only labels per no-emoji rule). `App.tsx` now holds a `viewPly` cursor — board displays history replayed up to viewPly, drag-drop disabled while reviewing the past, and Left/Right/Home/End keyboard shortcuts step through history.
 
 Notes:
 
 - PowerShell scripts must be ASCII-safe.
-- IPC `window.hindsight.engine.bestMove(...)` round-trip still not manually verified through DevTools — worth doing when next renderer-touching task lands (Phase 3 / Task 4 move list is a good moment).
-- Renderer bundle ~280kB (was 142kB before react-chessboard + react-dnd). Acceptable for desktop.
+- IPC `window.hindsight.engine.bestMove(...)` round-trip still not manually verified through DevTools — Task 6 (eval bar) is a natural moment to hit it since that task wires the engine to the UI for the first time.
+- Renderer bundle ~280kB. Acceptable for desktop.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 3 / Task 4** — Move list (`src/ui/MoveList.tsx`) in algebraic notation, click to navigate. Will need a way to walk back/forward through `Game.history()` — likely store a separate `Game` for the displayed position vs. the "real" terminal position, OR retain a `historyIndex` and rebuild the position by replaying.
-- **Phase 3 / Task 5** — Navigation controls (first / prev / next / last / flip board). Pairs naturally with Task 4's history-index plumbing.
+- **Phase 3 / Task 6** — Eval bar with placeholder data. Build a thin vertical bar component that takes a centipawn or mate-in score and renders the white/black share. Phase 6 will swap the placeholder for live engine output, but wiring the prop now keeps the layout stable. This is also the first chance to call `window.hindsight.engine.bestMove(...)` from the renderer to confirm the IPC round-trip.
+- **Phase 3 / Task 7** — Light/dark theme toggle. CSS-vars-based theme + a toggle in NavControls (or a new SettingsBar). Probably scope to system-preference + user override stored in localStorage.
 
 ## Blockers
 
@@ -85,8 +85,8 @@ _None._
 - [x] **Task 1** — Add `react-chessboard`. Render board in `src/ui/Board.tsx` with the current `Game` state.
 - [x] **Task 2** — Drag-and-drop with legal-move enforcement (only allow legal moves; snap back on illegal).
 - [x] **Task 3** — Legal-move highlighting on piece selection.
-- [ ] **Task 4** — Move list (`src/ui/MoveList.tsx`) in algebraic notation, click to navigate.
-- [ ] **Task 5** — Navigation controls (first / prev / next / last / flip board).
+- [x] **Task 4** — Move list (`src/ui/MoveList.tsx`) in algebraic notation, click to navigate.
+- [x] **Task 5** — Navigation controls (first / prev / next / last / flip board).
 - [ ] **Task 6** — Eval bar (placeholder data until Phase 6 wires it to engine output).
 - [ ] **Task 7** — Light/dark theme toggle.
 
