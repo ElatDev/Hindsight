@@ -13,6 +13,7 @@ import {
 import { PgnGameSelectDialog } from './ui/PgnGameSelectDialog';
 import { PgnPasteDialog } from './ui/PgnPasteDialog';
 import { Review } from './ui/Review';
+import { SavedGamesDialog } from './ui/SavedGamesDialog';
 import { SettingsDialog } from './ui/SettingsDialog';
 import { EngineMissingDialog } from './ui/EngineMissingDialog';
 import { useLiveEval } from './ui/useLiveEval';
@@ -53,6 +54,7 @@ function App(): JSX.Element {
   const [pgnGames, setPgnGames] = useState<PgnGamePreview[] | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSavedGames, setShowSavedGames] = useState(false);
   const { theme, toggle: toggleTheme, setTheme } = useTheme();
   const {
     settings,
@@ -314,6 +316,13 @@ function App(): JSX.Element {
         <button
           type="button"
           className="header-secondary-btn"
+          onClick={() => setShowSavedGames(true)}
+        >
+          Saved games
+        </button>
+        <button
+          type="button"
+          className="header-secondary-btn"
           onClick={() => setShowSettings(true)}
         >
           Settings
@@ -424,6 +433,27 @@ function App(): JSX.Element {
           }}
           onReset={resetSettings}
           onCancel={() => setShowSettings(false)}
+        />
+      ) : null}
+
+      {showSavedGames ? (
+        <SavedGamesDialog
+          current={
+            totalPlies > 0
+              ? {
+                  pgn: state.game.pgn(),
+                  plyCount: totalPlies,
+                  defaultName:
+                    state.mode === 'vs-engine'
+                      ? `Game vs engine (${state.elo} Elo)`
+                      : '',
+                }
+              : null
+          }
+          onLoad={(pgn) => {
+            if (loadPgnText(pgn)) setShowSavedGames(false);
+          }}
+          onCancel={() => setShowSavedGames(false)}
         />
       ) : null}
 

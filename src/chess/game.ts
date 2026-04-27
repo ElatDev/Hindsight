@@ -117,6 +117,12 @@ export class Game {
     return this.chess.fen();
   }
 
+  /** Plain (un-annotated) PGN of the move history, with whatever headers
+   *  chess.js currently holds. For annotated export use `exportAnnotatedPgn`. */
+  pgn(): Pgn {
+    return this.chess.pgn();
+  }
+
   /** Side to move. */
   turn(): Color {
     return this.chess.turn();

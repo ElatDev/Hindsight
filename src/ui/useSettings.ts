@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
- * Persistent app-wide settings. Phase 12 / Task 1 ships the storage layer +
- * the dialog UI; the consumers wire up over the rest of Phase 12 (live eval,
- * engine path override, board/piece themes). The settings keys are versioned
- * so a Phase 12 / Task 2 SQLite migration can take over the same shape.
+ * Persistent app-wide settings.
  *
- * Storage backend: localStorage today; will move to SQLite in Phase 12 /
- * Task 2 (this hook is the seam).
+ * **Storage backend (Phase 12 / Task 2):** SQLite (via the main process) is
+ * canonical. localStorage stays as a synchronous first-paint cache so the
+ * board / theme don't flicker on app launch — we read it during the
+ * `useState` initializer, then async-reconcile against the DB on mount.
+ *
+ * **First-launch migration:** when the IPC load reports `bootstrapped: false`
+ * (no rows yet) and localStorage carries a previously-saved blob, we push
+ * that blob up to the DB so the user's old preferences survive the upgrade.
  */
 
 export type BoardTheme = 'classic' | 'blue' | 'green' | 'gray';
@@ -48,23 +51,28 @@ const PIECE_THEMES: ReadonlySet<PieceTheme> = new Set([
   'alpha',
 ]);
 
-/** Read + sanitize the stored value. Anything malformed falls back to the
- *  default for that field — keeps a hand-edited or older-version blob from
- *  bricking the app. */
-function readStoredSettings(): Settings {
-  if (typeof window === 'undefined') return DEFAULT_SETTINGS;
+function readLocalCache(): Settings | null {
+  if (typeof window === 'undefined') return null;
   let raw: string | null = null;
   try {
     raw = window.localStorage.getItem(STORAGE_KEY);
   } catch {
-    return DEFAULT_SETTINGS;
+    return null;
   }
-  if (!raw) return DEFAULT_SETTINGS;
+  if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as Partial<Settings>;
-    return sanitize(parsed);
+    return sanitize(JSON.parse(raw) as Partial<Settings>);
   } catch {
-    return DEFAULT_SETTINGS;
+    return null;
+  }
+}
+
+function writeLocalCache(settings: Settings): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // Storage may be unavailable (private mode, quota); fall through.
   }
 }
 
@@ -90,23 +98,75 @@ function sanitize(input: Partial<Settings>): Settings {
   };
 }
 
+function settingsEqual(a: Settings, b: Settings): boolean {
+  return (
+    a.analysisDepth === b.analysisDepth &&
+    a.liveEval === b.liveEval &&
+    a.boardTheme === b.boardTheme &&
+    a.pieceTheme === b.pieceTheme
+  );
+}
+
 export type UseSettings = {
   settings: Settings;
-  /** Replace one or more fields. Persists immediately. */
+  /** Replace one or more fields. Persists to localStorage immediately and
+   *  fires an async write to SQLite. */
   update: (patch: Partial<Settings>) => void;
   /** Restore every field to its default. */
   reset: () => void;
 };
 
 export function useSettings(): UseSettings {
-  const [settings, setSettings] = useState<Settings>(readStoredSettings);
+  const [settings, setSettings] = useState<Settings>(
+    () => readLocalCache() ?? DEFAULT_SETTINGS,
+  );
 
+  // Refs so the mount-effect closure can compare against current state and
+  // know whether the localStorage cache existed at boot — without the parent
+  // re-running on every settings change.
+  const initialCacheRef = useRef<Settings | null>(null);
+  if (initialCacheRef.current === null) {
+    initialCacheRef.current = readLocalCache();
+  }
+
+  // Reconcile against the SQLite-backed settings on mount. Three cases:
+  //  - DB has rows ⇒ trust the DB; overwrite local state if it differs.
+  //  - DB empty + we had a cached blob ⇒ first-time migration; push it up.
+  //  - DB empty + no cache ⇒ defaults are fine; nothing to do.
   useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch {
-      // Storage may be unavailable (private mode, quota); fall through.
-    }
+    let cancelled = false;
+    const ipc = window.hindsight?.settings;
+    if (!ipc) return;
+    void (async () => {
+      try {
+        const { settings: remote, bootstrapped } = await ipc.load();
+        if (cancelled) return;
+        if (bootstrapped) {
+          const sanitized = sanitize(remote as Partial<Settings>);
+          setSettings((prev) =>
+            settingsEqual(prev, sanitized) ? prev : sanitized,
+          );
+          writeLocalCache(sanitized);
+        } else if (initialCacheRef.current) {
+          await ipc.save(initialCacheRef.current);
+        }
+      } catch {
+        // IPC unreachable or DB error — keep the localStorage-backed state.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Mirror every settings change to localStorage (sync) and SQLite (async).
+  useEffect(() => {
+    writeLocalCache(settings);
+    const ipc = window.hindsight?.settings;
+    if (!ipc) return;
+    void ipc.save(settings).catch(() => {
+      // Swallow — localStorage already has the truth for this session.
+    });
   }, [settings]);
 
   const update = useCallback((patch: Partial<Settings>): void => {

@@ -52,6 +52,12 @@ export const IpcChannel = {
   EngineBestMove: 'engine:bestMove',
   PgnOpenFile: 'pgn:openFile',
   PgnSaveFile: 'pgn:saveFile',
+  SettingsLoad: 'settings:load',
+  SettingsSave: 'settings:save',
+  GamesList: 'games:list',
+  GamesGet: 'games:get',
+  GamesSave: 'games:save',
+  GamesDelete: 'games:delete',
 } as const;
 
 /** Sentinel substring stamped onto engine errors when the Stockfish binary
@@ -96,6 +102,46 @@ export type PgnSaveResult = {
   path: string;
 } | null;
 
+/** Settings persisted to SQLite. The wire format is opaque (a record of
+ *  JSON-able values) so the renderer's sanitizer is the single source of
+ *  truth for the shape; main-side code never needs to know which keys exist.
+ *  See `src/ui/useSettings.ts` for the canonical shape. */
+export type SettingsRecord = Readonly<Record<string, unknown>>;
+
+export type SettingsLoadResult = {
+  settings: SettingsRecord;
+  /** True when at least one row was already present in the DB. False on a
+   *  fresh install — the renderer uses this to seed the DB from any
+   *  pre-existing localStorage settings (one-time migration). */
+  bootstrapped: boolean;
+};
+
+/** Saved-game list-view row. Excludes the PGN body so the list can render
+ *  hundreds of entries without paying parse cost. */
+export type SavedGameSummary = {
+  id: number;
+  name: string;
+  white: string | null;
+  black: string | null;
+  result: string | null;
+  event: string | null;
+  playedAt: string | null;
+  createdAt: string;
+  plyCount: number;
+};
+
+/** Detail view — summary plus the raw PGN. */
+export type SavedGame = SavedGameSummary & {
+  pgn: string;
+};
+
+export type SaveGameRequest = {
+  pgn: string;
+  /** Optional display name; if omitted, derived from PGN headers main-side. */
+  name?: string;
+  plyCount: number;
+};
+
 /** API surface exposed on `window.hindsight` by the preload script. */
 export type EngineApi = {
   analyze(req: AnalyzeRequest): Promise<AnalysisResult>;
@@ -107,10 +153,24 @@ export type PgnApi = {
   saveFile(req: PgnSaveRequest): Promise<PgnSaveResult>;
 };
 
+export type SettingsApi = {
+  load(): Promise<SettingsLoadResult>;
+  save(patch: SettingsRecord): Promise<void>;
+};
+
+export type GamesApi = {
+  list(): Promise<SavedGameSummary[]>;
+  get(id: number): Promise<SavedGame | null>;
+  save(req: SaveGameRequest): Promise<SavedGameSummary>;
+  delete(id: number): Promise<void>;
+};
+
 export type HindsightApi = {
   version: string;
   engine: EngineApi;
   pgn: PgnApi;
+  settings: SettingsApi;
+  games: GamesApi;
 };
 
 declare global {

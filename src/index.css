@@ -118,6 +118,10 @@ body,
   color: #d04040;
 }
 
+.status--muted {
+  color: var(--fg-subtle);
+}
+
 .game-end-banner {
   display: flex;
   align-items: center;
@@ -1077,4 +1081,57 @@ body,
   color: var(--fg-subtle);
   min-width: 6ch;
   text-align: right;
+}
+
+.saved-games__save-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.4rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.6rem;
+}
+
+.saved-games__save-row label {
+  font-size: 0.9rem;
+  color: var(--fg-muted);
+}
+
+.saved-games__name-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.92rem;
+  background: var(--bg-button);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.4rem 0.55rem;
+}
+
+.saved-games__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.3rem;
+  align-items: stretch;
+}
+
+.saved-games__delete {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  width: 2.2rem;
+  color: var(--fg-subtle);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.saved-games__delete:hover:not(:disabled) {
+  color: #d04040;
+  border-color: #d04040;
+}
+
+.saved-games__delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

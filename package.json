@@ -17,17 +17,20 @@
     "prepare": "husky",
     "fetch-stockfish": "node scripts/fetch-stockfish.mjs",
     "build-eco": "node scripts/build-eco.mjs",
-    "postinstall": "node scripts/fetch-stockfish.mjs",
+    "postinstall": "node scripts/fetch-stockfish.mjs && electron-rebuild -f -w better-sqlite3",
     "dist": "npm run build && electron-builder",
     "dist:dir": "npm run build && electron-builder --dir"
   },
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
     "chess.js": "^1.4.0",
     "react": "^18.3.1",
     "react-chessboard": "^4.7.3",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.7.0",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
@@ -79,7 +82,9 @@
       }
     ],
     "asar": true,
-    "asarUnpack": [],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*"
+    ],
     "compression": "normal",
     "publish": null,
     "win": {

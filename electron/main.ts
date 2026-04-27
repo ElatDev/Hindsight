@@ -9,9 +9,17 @@ import {
   type PgnOpenResult,
   type PgnSaveRequest,
   type PgnSaveResult,
+  type SaveGameRequest,
+  type SavedGame,
+  type SavedGameSummary,
+  type SettingsLoadResult,
+  type SettingsRecord,
 } from '../shared/ipc';
 import { analyzePosition } from './engine/analyze';
 import { StockfishEngine } from './engine/stockfish';
+import { openDatabase, type Db } from './storage/db';
+import { loadSettings, saveSettings } from './storage/settings';
+import { deleteGame, getGame, listGames, saveGame } from './storage/games';
 
 process.env.APP_ROOT = path.join(__dirname, '..');
 
@@ -54,6 +62,17 @@ async function shutdownEngine(): Promise<void> {
   engineInstance = null;
   enginePending = null;
   if (e) await e.quit();
+}
+
+// Application database. Opened once at app-ready and reused for the lifetime
+// of the process. We keep it lazy-init so tests / non-app harnesses can call
+// into the IPC handlers without dragging Electron up.
+let dbInstance: Db | null = null;
+function getDb(): Db {
+  if (dbInstance) return dbInstance;
+  const dbPath = path.join(app.getPath('userData'), 'hindsight.db');
+  dbInstance = openDatabase(dbPath);
+  return dbInstance;
 }
 
 // Stockfish is a single UCI process — concurrent `go` calls would race on
@@ -111,6 +130,41 @@ function registerIpcHandlers(): void {
       if (result.canceled || !result.filePath) return null;
       await writeFile(result.filePath, req.pgn, 'utf8');
       return { path: result.filePath };
+    },
+  );
+
+  ipcMain.handle(
+    IpcChannel.SettingsLoad,
+    async (): Promise<SettingsLoadResult> => loadSettings(getDb()),
+  );
+
+  ipcMain.handle(
+    IpcChannel.SettingsSave,
+    async (_evt, patch: SettingsRecord): Promise<void> => {
+      saveSettings(getDb(), patch);
+    },
+  );
+
+  ipcMain.handle(
+    IpcChannel.GamesList,
+    async (): Promise<SavedGameSummary[]> => listGames(getDb()),
+  );
+
+  ipcMain.handle(
+    IpcChannel.GamesGet,
+    async (_evt, id: number): Promise<SavedGame | null> => getGame(getDb(), id),
+  );
+
+  ipcMain.handle(
+    IpcChannel.GamesSave,
+    async (_evt, req: SaveGameRequest): Promise<SavedGameSummary> =>
+      saveGame(getDb(), req),
+  );
+
+  ipcMain.handle(
+    IpcChannel.GamesDelete,
+    async (_evt, id: number): Promise<void> => {
+      deleteGame(getDb(), id);
     },
   );
 
@@ -183,7 +237,22 @@ app.on('before-quit', (event) => {
   if (engineInstance || enginePending) {
     event.preventDefault();
     void shutdownEngine().finally(() => {
+      if (dbInstance) {
+        try {
+          dbInstance.close();
+        } catch {
+          // best-effort; the OS will reclaim the handle on exit anyway
+        }
+        dbInstance = null;
+      }
       app.exit(0);
     });
+  } else if (dbInstance) {
+    try {
+      dbInstance.close();
+    } catch {
+      // best-effort
+    }
+    dbInstance = null;
   }
 });
