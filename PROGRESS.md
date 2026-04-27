@@ -4,26 +4,31 @@
 
 ## Current session
 
-**Phases 1-2 complete; Phase 3 Tasks 1-5 done.** 34 tests pass.
+**Phases 1-3 complete.** 34 tests pass. The app now boots into a working chess UI: drag-drop with legality + highlighting, move list with click-navigate, keyboard shortcuts, eval bar (placeholder), light/dark theme toggle.
 
 - Phase 1: Stockfish fetcher + UCI handshake + analyzePosition + Vitest engine tests (8) + IPC surface.
 - Phase 2: `chess.js@^1.4.0` wrapper with full typed surface, `GameEnd` const + union, 26 tests.
-- Phase 3 / Tasks 1-3: `react-chessboard@^4.7.3` board with drag-drop legality enforcement and click-to-select highlighting (legal targets dotted, captures ringed in red).
-- Phase 3 / Task 4: `src/ui/MoveList.tsx` renders numbered move pairs as buttons; click any to jump the board; current ply highlighted in yellow. Empty state shown when history is empty.
-- Phase 3 / Task 5: `src/ui/NavControls.tsx` provides First/Prev/Next/Last/Flip buttons (ASCII-only labels per no-emoji rule). `App.tsx` now holds a `viewPly` cursor — board displays history replayed up to viewPly, drag-drop disabled while reviewing the past, and Left/Right/Home/End keyboard shortcuts step through history.
+- Phase 3:
+  - Task 1: `react-chessboard@^4.7.3` board (pinned to 4.x — 5.x needs React 19).
+  - Task 2: drag-drop with `Game.move({from, to, promotion})` + version-counter re-renders.
+  - Task 3: click-to-select with legal-target dots / red capture rings.
+  - Task 4: MoveList button-pair grid; click any ply to jump.
+  - Task 5: NavControls (First/Prev/Next/Last/Flip) + Left/Right/Home/End shortcuts; reviewing past disables drag-drop.
+  - Task 6: EvalBar with sigmoid(evalCp / 410) → white-share, mate clamps to 99/1. Currently fed evalCp=0 placeholder; Phase 6 will wire `analyzePosition` output.
+  - Task 7: useTheme hook (localStorage + prefers-color-scheme fallback) writes `<html data-theme>`; index.css fully driven by CSS variables.
 
 Notes:
 
 - PowerShell scripts must be ASCII-safe.
-- IPC `window.hindsight.engine.bestMove(...)` round-trip still not manually verified through DevTools — Task 6 (eval bar) is a natural moment to hit it since that task wires the engine to the UI for the first time.
+- IPC `window.hindsight.engine.bestMove(...)` round-trip still not manually verified through DevTools — Phase 6 / Task 1 will exercise it for real (orchestrating per-move eval pulls the entire engine→IPC→renderer pipeline).
 - Renderer bundle ~280kB. Acceptable for desktop.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 3 / Task 6** — Eval bar with placeholder data. Build a thin vertical bar component that takes a centipawn or mate-in score and renders the white/black share. Phase 6 will swap the placeholder for live engine output, but wiring the prop now keeps the layout stable. This is also the first chance to call `window.hindsight.engine.bestMove(...)` from the renderer to confirm the IPC round-trip.
-- **Phase 3 / Task 7** — Light/dark theme toggle. CSS-vars-based theme + a toggle in NavControls (or a new SettingsBar). Probably scope to system-preference + user override stored in localStorage.
+- **Phase 4 / Task 1** — "New game vs engine" flow with Elo / skill-level chooser. Likely a small modal/header bar with an Elo slider; on accept, reset the Game and stash the chosen Elo for use when the engine plays its move (Task 2). Stockfish has built-in `UCI_LimitStrength` + `UCI_Elo` (1320–3190).
+- **Phase 4 / Task 2** — Engine plays its move on its turn. When it's the engine's colour, call `window.hindsight.engine.bestMove({ fen, depth })` and apply the returned UCI move. This is the first real exercise of the IPC pipeline end-to-end.
 
 ## Blockers
 
@@ -38,8 +43,8 @@ _None._
 |     0 | Repo + scaffold                                    |     ✅     |
 |     1 | Stockfish UCI integration                          |     ✅     |
 |     2 | Chess logic layer (`chess.js`, PGN, FEN)           |     ✅     |
-|     3 | Board GUI                                          | 🟡 in prog |
-|     4 | Play vs Stockfish                                  |     ⬜     |
+|     3 | Board GUI                                          |     ✅     |
+|     4 | Play vs Stockfish                                  | 🟡 next up |
 |     5 | Game import (PGN file/paste/manual)                |     ⬜     |
 |     6 | Analysis pipeline (per-move eval + classification) |     ⬜     |
 |     7 | Tactical motif detection                           |     ⬜     |
@@ -87,8 +92,8 @@ _None._
 - [x] **Task 3** — Legal-move highlighting on piece selection.
 - [x] **Task 4** — Move list (`src/ui/MoveList.tsx`) in algebraic notation, click to navigate.
 - [x] **Task 5** — Navigation controls (first / prev / next / last / flip board).
-- [ ] **Task 6** — Eval bar (placeholder data until Phase 6 wires it to engine output).
-- [ ] **Task 7** — Light/dark theme toggle.
+- [x] **Task 6** — Eval bar (placeholder data until Phase 6 wires it to engine output).
+- [x] **Task 7** — Light/dark theme toggle.
 
 ## Phase 4 — Play vs Stockfish
 
