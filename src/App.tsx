@@ -1,30 +1,48 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Square } from 'chess.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Color, Square } from 'chess.js';
 import { Board } from './ui/Board';
 import { EvalBar } from './ui/EvalBar';
 import { MoveList } from './ui/MoveList';
 import { NavControls } from './ui/NavControls';
+import {
+  NewGameDialog,
+  type GameMode,
+  type NewGameSettings,
+} from './ui/NewGameDialog';
 import { useTheme } from './ui/useTheme';
 import { Game } from './chess/game';
 
+type AppState = {
+  game: Game;
+  mode: GameMode;
+  /** Only meaningful when mode === 'vs-engine'. */
+  playerColor: Color;
+  /** Only meaningful when mode === 'vs-engine'. */
+  elo: number;
+};
+
+const ENGINE_DEPTH = 12;
+
 function App(): JSX.Element {
-  // The canonical Game holds the full move history. The board may display an
-  // earlier ply (history navigation), so we replay history[0..viewPly] into a
-  // separate displayed Game on every render that depends on the cursor.
-  const [game] = useState(() => new Game());
-  // `version` bumps on every move so derived state (history, displayed game)
-  // re-computes. The state is only ever read via the dependency arrays below.
+  const [state, setState] = useState<AppState>(() => ({
+    game: new Game(),
+    mode: 'free',
+    playerColor: 'w',
+    elo: 1500,
+  }));
+  // `version` bumps on every move so derived state recomputes.
   const [version, setVersion] = useState(0);
   const [viewPly, setViewPly] = useState(0);
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
+  const [showNewGame, setShowNewGame] = useState(false);
+  const [engineThinking, setEngineThinking] = useState(false);
+  const [engineError, setEngineError] = useState<string | null>(null);
   const { toggle: toggleTheme } = useTheme();
 
   const history = useMemo(() => {
-    // `version` is a dependency marker: the Game wrapper mutates in place,
-    // so React can't tell when history changed without our help.
     void version;
-    return game.history();
-  }, [game, version]);
+    return state.game.history();
+  }, [state.game, version]);
   const totalPlies = history.length;
   const atTip = viewPly === totalPlies;
 
@@ -34,22 +52,26 @@ function App(): JSX.Element {
     return g;
   }, [history, viewPly]);
 
+  const playerCanMove =
+    atTip &&
+    !state.game.isGameOver() &&
+    (state.mode === 'free' || state.game.turn() === state.playerColor);
+
   const handleMove = useCallback(
     (from: Square, to: Square, promotion?: 'q' | 'r' | 'b' | 'n'): boolean => {
-      if (!atTip) return false;
-      const move = game.move({ from, to, promotion });
+      if (!playerCanMove) return false;
+      const move = state.game.move({ from, to, promotion });
       if (!move) return false;
       setVersion((v) => v + 1);
       setViewPly((p) => p + 1);
       return true;
     },
-    [game, atTip],
+    [state.game, playerCanMove],
   );
 
   const goTo = useCallback(
     (ply: number): void => {
-      const clamped = Math.max(0, Math.min(ply, totalPlies));
-      setViewPly(clamped);
+      setViewPly(Math.max(0, Math.min(ply, totalPlies)));
     },
     [totalPlies],
   );
@@ -58,7 +80,52 @@ function App(): JSX.Element {
     setOrientation((o) => (o === 'white' ? 'black' : 'white'));
   }, []);
 
-  // Keyboard navigation: arrow keys jump through the move list.
+  // Drive engine moves when it's the engine's turn.
+  // Guarded by `requestId` so a rapid restart or game-mode change can't apply
+  // a stale bestMove from a previous request.
+  const requestIdRef = useRef(0);
+  useEffect(() => {
+    if (state.mode !== 'vs-engine') return;
+    if (!atTip) return;
+    if (state.game.isGameOver()) return;
+    if (state.game.turn() === state.playerColor) return;
+
+    const myReq = ++requestIdRef.current;
+    setEngineThinking(true);
+    setEngineError(null);
+
+    const fen = state.game.fen();
+    const elo = state.elo;
+    void window.hindsight.engine
+      .bestMove({ fen, depth: ENGINE_DEPTH, elo })
+      .then((uci) => {
+        if (myReq !== requestIdRef.current) return; // stale
+        if (!uci) {
+          setEngineError('Engine returned no move.');
+          return;
+        }
+        const from = uci.slice(0, 2) as Square;
+        const to = uci.slice(2, 4) as Square;
+        const promotion =
+          uci.length >= 5 ? (uci[4] as 'q' | 'r' | 'b' | 'n') : undefined;
+        const move = state.game.move({ from, to, promotion });
+        if (!move) {
+          setEngineError(`Engine returned illegal move: ${uci}`);
+          return;
+        }
+        setVersion((v) => v + 1);
+        setViewPly((p) => p + 1);
+      })
+      .catch((err: unknown) => {
+        if (myReq !== requestIdRef.current) return;
+        setEngineError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (myReq === requestIdRef.current) setEngineThinking(false);
+      });
+  }, [state, atTip, version]);
+
+  // Keyboard navigation.
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.target instanceof HTMLInputElement) return;
@@ -73,10 +140,49 @@ function App(): JSX.Element {
     return () => window.removeEventListener('keydown', onKey);
   }, [goTo, viewPly, totalPlies]);
 
+  const startNewGame = useCallback((settings: NewGameSettings): void => {
+    setState({
+      game: new Game(),
+      mode: settings.mode,
+      playerColor: settings.playerColor,
+      elo: settings.elo,
+    });
+    setVersion(0);
+    setViewPly(0);
+    setEngineError(null);
+    setShowNewGame(false);
+    if (settings.mode === 'vs-engine') {
+      setOrientation(settings.playerColor === 'w' ? 'white' : 'black');
+    }
+  }, []);
+
+  const statusLine = (() => {
+    if (engineError) return `Engine error: ${engineError}`;
+    if (displayed.isGameOver()) return `Game over — ${displayed.gameEnd()}.`;
+    if (!atTip) return 'Reviewing — jump to the end to play.';
+    if (engineThinking) return 'Engine thinking...';
+    const sideName = displayed.turn() === 'w' ? 'White' : 'Black';
+    if (state.mode === 'vs-engine') {
+      const isPlayer = state.game.turn() === state.playerColor;
+      return `${sideName} to move${isPlayer ? ' (you).' : ' (engine).'}`;
+    }
+    return `${sideName} to move.`;
+  })();
+
   return (
     <main className="app-shell">
-      <h1>Hindsight</h1>
+      <header className="app-header">
+        <h1>Hindsight</h1>
+        <button
+          type="button"
+          className="new-game-btn"
+          onClick={() => setShowNewGame(true)}
+        >
+          New game
+        </button>
+      </header>
       <p className="tagline">Free, offline, open-source chess game review.</p>
+
       <div className="play-area">
         <EvalBar evalCp={0} mateIn={null} orientation={orientation} />
         <div className="board-frame">
@@ -84,7 +190,7 @@ function App(): JSX.Element {
             game={displayed}
             width={520}
             orientation={orientation}
-            onMove={atTip ? handleMove : undefined}
+            onMove={playerCanMove ? handleMove : undefined}
           />
         </div>
         <aside className="side-panel">
@@ -99,15 +205,21 @@ function App(): JSX.Element {
             onToggleTheme={toggleTheme}
           />
           <MoveList history={history} currentPly={viewPly} onSelect={goTo} />
-          <p className="status">
-            {displayed.isGameOver()
-              ? `Game over — ${displayed.gameEnd()}.`
-              : atTip
-                ? `${displayed.turn() === 'w' ? 'White' : 'Black'} to move.`
-                : `Reviewing — drag the arrow to the end to make moves.`}
-          </p>
+          <p className="status">{statusLine}</p>
         </aside>
       </div>
+
+      {showNewGame ? (
+        <NewGameDialog
+          initial={{
+            mode: state.mode,
+            playerColor: state.playerColor,
+            elo: state.elo,
+          }}
+          onConfirm={startNewGame}
+          onCancel={() => setShowNewGame(false)}
+        />
+      ) : null}
     </main>
   );
 }

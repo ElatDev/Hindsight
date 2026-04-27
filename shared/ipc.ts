@@ -41,6 +41,10 @@ export type BestMoveRequest = {
   fen: string;
   depth: number;
   timeoutMs?: number;
+  /** When set, the main process configures Stockfish with
+   *  `UCI_LimitStrength=true` + `UCI_Elo=<elo>` before searching. Valid range
+   *  is 1320..3190 (Stockfish-defined). When omitted, full strength. */
+  elo?: number;
 };
 
 export const IpcChannel = {

@@ -58,6 +58,12 @@ function registerIpcHandlers(): void {
     IpcChannel.EngineBestMove,
     async (_evt, req: BestMoveRequest): Promise<string | null> => {
       const engine = await getEngine();
+      if (req.elo !== undefined) {
+        engine.send('setoption name UCI_LimitStrength value true');
+        engine.send(`setoption name UCI_Elo value ${Math.round(req.elo)}`);
+      } else {
+        engine.send('setoption name UCI_LimitStrength value false');
+      }
       const result = await analyzePosition(engine, req.fen, {
         depth: req.depth,
         timeoutMs: req.timeoutMs,

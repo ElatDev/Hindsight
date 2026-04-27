@@ -72,10 +72,31 @@ body,
   text-align: center;
 }
 
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .app-shell h1 {
   font-size: 3rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.new-game-btn {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.new-game-btn:hover {
+  filter: brightness(1.1);
 }
 
 .tagline {
@@ -224,4 +245,111 @@ body,
 
 .move-list__move--placeholder {
   cursor: default;
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: var(--bg-elevated);
+  color: var(--fg);
+  padding: 1.5rem 1.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  width: min(420px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: left;
+}
+
+.dialog h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+}
+
+.dialog__field {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dialog__field legend {
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  padding: 0 0.4rem;
+}
+
+.dialog__field label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.dialog__field[disabled] {
+  opacity: 0.45;
+}
+
+.dialog__field[disabled] label {
+  cursor: not-allowed;
+}
+
+.dialog__elo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dialog__elo input[type='range'] {
+  flex: 1;
+}
+
+.dialog__elo-value {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.95rem;
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+.dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.dialog__actions button {
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-button);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dialog__actions button:hover {
+  background: var(--bg-button-hover);
+}
+
+.dialog__primary {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+}
+
+.dialog__primary:hover {
+  filter: brightness(1.1);
 }
