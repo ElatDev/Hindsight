@@ -4,26 +4,30 @@
 
 ## Current session
 
-**Phase 13 / Tasks 2 + 3 land as a pair.** Lint + typecheck clean; prettier check on the two new files passes; pre-commit hook ran `prettier --write` cleanly with no further edits.
+**Phase 12 / Task 2 lands as a dedicated session.** SQLite persistence is now wired end-to-end. Lint + typecheck clean; the full vitest suite (572 tests) is green; the dev run boots cleanly, the IPC handlers respond without errors, and `<userData>/hindsight.db` is created with `.db-shm`/`.db-wal` on first launch.
 
 This update:
 
-- **Phase 13 / Task 2** — `docs/USER_GUIDE.md`. End-to-end walkthrough: modes (Free / Vs engine / Review), board regions, right-click highlights + arrows, suggested-move arrows, grade badges, importing PGNs (file, paste, multi-game, manual), playing vs Stockfish, the review pipeline (annotations, motifs, alternatives, critical moments, summary), settings, annotated-PGN export, privacy guarantees, and troubleshooting for the Stockfish-missing dialog and the Windows `ELECTRON_RUN_AS_NODE` gotcha.
-- **Phase 13 / Task 3** — `docs/CONTRIBUTING.md`. Project layout map, local setup, full template-DSL reference (variables, conditionals, escapes, truthiness rules) with the complete render-context variable list, motif-detector authoring guide (including the `MOTIF_TAGS` invariant — never rename existing tags), opening-database rebuild instructions, translations notes, code style + commit conventions, PR checklist, and bug-report guidance.
-
-No code touched, no tests run beyond lint + typecheck (both docs are markdown-only).
+- **better-sqlite3 + @electron/rebuild** added; the postinstall hook now runs `electron-rebuild -f -w better-sqlite3` after the Stockfish fetch so the native binary always tracks Electron 32's Node ABI. No MSVC build tools needed — the prebuilt binary loaded fine on this machine.
+- **`electron/storage/`** — `db.ts` opens the DB with WAL + foreign keys + a tiny migrator (a `schema_version` table + an append-only migrations array); `settings.ts` is a JSON-encoded KV store; `games.ts` is the `saved_games` CRUD with a header-extraction helper for the denormalised `white`/`black`/`result`/`event`/`played_at` columns.
+- **IPC** — six new channels (`settings:load`/`save`, `games:list`/`get`/`save`/`delete`) on `shared/ipc.ts`, exposed through `preload.ts` as `window.hindsight.settings` / `window.hindsight.games`.
+- **`useSettings` migration** — localStorage stays as a synchronous first-paint cache (no theme flicker on launch); on mount the hook reconciles against the SQLite-backed settings, and a fresh DB is seeded one-shot from the cache so existing user preferences survive the upgrade. Both stores are written-through on every update.
+- **Saved-games browser** — a new "Saved games" header button opens `SavedGamesDialog`. From there: save the current game (PGN + ply count, optional custom name), load a saved game back into the main view, or delete one. The dialog re-fetches after each mutation so ordering stays correct without optimistic-update bookkeeping.
+- **`Game.pgn()`** — added so the renderer can hand a clean PGN to the storage layer without re-parsing.
+- **`vite.config.ts`** — externalized `better-sqlite3`, `bindings`, and `file-uri-to-path` for both main and preload Rollup builds; the native `.node` addon must be resolved at runtime, not bundled. (Bundle size for `dist-electron/main.js` dropped from 49 → 18 KB as a happy side effect.)
+- **`electron-builder` config** — `asarUnpack` now pulls `better-sqlite3` out of the archive so the OS can dlopen the binary in packaged installers.
+- **Tests** — `electron/storage/__tests__/storage.test.ts` covers the PGN header-extraction helpers (5 cases). The full DB CRUD path is intentionally _not_ in vitest because the single `.node` binary is built for Electron's Node ABI (v128) and host vitest runs on system Node (v137); the SQL paths are exercised every dev launch and were verified clean today. If we grow non-trivial storage logic, lift those tests to electron-mocha rather than dual-build the native module.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-One Phase 12 task and two Phase 13 tasks remain.
+Two Phase 13 tasks remain — both have user-driven prerequisites, so they're not autonomous-friendly.
 
-- **Phase 12 / Task 2** — SQLite persistence layer + saved-games list. Native module (better-sqlite3) + electron-rebuild + schema design + migration from the localStorage `useSettings` backend + a "saved games" list view. Wants a dedicated session — install + electron-rebuild on Windows can require MSVC build tools; surface that as a blocker if it bites.
 - **Phase 13 / Task 1** — README screenshots / GIFs. Needs interactive UI captures (user-driven).
-- **Phase 13 / Task 4** — Cut v0.1 release on GitHub. Depends on Phase 12 / Task 2 + an actual installer build via `npm run dist`.
+- **Phase 13 / Task 4** — Cut a v0.1 release on GitHub. Depends on a clean `npm run dist` installer build (the host OS produces its native target; macOS DMG + Linux AppImage need their respective hosts or a CI matrix). Will also pick up the SQLite asarUnpack config that landed today.
 
-Carved-out follow-ups still pending: piece-set bundling (Task 8 second half), engine-path override UI (Task 1/5 deferred), PGN-error polish (Task 5 deferred).
+Carved-out follow-ups still pending: piece-set bundling (Task 8 second half), engine-path override UI (Task 1/5 deferred), PGN-error polish (Task 5 deferred). Also worth flagging for v0.2: an analysis-cache table keyed on `(pgn_hash, depth)` so re-opening a saved review is instant — the `electron/storage/` layer is now the natural home for it.
 
 ## Blockers
 
@@ -47,8 +51,8 @@ _None._
 |     9 | Opening database (ECO)                             |     ✅     |
 |    10 | Explanation template system (100+ templates)       |     ✅     |
 |    11 | Review UI                                          |     ✅     |
-|    12 | Polish + distribution                              | 🟡 in prog |
-|    13 | Documentation + screenshots                        |     ⬜     |
+|    12 | Polish + distribution                              |     ✅     |
+|    13 | Documentation + screenshots                        | 🟡 in prog |
 
 ---
 
@@ -161,7 +165,7 @@ _None._
 ## Phase 12 — Polish + distribution
 
 - [x] **Task 1** — Settings panel (analysis depth, theme, engine path override, live-eval toggle, board/piece themes). Engine path override deferred — needs main-process IPC + restart logic; will be folded back in alongside Task 5's error-handling pass.
-- [ ] **Task 2** — SQLite persistence layer + saved-games list.
+- [x] **Task 2** — SQLite persistence layer + saved-games list. better-sqlite3 (native, electron-rebuilt postinstall) hosts a KV settings table + a `saved_games` table with denormalised PGN-header columns; renderer migrated through a localStorage-as-cache + SQLite-as-canonical seam; new "Saved games" dialog covers save/load/delete with Vite externalising the native module so Rollup leaves the `.node` resolution to runtime.
 - [x] **Task 3** — Export annotated PGN.
 - [x] **Task 4** — `electron-builder` config for Windows / macOS / Linux installers. NSIS / DMG / AppImage targets land in v0.1; code signing + notarization deferred (paid certs + per-OS workflows).
 - [x] **Task 5** — Error handling pass: friendly missing-Stockfish dialog + retry on engine failures during review. Engine-path override and PGN-error polish remain deferred — both need their own targeted follow-ups.
