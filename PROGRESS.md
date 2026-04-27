@@ -4,24 +4,24 @@
 
 ## Current session
 
-**Phase 1 complete; Phase 2 / Tasks 1–3 done.** 25 tests pass across engine + chess wrapper.
+**Phase 1 complete; Phase 2 complete; Phase 3 / Task 1 done.** 31 tests pass.
 
-- Phase 1 / Task 5 (IPC): `shared/ipc.ts` is the typed contract; `electron/main.ts` owns a lazily-started long-lived `StockfishEngine` and registers `engine:analyze` / `engine:bestMove` handlers; `electron/preload.ts` bridges `window.hindsight.engine.*`. `analyze.ts` re-exports shared types so there's a single source of truth. Build green (4.92kB main, 0.29kB preload).
-- Phase 2 / Task 1: `src/chess/game.ts` wraps `chess.js@^1.4.0` with our typed surface — factories, load/loadFen, move (Move|null on illegal, no throw), undo, fen, turn, legalMoves(+verbose), history(+verbose), inCheck, isGameOver, gameEnd, raw escape hatch.
-- Phase 2 / Task 2: PGN edge cases verified through chess.js — headers, brace comments, NAG glyphs (`$1` etc.) and shorthand annotations (`!`, `?`, `?!`), and parenthesised variations all parse without error. Variations are dropped from `history()` per the v1 policy. Wrapper now exposes `headers()` and `comments()`.
-- Phase 2 / Task 3: `GameEnd` is now both a const and a string-literal union (`GameEnd.ThreefoldRepetition === 'threefold-repetition'`), so callers can match against the const without losing exhaustive type checking. Tests added for threefold (knight-shuffle setup) and fifty-move rule (high halfmove clock FEN).
+- Phase 1: Stockfish fetcher + UCI handshake + analyzePosition + Vitest engine tests + IPC surface (typed `shared/ipc.ts`, `electron/main.ts` owns a lazily-started long-lived `StockfishEngine`, preload bridges `window.hindsight.engine.{analyze,bestMove}`).
+- Phase 2: `chess.js@^1.4.0` wrapper in `src/chess/game.ts` (factories, load/loadFen, move, undo, history(+verbose), legalMoves(+verbose), inCheck, isGameOver, `gameEnd()`, `headers()`, `comments()`, `raw()` escape hatch). `GameEnd` is a const + string-literal union. 23 chess tests cover initial state, legal/illegal moves, Fool's Mate, stalemate, K-vs-K insufficient material, threefold (knight shuffle), fifty-move (high halfmove clock), PGN headers, brace comments, NAGs, variations, ambiguous SAN (`Nbd2`/`Nfd2`), queenside castling, underpromotion, capture+promotion, check/mate suffixes, and a multi-feature PGN round-trip.
+- Phase 3 / Task 1: `src/ui/Board.tsx` is a thin `react-chessboard` wrapper rendering `game.fen()` with optional orientation + width. Pinned `react-chessboard@^4.7.3` (5.x requires React 19, we're on 18). `App.tsx` replaces the placeholder with the live board against a fresh `Game()`. Manual smoke: `npm run dev` boots Vite + Electron cleanly (4 electron.exe processes, no console errors). Dev mode for now leaves the board read-only — drag-drop arrives in Task 2.
 
 Notes:
 
 - PowerShell scripts must be ASCII-safe — Windows PowerShell 5.1 reads `.ps1` as Windows-1252 unless there's a BOM.
-- Engine + IPC layer is wired end-to-end but has not yet been runtime-verified through the renderer DevTools (build green, tests green, but no manual `window.hindsight.engine.bestMove(...)` round-trip). Worth a sanity check when the first renderer-touching task lands (Phase 3 / Task 1).
+- IPC `window.hindsight.engine.bestMove(...)` round-trip is still untested through the renderer DevTools. Easy follow-up: in DevTools, paste `await window.hindsight.engine.bestMove({ fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', depth: 8 })` and confirm a UCI move comes back. Worth doing during Phase 3 / Task 2 when we're already in the renderer.
+- Renderer bundle ballooned from 142kB → 280kB after react-chessboard + react-dnd. Acceptable for desktop.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 2 / Task 4** — Tests for tricky PGN inputs (en passant, promotion, castling notation variants). Some coverage already in place from Task 2; expand to underpromotion, queenside castling, ambiguous SAN disambiguation (e.g., `Nbd2` vs `Nfd2`), and capture+promotion (`exd8=Q+`).
-- **Phase 3 / Task 1** — Add `react-chessboard`. Render board in `src/ui/Board.tsx` with the current `Game` state. First renderer-touching task — also a chance to manually smoke-test the IPC wiring via DevTools (`window.hindsight.engine.bestMove(...)`).
+- **Phase 3 / Task 2** — Drag-and-drop with legal-move enforcement: `Board` accepts an `onMove` callback, the parent (`App.tsx` for now) applies it via `Game.move()`, and react-chessboard's `onPieceDrop` returns true/false based on legality. State management: trigger React re-renders by bumping a counter or holding the FEN as state alongside the Game instance.
+- **Phase 3 / Task 3** — Legal-move highlighting on piece selection: use `Game.legalMovesVerbose({ square })` to derive a `customSquareStyles` map. Wire into Board's `onSquareClick` / `onPieceClick`.
 
 ## Blockers
 
@@ -35,8 +35,8 @@ _None._
 | ----: | -------------------------------------------------- | :--------: |
 |     0 | Repo + scaffold                                    |     ✅     |
 |     1 | Stockfish UCI integration                          |     ✅     |
-|     2 | Chess logic layer (`chess.js`, PGN, FEN)           | 🟡 in prog |
-|     3 | Board GUI                                          |     ⬜     |
+|     2 | Chess logic layer (`chess.js`, PGN, FEN)           |     ✅     |
+|     3 | Board GUI                                          | 🟡 in prog |
 |     4 | Play vs Stockfish                                  |     ⬜     |
 |     5 | Game import (PGN file/paste/manual)                |     ⬜     |
 |     6 | Analysis pipeline (per-move eval + classification) |     ⬜     |
@@ -76,11 +76,11 @@ _None._
 - [x] **Task 1** — Add `chess.js`. Wrap in `src/chess/game.ts` with our typed surface (`Game.load(pgn)`, `Game.move(san)`, `Game.fen()`, `Game.history()`, `Game.isGameOver()`).
 - [x] **Task 2** — PGN parsing: support headers, comments, NAGs, variations (we'll mostly ignore variations on import for v1 but parse without erroring).
 - [x] **Task 3** — Game-end detection: checkmate, stalemate, threefold, fifty-move, insufficient material. Surface as a typed `GameEnd` enum.
-- [ ] **Task 4** — Tests for tricky PGN inputs (en passant, promotion, castling notation variants).
+- [x] **Task 4** — Tests for tricky PGN inputs (en passant, promotion, castling notation variants).
 
 ## Phase 3 — Board GUI
 
-- [ ] **Task 1** — Add `react-chessboard`. Render board in `src/ui/Board.tsx` with the current `Game` state.
+- [x] **Task 1** — Add `react-chessboard`. Render board in `src/ui/Board.tsx` with the current `Game` state.
 - [ ] **Task 2** — Drag-and-drop with legal-move enforcement (only allow legal moves; snap back on illegal).
 - [ ] **Task 3** — Legal-move highlighting on piece selection.
 - [ ] **Task 4** — Move list (`src/ui/MoveList.tsx`) in algebraic notation, click to navigate.
