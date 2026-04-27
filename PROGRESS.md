@@ -23,6 +23,8 @@
 - Phase 5 / Task 2: `src/ui/PgnPasteDialog.tsx` modal — textarea + live preview (move count + W/B/Result headers, or parser error inline). Load button disabled until parsing succeeds. "Paste PGN" header button opens it.
 - Phase 5 / Task 3: Manual move-entry mode confirmed — already provided by the existing 'free' mode. Relabeled in `NewGameDialog` to "Free play / manual entry (no engine)" for discoverability.
 
+**Session stop.** 11 pairs (22 tasks) landed in one go: full Phase 1 (engine + IPC), Phase 2 (chess.js wrapper + tests), Phase 3 (board GUI), Phase 4 (play vs Stockfish), Phase 5 Tasks 1-3 (PGN file/paste/manual). Stopping cleanly before Phase 6 / Task 1 because that module (analysis pipeline orchestrator over `Game.history()`) is the load-bearing foundation for the entire review feature and deserves a fresh-context start.
+
 Notes:
 
 - PowerShell scripts must be ASCII-safe.
