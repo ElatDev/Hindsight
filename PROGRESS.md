@@ -13,12 +13,15 @@ Latest pair (this update):
 
 Earlier this session: Phase 10 / Tasks 1-2 (DSL + registry), Tasks 3-4 (selector + picker), Phase 9 / Tasks 1-2 (ECO bundle + matcher).
 
+**Session stop.** Phase 10 closed out cleanly — explanation infrastructure (DSL, registry, selector, picker) plus 109-template content drop plus 235 render-coverage tests, all green. Tree clean, both commits pushed. Stopping here because the natural next pair is Phase 11 / Tasks 1-2 (Review.tsx scaffold + inline annotation icons), the major UI integration that wires every prior phase together — best tackled with a fresh context. Phase 9 / Task 3 (opening-name header) depends on the Review UI existing, so it folds in during Phase 11.
+
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 9 / Task 3** — Display `B90: Sicilian Defense, Najdorf Variation` style header in the review UI. Last open task in Phase 9; thin glue around `identifyOpening()`.
-- **Phase 11 / Task 1** — `src/ui/Review.tsx`: move-by-move walkthrough using the existing board. The orchestration that wires the analysis pipeline + template library + selector into a per-move panel.
+- **Phase 11 / Task 1** — `src/ui/Review.tsx`: move-by-move walkthrough using the existing board. The orchestration that wires `analyseGame()` → `classifyAnalyses()` → motif detection → `TemplateSelector.pick()` → `TemplateRegistry.render()` into a per-move panel. Touches `App.tsx` for a "review this game" entry point.
+- **Phase 11 / Task 2** — Annotation icons inline in the move list (`!`, `??`, `!?`, etc.) keyed off the per-move classification. Pairs with Task 1.
+- **Phase 9 / Task 3** — Display `B90: Sicilian Defense, Najdorf Variation` style header in the Review UI; folds in once Phase 11 / Task 1 exists.
 
 ## Blockers
 
