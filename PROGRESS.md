@@ -4,23 +4,21 @@
 
 ## Current session
 
-**Phases 1-7 complete; Phase 8 Task 1 done.** 162 tests pass.
+**Phase 8 Tasks 1-3 done.** 179 tests pass.
 
-This session landed 8 pairs (16 tasks) across Phases 5, 6, 7, and the start of 8. Highlights from the latest pair:
+Latest pair (this update):
 
-- Phase 7 / Task 8: `motifs/overloaded.ts` — `findOverloadedPieces(game)` flags any non-king piece defending 2+ own pieces that are simultaneously under enemy attack. Building block for "removing the defender" tactical themes downstream. 6 tests.
-- Phase 8 / Task 1: `positional/pawnStructure.ts` — `analyzePawnStructure(game, color)` returns `{ doubled, isolated, backward, passed }`. Definitions match standard usage (doubled = ≥2 same file; isolated = no adjacent-file friendlies; passed = clear path to promotion; backward = push square attacked + no rear support on adjacent files). New `src/chess/positional/` directory. 8 tests.
+- Phase 8 / Task 2: `positional/kingSafety.ts` — `analyzeKingSafety(game, color)` returns `{ king, openNearbyFiles, missingShieldSquares, attackerCount, exposure }`. `openNearbyFiles` = king's file ± 1 with no friendly pawns; `missingShieldSquares` = the up-to-three squares directly ahead of the king with no friendly pawn; `attackerCount` = unique enemy pieces touching the king ring; `exposure` = sum of those three. 8 tests.
+- Phase 8 / Task 3: `positional/pieceActivity.ts` — `analyzePieceActivity(game)` returns `{ knightOutposts, rooksOnOpenFiles, rooksOnSemiOpenFiles, activeBishops }`. Outposts: enemy half + no enemy pawn can ever challenge. Active bishop: ≥ 6 squares of diagonal mobility. 9 tests.
 
-Earlier in the session: Phase 5 closed (multi-game PGN selector), Phase 6 closed (analyzeGame, classify, alternatives, accuracy, critical moments), Phase 7 motifs 1-7 (hanging, fork, pin, skewer, discovered-attack, double-attack, back-rank weakness).
-
-**Session stop.** Stopping cleanly at the Phase 7 → Phase 8 boundary after the heaviest motif/positional run. Tree clean, all pushed, lint + typecheck + 162-test suite green. Phase 7 fully closed; Phase 8 has Task 1 in but Tasks 2-5 (king safety, piece activity, material imbalance, game-phase detection) untouched.
+Earlier in the session: Phase 5 closed (multi-game PGN selector), Phase 6 closed (analyzeGame, classify, alternatives, accuracy, critical moments), Phase 7 closed (8 motif detectors), Phase 8 / Task 1 (`pawnStructure.ts`).
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 8 / Task 2** — King safety. Open files near the king, missing pawn shield, exposure score. Layered on top of `pawnStructure.ts`'s logic — share the file-occupancy queries.
-- **Phase 8 / Task 3** — Piece activity (knight outposts, bishop diagonals, rook on open / semi-open files).
+- **Phase 8 / Task 4** — Material imbalance summary. Static piece-value comparison, breakdown by piece type, "two bishops vs bishop+knight" style flags.
+- **Phase 8 / Task 5** — Game-phase detection (opening / middlegame / endgame) — heuristic on remaining material + move count + development.
 
 ## Blockers
 
@@ -123,8 +121,8 @@ _None._
 ## Phase 8 — Positional analysis
 
 - [x] **Task 1** — Pawn structure (doubled, isolated, backward, passed).
-- [ ] **Task 2** — King safety (open files near king, missing pawn shield, exposure score).
-- [ ] **Task 3** — Piece activity (knight outposts, bishop diagonals, rook on open/semi-open files).
+- [x] **Task 2** — King safety (open files near king, missing pawn shield, exposure score).
+- [x] **Task 3** — Piece activity (knight outposts, bishop diagonals, rook on open/semi-open files).
 - [ ] **Task 4** — Material imbalance summary.
 - [ ] **Task 5** — Game-phase detection (opening / middlegame / endgame).
 
