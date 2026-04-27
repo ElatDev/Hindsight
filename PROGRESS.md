@@ -4,25 +4,23 @@
 
 ## Current session
 
-**Phases 1-6 complete; Phase 7 Tasks 1-3 done.** 120 tests pass.
+**Phases 1-6 complete; Phase 7 Tasks 1-5 done.** 137 tests pass.
 
-- Phase 7 / Task 1: `motifs/hanging.ts` — attacked + undefended detector. 8 tests.
-- Phase 7 / Task 2: `motifs/fork.ts` — `findForks(game)` reports any piece attacking 2+ enemy pieces of equal-or-greater value. Uses `chess.attackers()` for the attack lookup. 7 tests.
-- Phase 7 / Task 3: `motifs/pin.ts` — `findPins(game)` walks rays of every B/R/Q; first enemy hit + a more-valuable enemy (or king) behind = pin. `PinKind = 'absolute' | 'relative'`. Skewers separated to Task 4. 9 tests.
-- Shared `motifs/util.ts`: piece-value table, square↔coord helpers, ray tables, `slidingRaysFor(type)`, `enemyOf`, `listPieces`. Hanging detector rewired through it.
+- Phase 7 / Tasks 1-3: hanging, fork, pin detectors — covered in earlier commits.
+- Phase 7 / Task 4: `motifs/skewer.ts` — `findSkewers(game)` mirrors pin. Long-range piece through a more-valuable enemy to a less-valuable enemy behind. King's value (100) makes king-front the canonical "absolute skewer". 8 tests.
+- Phase 7 / Task 5: `motifs/discovered.ts` — `findDiscoveredAttacks(before, san)` replays the move and diffs attack-edge graphs (attacker → enemy-occupied target). New edges whose attacker is not the just-moved piece are discovered attacks. `isCheck` flag for discovered checks. `isDiscoveredCheck()` predicate. Castling (two-piece moves) is a known v1 imprecision. 9 tests.
 
 Notes:
 
-- 18 pairs / 36 tasks landed this session. Phase 6 closed; Phase 7 Tasks 1-3 in.
-- Lint + typecheck + 120-test suite all green. Manual DevTools smoke still owed for the renderer-side analysis pipeline.
-- Motif detectors are deliberately conservative: hanging ignores SEE; forks ignore pin-on-fork; pins consider only sliding pieces. Phase 12 (perf + edge cases) can refine.
+- 19 pairs / 38 tasks landed this session. Phase 6 closed; Phase 7 5/8 done.
+- Lint + typecheck + 137-test suite all green. Manual DevTools smoke still owed for the renderer-side analysis pipeline.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 7 / Task 4** — Skewer detector. The mirror of pin: more valuable piece in front, less valuable behind, on a B/R/Q ray. Code structure mirrors `pin.ts` — likely extract a private ray-walker if both files start to feel duplicative.
-- **Phase 7 / Task 5** — Discovered attack and discovered-check detector. Needs to consider what _was_ attacked vs what _is_ attacked after a move; can't be a pure-position detector — operates on (move, before-position, after-position) triples.
+- **Phase 7 / Task 6** — Double-attack detector. Like fork but doesn't require equal-or-greater-value targets — any move that creates a second simultaneous attack on a previously-unattacked piece counts. Operates on (move, before/after) triples like discovered.
+- **Phase 7 / Task 7** — Back-rank weakness detector. Pure-position: king on the back rank, no escape squares (own pawns block king's flight squares), and a heavy piece on the same rank or file ready to deliver mate.
 
 ## Blockers
 
@@ -116,8 +114,8 @@ _None._
 - [x] **Task 1** — Hanging piece detector.
 - [x] **Task 2** — Fork detector (one piece attacking 2+ enemy pieces of equal/greater value).
 - [x] **Task 3** — Pin detector (absolute + relative).
-- [ ] **Task 4** — Skewer detector.
-- [ ] **Task 5** — Discovered-attack and discovered-check detector.
+- [x] **Task 4** — Skewer detector.
+- [x] **Task 5** — Discovered-attack and discovered-check detector.
 - [ ] **Task 6** — Double-attack detector.
 - [ ] **Task 7** — Back-rank weakness detector.
 - [ ] **Task 8** — Removing-the-defender + overloaded-piece detector.
