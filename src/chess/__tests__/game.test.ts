@@ -138,6 +138,77 @@ describe('Game / PGN parsing edge cases', () => {
   });
 });
 
+describe('Game / tricky SAN and PGN inputs', () => {
+  it('handles disambiguated knight moves (Nbd2 vs Nfd2)', () => {
+    // White knights on b1 and f3, both legally reach d2.
+    const fen = '4k3/8/8/8/8/5N2/8/1N2K3 w - - 0 1';
+
+    const fromB = Game.fromFen(fen);
+    expect(fromB.move('Nbd2')?.from).toBe('b1');
+
+    const fromF = Game.fromFen(fen);
+    expect(fromF.move('Nfd2')?.from).toBe('f3');
+  });
+
+  it('accepts queenside castling (O-O-O) from a clear position', () => {
+    const g = Game.fromFen(
+      'r3kbnr/pppqpppp/2nb4/3p4/3P4/2NB4/PPPQPPPP/R3KBNR w KQkq - 0 1',
+    );
+    const move = g.move('O-O-O');
+    expect(move?.flags).toContain('q'); // queenside-castle flag
+    expect(move?.san).toBe('O-O-O');
+  });
+
+  it('handles underpromotion to knight, bishop, and rook', () => {
+    const fen = '4k3/P7/8/8/8/8/8/4K3 w - - 0 1';
+
+    const toN = Game.fromFen(fen);
+    expect(toN.move('a8=N')?.promotion).toBe('n');
+    expect(toN.fen()).toMatch(/^N3k3/);
+
+    const toB = Game.fromFen(fen);
+    expect(toB.move('a8=B')?.promotion).toBe('b');
+
+    const toR = Game.fromFen(fen);
+    expect(toR.move('a8=R')?.promotion).toBe('r');
+  });
+
+  it('handles capture-with-promotion (exd8=Q+)', () => {
+    // Black rook on d8, white pawn on e7. White plays exd8=Q, giving check.
+    const g = Game.fromFen('3rk3/4P3/8/8/8/8/8/4K3 w - - 0 1');
+    const move = g.move('exd8=Q');
+    expect(move?.promotion).toBe('q');
+    expect(move?.captured).toBe('r');
+    expect(g.inCheck()).toBe(true);
+  });
+
+  it('accepts SAN with check (+) and checkmate (#) annotations', () => {
+    // Scholar's Mate: 1.e4 e5 2.Bc4 Nc6 3.Qh5 Nf6?? 4.Qxf7#
+    const g = new Game();
+    g.move('e4');
+    g.move('e5');
+    g.move('Bc4');
+    g.move('Nc6');
+    g.move('Qh5');
+    g.move('Nf6');
+    expect(g.move('Qxf7#')?.san).toBe('Qxf7#');
+    expect(g.gameEnd()).toBe(GameEnd.Checkmate);
+  });
+
+  it('round-trips a PGN containing en passant + castling + promotion symbols', () => {
+    // En passant, both castles, and a check symbol — all in one game.
+    const pgn = [
+      '1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 a6',
+      '6. Be2 e5 7. Nb3 Be7 8. O-O O-O 9. Be3 Be6 10. Nd5 Nbd7',
+      '11. Qd3 Bxd5 12. exd5 Re8',
+    ].join(' ');
+    const g = Game.fromPgn(pgn);
+    expect(g.history()).toContain('O-O');
+    expect(g.history()).toContain('cxd4');
+    expect(g.history()).toContain('Bxd5');
+  });
+});
+
 describe('Game / GameEnd detection', () => {
   it('exposes the GameEnd const with stable string literal values', () => {
     expect(GameEnd.Checkmate).toBe('checkmate');
