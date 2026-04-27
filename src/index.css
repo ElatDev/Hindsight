@@ -335,6 +335,46 @@ body,
   text-align: left;
 }
 
+.dialog--wide {
+  width: min(640px, 92vw);
+}
+
+.dialog__textarea {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.9rem;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 0.6rem 0.75rem;
+  resize: vertical;
+  min-height: 9rem;
+}
+
+.dialog__preview {
+  font-size: 0.9rem;
+  min-height: 1.4em;
+}
+
+.dialog__preview-muted {
+  color: var(--fg-subtle);
+  font-style: italic;
+}
+
+.dialog__preview-ok {
+  color: var(--accent);
+}
+
+.dialog__preview-error {
+  color: #d04040;
+}
+
+.dialog__primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: none !important;
+}
+
 .dialog h2 {
   margin: 0 0 0.5rem;
   font-size: 1.4rem;

@@ -10,6 +10,7 @@ import {
   type GameMode,
   type NewGameSettings,
 } from './ui/NewGameDialog';
+import { PgnPasteDialog } from './ui/PgnPasteDialog';
 import { useTheme } from './ui/useTheme';
 import { Game } from './chess/game';
 
@@ -36,6 +37,7 @@ function App(): JSX.Element {
   const [viewPly, setViewPly] = useState(0);
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
   const [showNewGame, setShowNewGame] = useState(false);
+  const [showPgnPaste, setShowPgnPaste] = useState(false);
   const [engineThinking, setEngineThinking] = useState(false);
   const [engineError, setEngineError] = useState<string | null>(null);
   const [showEndBanner, setShowEndBanner] = useState(true);
@@ -161,12 +163,10 @@ function App(): JSX.Element {
     }
   }, []);
 
-  const handleOpenPgn = useCallback(async (): Promise<void> => {
+  const loadPgnText = useCallback((pgn: string): boolean => {
     try {
-      const result = await window.hindsight.pgn.openFile();
-      if (!result) return; // user cancelled
       const loaded = new Game();
-      loaded.load(result.pgn);
+      loaded.load(pgn);
       setState({
         game: loaded,
         mode: 'free',
@@ -178,10 +178,22 @@ function App(): JSX.Element {
       setEngineError(null);
       setShowEndBanner(true);
       setPgnError(null);
+      return true;
+    } catch (err: unknown) {
+      setPgnError(err instanceof Error ? err.message : String(err));
+      return false;
+    }
+  }, []);
+
+  const handleOpenPgnFile = useCallback(async (): Promise<void> => {
+    try {
+      const result = await window.hindsight.pgn.openFile();
+      if (!result) return; // user cancelled
+      loadPgnText(result.pgn);
     } catch (err: unknown) {
       setPgnError(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [loadPgnText]);
 
   const handleReview = useCallback((): void => {
     // Phase 6 will wire this to the analysis pipeline. For now jumping to the
@@ -218,9 +230,16 @@ function App(): JSX.Element {
         <button
           type="button"
           className="header-secondary-btn"
-          onClick={() => void handleOpenPgn()}
+          onClick={() => void handleOpenPgnFile()}
         >
           Open PGN
+        </button>
+        <button
+          type="button"
+          className="header-secondary-btn"
+          onClick={() => setShowPgnPaste(true)}
+        >
+          Paste PGN
         </button>
       </header>
       <p className="tagline">Free, offline, open-source chess game review.</p>
@@ -280,6 +299,15 @@ function App(): JSX.Element {
           }}
           onConfirm={startNewGame}
           onCancel={() => setShowNewGame(false)}
+        />
+      ) : null}
+
+      {showPgnPaste ? (
+        <PgnPasteDialog
+          onLoad={(pgn) => {
+            if (loadPgnText(pgn)) setShowPgnPaste(false);
+          }}
+          onCancel={() => setShowPgnPaste(false)}
         />
       ) : null}
     </main>

@@ -71,7 +71,7 @@ export function NewGameDialog({
               checked={mode === 'free'}
               onChange={() => setMode('free')}
             />
-            Free play (both sides)
+            Free play / manual entry (no engine)
           </label>
         </fieldset>
 
