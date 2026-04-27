@@ -1,3 +1,4 @@
+import type { AnalysisLine } from '../../shared/ipc';
 import type { MoveAnalysis } from './analysis';
 
 /**
@@ -40,7 +41,23 @@ export type ClassifiedMove = MoveAnalysis & {
    *  played in or led into a mate-scored region (use the mate fields to
    *  reason about those instead). */
   cpLoss: number | null;
+  /** Top engine alternatives at `fenBefore`, sorted by `multipv`. Only
+   *  populated by `analyzeAlternatives()` for moves the classifier flagged
+   *  (Inaccuracy or worse, including Miss). Undefined otherwise. */
+  alternatives?: AnalysisLine[];
 };
+
+/**
+ * Predicate for classifications that warrant a multi-PV second pass.
+ * Anything Inaccuracy-or-worse + Miss qualifies; Brilliant/Best/Excellent/Good
+ * + Book are skipped because they don't need an "you should have played..."
+ * suggestion.
+ */
+export const isFlaggedClassification = (c: Classification): boolean =>
+  c === Classification.Inaccuracy ||
+  c === Classification.Mistake ||
+  c === Classification.Blunder ||
+  c === Classification.Miss;
 
 /**
  * Effective centipawn evaluation from the mover's POV. Mate scores get folded
