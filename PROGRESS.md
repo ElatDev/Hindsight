@@ -4,23 +4,25 @@
 
 ## Current session
 
-**Phases 1-5 complete; Phase 6 done; Phase 7 Task 1 done.** 104 tests pass.
+**Phases 1-6 complete; Phase 7 Tasks 1-3 done.** 120 tests pass.
 
-- Phase 6 / Task 6: `critical.ts` — `criticalMoments(records, { topN, minDelta })` ranks plies by absolute change in winning percentage (sigmoid-based) and returns the top N (default 5). Stable on ties (earlier ply wins). Surfaces blunders and recoveries equally. 7 tests.
-- Phase 7 / Task 1: `motifs/hanging.ts` — `findHangingPieces(game)` walks `chess.board()` and reports every non-king piece that's attacked by an enemy and not defended by its own side. `findHangingPiecesFor(game, color)` filters to a side. Simple "attacked + undefended" definition — SEE-style "defended but cheaper attacker" is deferred (noted in the source). 8 tests.
+- Phase 7 / Task 1: `motifs/hanging.ts` — attacked + undefended detector. 8 tests.
+- Phase 7 / Task 2: `motifs/fork.ts` — `findForks(game)` reports any piece attacking 2+ enemy pieces of equal-or-greater value. Uses `chess.attackers()` for the attack lookup. 7 tests.
+- Phase 7 / Task 3: `motifs/pin.ts` — `findPins(game)` walks rays of every B/R/Q; first enemy hit + a more-valuable enemy (or king) behind = pin. `PinKind = 'absolute' | 'relative'`. Skewers separated to Task 4. 9 tests.
+- Shared `motifs/util.ts`: piece-value table, square↔coord helpers, ray tables, `slidingRaysFor(type)`, `enemyOf`, `listPieces`. Hanging detector rewired through it.
 
 Notes:
 
-- 17 pairs / 34 tasks landed since session start. Phase 6 closed; Phase 7 / Task 1 in.
-- New subdirectory: `src/chess/motifs/`. Phase 7's seven remaining detectors will live alongside `hanging.ts`.
-- Lint + typecheck + 104-test suite all green. Manual DevTools smoke still owed for the renderer-side analysis pipeline.
+- 18 pairs / 36 tasks landed this session. Phase 6 closed; Phase 7 Tasks 1-3 in.
+- Lint + typecheck + 120-test suite all green. Manual DevTools smoke still owed for the renderer-side analysis pipeline.
+- Motif detectors are deliberately conservative: hanging ignores SEE; forks ignore pin-on-fork; pins consider only sliding pieces. Phase 12 (perf + edge cases) can refine.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 7 / Task 2** — Fork detector. A piece attacking 2+ enemy pieces of equal or greater value (e.g. knight forking a queen + rook). Likely shares attack-enumeration helpers with `hanging.ts`; consider extracting `motifs/util.ts` if a second detector needs the same primitives.
-- **Phase 7 / Task 3** — Pin detector (absolute = pinned to king; relative = pinned to a more valuable piece behind).
+- **Phase 7 / Task 4** — Skewer detector. The mirror of pin: more valuable piece in front, less valuable behind, on a B/R/Q ray. Code structure mirrors `pin.ts` — likely extract a private ray-walker if both files start to feel duplicative.
+- **Phase 7 / Task 5** — Discovered attack and discovered-check detector. Needs to consider what _was_ attacked vs what _is_ attacked after a move; can't be a pure-position detector — operates on (move, before-position, after-position) triples.
 
 ## Blockers
 
@@ -112,8 +114,8 @@ _None._
 ## Phase 7 — Tactical motif detection
 
 - [x] **Task 1** — Hanging piece detector.
-- [ ] **Task 2** — Fork detector (one piece attacking 2+ enemy pieces of equal/greater value).
-- [ ] **Task 3** — Pin detector (absolute + relative).
+- [x] **Task 2** — Fork detector (one piece attacking 2+ enemy pieces of equal/greater value).
+- [x] **Task 3** — Pin detector (absolute + relative).
 - [ ] **Task 4** — Skewer detector.
 - [ ] **Task 5** — Discovered-attack and discovered-check detector.
 - [ ] **Task 6** — Double-attack detector.
