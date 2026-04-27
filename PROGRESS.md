@@ -4,23 +4,21 @@
 
 ## Current session
 
-**Phase 9 Tasks 1-2 done.** 205 tests pass.
+**Phase 10 Tasks 1-2 done.** 254 tests pass.
 
 Latest pair (this update):
 
-- Phase 9 / Task 1: `scripts/build-eco.mjs` + `src/data/eco.json` — fetcher pulls a-e.tsv from `lichess-org/chess-openings` (CC0), parses to `{ eco, name, pgn, san }`, sorts longest-first, writes a 3,690-entry JSON (~700KB). Run via `npm run build-eco`; not in `postinstall` so users don't need network on install.
-- Phase 9 / Task 2: `src/chess/openings.ts` — `identifyOpening(moves)` returns the deepest ECO entry whose SAN list is a prefix of `moves`. First-move index built at module load keeps the per-call scan small. 9 tests covering Sicilian, Najdorf, Ruy Lopez, Queen's Gambit, Italian, deepest-match-wins, empty/unknown inputs, trailing non-book moves.
+- Phase 10 / Task 1: `src/chess/templates/dsl.ts` — minimal templating language with `{var}`, `{var?fallback}`, `{?flag}…{/}`, `{?flag}…{:}…{/}`, negated `{?!flag}…{/}`, nested conditionals, and `\{ \} \\` escapes. Parser/renderer split: `parseTemplate(source)` produces a `ParsedTemplate` (AST + var introspection set), `renderTemplate(parsed, ctx)` produces the string. Missing context vars throw at render time so typos surface; conditional branches that aren't taken don't require their vars.
+- Phase 10 / Task 2: `src/chess/templates/registry.ts` — `TemplateRegistry` parses each template once and caches the AST. `register(id, source)`, `loadFromRecord({...})` with all-or-nothing rollback on parse/collision errors, `render(id, ctx)`, `get/has/size/ids/clear` for introspection. Will be fed by Phase 10/Task 5's 100+ snippets and read by Task 3's selector.
 
-Earlier this session: Phase 8 closed (5 positional analyzers — pawn structure, king safety, piece activity, material imbalance, game-phase detection). Earlier Phases 5-7 fully closed in this run.
-
-**Session stop.** Three pairs landed this run (Phase 8/2-3, Phase 8/4-5, Phase 9/1-2). Phase 8 fully closed; Phase 9 has the heart in (data + matcher), Task 3 is UI display that naturally pairs with the Phase 11 review screen. Tree clean, all pushed, lint + typecheck + 205-test suite green. Next session: either build Phase 11 first and bundle 9/3 with it, or open Phase 10 with the template DSL.
+Earlier this session: Phase 9 / Tasks 1-2 (Lichess ECO bundle + `identifyOpening` matcher).
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 9 / Task 3** — Display "B90: Sicilian Defense, Najdorf Variation" in the review header. Lives on the UI side; consume `identifyOpening` from `analyzeGame` output or directly from the loaded game's `history()`.
-- **Phase 10 / Task 1** — Define template DSL (variable substitution syntax, conditionals). Heart of the explanation system.
+- **Phase 10 / Task 3** — Template selection logic: match `(classification, motifs[], game phase)` to candidate template ids. Reads the registry from Task 2.
+- **Phase 10 / Task 4** — Random-pick from candidates for variety. Pairs with Task 3.
 
 ## Blockers
 
@@ -42,7 +40,7 @@ _None._
 |     7 | Tactical motif detection                           |     ✅     |
 |     8 | Positional analysis                                |     ✅     |
 |     9 | Opening database (ECO)                             | 🟡 in prog |
-|    10 | Explanation template system (100+ templates)       |     ⬜     |
+|    10 | Explanation template system (100+ templates)       | 🟡 in prog |
 |    11 | Review UI                                          |     ⬜     |
 |    12 | Polish + distribution                              |     ⬜     |
 |    13 | Documentation + screenshots                        |     ⬜     |
@@ -136,8 +134,8 @@ _None._
 
 ## Phase 10 — Explanation template system
 
-- [ ] **Task 1** — Define template DSL (variable substitution syntax, conditionals).
-- [ ] **Task 2** — Template loader + cache.
+- [x] **Task 1** — Define template DSL (variable substitution syntax, conditionals).
+- [x] **Task 2** — Template loader + cache.
 - [ ] **Task 3** — Template selection logic: match `(classification, motifs[], game phase)` to candidate templates.
 - [ ] **Task 4** — Random-pick from candidates for variety.
 - [ ] **Task 5** — Write 100+ templates organized by classification + motif.
