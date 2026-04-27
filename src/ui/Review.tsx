@@ -19,6 +19,7 @@ import { Board, type ArrowSpec, type GradeBadge } from './Board';
 import { EvalBar } from './EvalBar';
 import { MoveList } from './MoveList';
 import { NavControls } from './NavControls';
+import { PositionalPanel } from './PositionalPanel';
 import type { BoardTheme } from './useSettings';
 
 export type ReviewProps = {
@@ -108,7 +109,10 @@ export function Review({
   const [progress, setProgress] = useState({ done: 0, total: totalPlies });
   const [result, setResult] = useState<GameReview | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<{
+    kind: 'success' | 'error';
+    message: string;
+  } | null>(null);
   // Bumped to force the analysis effect to re-run on user-requested retry.
   const [retryToken, setRetryToken] = useState(0);
 
@@ -212,11 +216,21 @@ export function Review({
         pgn,
         defaultFileName,
       });
-      setExportStatus(saved ? `Saved to ${saved.path}` : null);
+      if (saved) {
+        setExportStatus({
+          kind: 'success',
+          message: `Saved to ${saved.path}`,
+        });
+      } else {
+        // User cancelled the native save dialog — drop any prior message so
+        // a stale "Saved to ..." doesn't linger from an earlier export.
+        setExportStatus(null);
+      }
     } catch (err: unknown) {
-      setExportStatus(
-        `Export failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      setExportStatus({
+        kind: 'error',
+        message: `Export failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
     }
   };
 
@@ -279,6 +293,7 @@ export function Review({
         ) : status === 'ready' && totalPlies > 0 ? (
           <p className="status">Use Next to step through the game.</p>
         ) : null}
+        {totalPlies > 0 ? <PositionalPanel game={displayed} /> : null}
         {status === 'error' ? (
           <button
             type="button"
@@ -306,7 +321,12 @@ export function Review({
               Save annotated PGN
             </button>
             {exportStatus ? (
-              <p className="status review-export-status">{exportStatus}</p>
+              <p
+                className={`status review-export-status review-export-status--${exportStatus.kind}`}
+                role={exportStatus.kind === 'error' ? 'alert' : 'status'}
+              >
+                {exportStatus.message}
+              </p>
             ) : null}
           </>
         ) : null}

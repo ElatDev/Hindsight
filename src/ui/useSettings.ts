@@ -128,6 +128,13 @@ export function useSettings(): UseSettings {
   if (initialCacheRef.current === null) {
     initialCacheRef.current = readLocalCache();
   }
+  // Gates the write-through mirror so we don't echo the localStorage-seeded
+  // state back to SQLite *before* the load has reconciled. Flips to true
+  // either when the load resolves (DB or migration completed) or when the
+  // user explicitly mutates settings (which itself implies "we've moved past
+  // bootstrap state and should be persisting"). Without this gate every cold
+  // start fired a redundant `settings:save(DEFAULT_SETTINGS)` IPC.
+  const persistReadyRef = useRef(false);
 
   // Reconcile against the SQLite-backed settings on mount. Three cases:
   //  - DB has rows ⇒ trust the DB; overwrite local state if it differs.
@@ -136,7 +143,10 @@ export function useSettings(): UseSettings {
   useEffect(() => {
     let cancelled = false;
     const ipc = window.hindsight?.settings;
-    if (!ipc) return;
+    if (!ipc) {
+      persistReadyRef.current = true;
+      return;
+    }
     void (async () => {
       try {
         const { settings: remote, bootstrapped } = await ipc.load();
@@ -152,6 +162,8 @@ export function useSettings(): UseSettings {
         }
       } catch {
         // IPC unreachable or DB error — keep the localStorage-backed state.
+      } finally {
+        if (!cancelled) persistReadyRef.current = true;
       }
     })();
     return () => {
@@ -160,7 +172,10 @@ export function useSettings(): UseSettings {
   }, []);
 
   // Mirror every settings change to localStorage (sync) and SQLite (async).
+  // Skipped until the load effect has reconciled to avoid echoing the
+  // localStorage-seeded initial state back to disk on cold start.
   useEffect(() => {
+    if (!persistReadyRef.current) return;
     writeLocalCache(settings);
     const ipc = window.hindsight?.settings;
     if (!ipc) return;
@@ -170,10 +185,12 @@ export function useSettings(): UseSettings {
   }, [settings]);
 
   const update = useCallback((patch: Partial<Settings>): void => {
+    persistReadyRef.current = true;
     setSettings((prev) => sanitize({ ...prev, ...patch }));
   }, []);
 
   const reset = useCallback((): void => {
+    persistReadyRef.current = true;
     setSettings(DEFAULT_SETTINGS);
   }, []);
 

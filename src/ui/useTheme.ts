@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark';
 
+/** Theme used when nothing else is known — matches the CSS `:root` default
+ *  so a "Restore defaults" reset stays in sync with the unstyled baseline. */
+export const DEFAULT_THEME: Theme = 'dark';
+
 const STORAGE_KEY = 'hindsight.theme';
 
 function readInitialTheme(): Theme {

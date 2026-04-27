@@ -5,7 +5,10 @@ export type SavedGamesDialogProps = {
   /** When non-null, the dialog shows a "Save current game" button at the top
    *  with this summary line for confirmation. */
   current: { pgn: string; plyCount: number; defaultName: string } | null;
-  onLoad: (pgn: string) => void;
+  /** Returns true if the PGN was loaded successfully (the dialog will close);
+   *  false if it failed to parse so the dialog can surface the error inline.
+   *  Returning false leaves the dialog open. */
+  onLoad: (pgn: string) => boolean;
   onCancel: () => void;
 };
 
@@ -86,7 +89,13 @@ export function SavedGamesDialog({
           setError('Game not found.');
           return;
         }
-        onLoad(game.pgn);
+        const ok = onLoad(game.pgn);
+        if (!ok) {
+          setError(
+            "That saved game couldn't be parsed. The PGN may have been " +
+              'corrupted by a manual edit or a partial migration.',
+          );
+        }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {

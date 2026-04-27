@@ -2,17 +2,17 @@ import { useState } from 'react';
 import {
   ANALYSIS_DEPTH_MAX,
   ANALYSIS_DEPTH_MIN,
+  DEFAULT_SETTINGS,
   type BoardTheme,
   type PieceTheme,
   type Settings,
 } from './useSettings';
-import type { Theme } from './useTheme';
+import { DEFAULT_THEME, type Theme } from './useTheme';
 
 export type SettingsDialogProps = {
   initial: Settings;
   theme: Theme;
   onConfirm: (next: Settings, theme: Theme) => void;
-  onReset: () => void;
   onCancel: () => void;
 };
 
@@ -30,20 +30,18 @@ const PIECE_THEME_LABEL: Record<PieceTheme, string> = {
 };
 
 const PIECE_SET_PENDING_NOTE =
-  'Saved now; piece-set bundles ship in a follow-up release.';
+  'Preview only — the Cburnett set ships today; Merida and Alpha are bundled in a future release. Selecting one now records the preference but the on-board pieces stay Cburnett.';
 
 /**
- * Settings dialog (Phase 12 / Task 1). The dialog ships the foundational
- * surface for app-wide preferences. A few fields drive working features
- * already (analysis depth, theme); the rest persist and will be consumed by
- * later Phase 12 tasks (live eval bar in Task 7, board/piece theming in
- * Task 8). Each pending field is labelled so the user knows it's parked.
+ * Settings dialog. Drives every persisted preference: analysis depth, light /
+ * dark theme, the live-eval-during-play toggle, board palette, and (parked)
+ * piece-set choice. Selecting "Restore defaults" repopulates the form fields
+ * locally; nothing persists to disk until the user clicks "Save".
  */
 export function SettingsDialog({
   initial,
   theme,
   onConfirm,
-  onReset,
   onCancel,
 }: SettingsDialogProps): JSX.Element {
   const [analysisDepth, setAnalysisDepth] = useState(initial.analysisDepth);
@@ -56,8 +54,19 @@ export function SettingsDialog({
     onConfirm({ analysisDepth, liveEval, boardTheme, pieceTheme }, themeChoice);
   };
 
+  // "Restore defaults" used to call back into the parent and persist the
+  // reset immediately, but the dialog's own form state didn't refresh — so a
+  // subsequent Save would overwrite the defaults with whatever the user had
+  // before, and a subsequent Cancel would orphan the persisted defaults. The
+  // reset now lives entirely in the dialog: it pulls every field back to
+  // `DEFAULT_SETTINGS` (and dark theme) without persisting anything until
+  // the user explicitly clicks Save.
   const restoreDefaults = (): void => {
-    onReset();
+    setAnalysisDepth(DEFAULT_SETTINGS.analysisDepth);
+    setLiveEval(DEFAULT_SETTINGS.liveEval);
+    setBoardTheme(DEFAULT_SETTINGS.boardTheme);
+    setPieceTheme(DEFAULT_SETTINGS.pieceTheme);
+    setThemeChoice(DEFAULT_THEME);
   };
 
   return (
@@ -123,9 +132,10 @@ export function SettingsDialog({
             />
             Show eval bar updates while playing
           </label>
-          <p className="settings__hint settings__hint--pending">
-            Saved now; the live eval feature itself ships in a later Phase 12
-            task. Until then this only records your preference.
+          <p className="settings__hint">
+            When on, Stockfish runs in the background as you play and the eval
+            bar updates after each move. Turn off to keep play "blind" — the
+            review still works the same either way.
           </p>
         </fieldset>
 

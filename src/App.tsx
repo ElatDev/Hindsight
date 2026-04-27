@@ -43,6 +43,11 @@ function App(): JSX.Element {
   }));
   // `version` bumps on every move so derived state recomputes.
   const [version, setVersion] = useState(0);
+  // `gameInstanceId` bumps only when a new game is started or a PGN is
+  // loaded — *not* on every move. Used as the Board's `key` so its internal
+  // right-click highlights / arrows get flushed when the user moves to a
+  // genuinely new game (Lichess-style annotations are per-game, not sticky).
+  const [gameInstanceId, setGameInstanceId] = useState(0);
   const [viewPly, setViewPly] = useState(0);
   const [orientation, setOrientation] = useState<'white' | 'black'>('white');
   const [showNewGame, setShowNewGame] = useState(false);
@@ -56,11 +61,7 @@ function App(): JSX.Element {
   const [showSettings, setShowSettings] = useState(false);
   const [showSavedGames, setShowSavedGames] = useState(false);
   const { theme, toggle: toggleTheme, setTheme } = useTheme();
-  const {
-    settings,
-    update: updateSettings,
-    reset: resetSettings,
-  } = useSettings();
+  const { settings, update: updateSettings } = useSettings();
 
   const history = useMemo(() => {
     void version;
@@ -178,6 +179,7 @@ function App(): JSX.Element {
       elo: settings.elo,
     });
     setVersion(0);
+    setGameInstanceId((id) => id + 1);
     setViewPly(0);
     setEngineError(null);
     setShowNewGame(false);
@@ -200,6 +202,7 @@ function App(): JSX.Element {
         elo: 1500,
       });
       setVersion((v) => v + 1);
+      setGameInstanceId((id) => id + 1);
       setViewPly(loaded.history().length);
       setEngineError(null);
       setShowEndBanner(true);
@@ -369,6 +372,7 @@ function App(): JSX.Element {
           />
           <div className="board-frame">
             <Board
+              key={gameInstanceId}
               game={displayed}
               width={520}
               orientation={orientation}
@@ -431,7 +435,6 @@ function App(): JSX.Element {
             setTheme(nextTheme);
             setShowSettings(false);
           }}
-          onReset={resetSettings}
           onCancel={() => setShowSettings(false)}
         />
       ) : null}
@@ -451,7 +454,9 @@ function App(): JSX.Element {
               : null
           }
           onLoad={(pgn) => {
-            if (loadPgnText(pgn)) setShowSavedGames(false);
+            const ok = loadPgnText(pgn);
+            if (ok) setShowSavedGames(false);
+            return ok;
           }}
           onCancel={() => setShowSavedGames(false)}
         />

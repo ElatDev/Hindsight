@@ -11,8 +11,9 @@ export type EvalBarProps = {
 };
 
 /**
- * Vertical eval bar. Currently driven by placeholder data from `App.tsx`;
- * Phase 6 will swap that out for live `analyzePosition` output. The math is:
+ * Vertical eval bar. During play the values come from `useLiveEval`
+ * (toggleable in settings); during review they come from the per-move
+ * eval cached on the `GameReview`. The math is:
  *
  *   percent_white = sigmoid(evalCp / 410) * 100
  *
