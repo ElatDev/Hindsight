@@ -4,23 +4,21 @@
 
 ## Current session
 
-**Phase 11 / Tasks 3-4 complete.** 526 tests still pass; lint + typecheck + build clean.
+**Phase 11 / Tasks 3-6 complete.** 529 tests pass (+3 review tests); lint + typecheck + build clean.
 
-Latest pair (this update):
+This session landed two task pairs:
 
-- Phase 11 / Task 3: `ExplanationPanel` polish in `src/ui/Review.tsx`. Each move now gets a classification badge — a colored circle holding the NAG-style glyph (`✓` Best, `!!` Brilliant, `!` Excellent, `·` Good, `?!` Inaccuracy/Miss, `?` Mistake, `??` Blunder, `B` Book) — alongside the SAN, label, and the post-move eval. Below the explanation we render motif chips for any tactical tags detected on the move (Hanging piece, Fork, Pin, Skewer, Double attack, Back-rank weakness, Overloaded defender, etc.), and the "Engine preferred …" line now phrases the centipawn loss as pawns ("gives up 1.20 pawns") instead of raw cp.
-- Phase 11 / Task 4: `src/ui/Board.tsx` gained an `arrows` prop (`readonly [Square, Square, color?][]`) that's forwarded to react-chessboard's `customArrows`. The tuple is copied per render because the library filters the array in place. `Review.tsx` derives a single blue arrow from the current move's `bestUci` when the engine's pick differs from what was played; squares come from the pre-move position and are drawn over the post-move displayed board (mild visual compromise, accepted for v1 — flipping to a pre-move display would re-shape every other piece of the UX).
+- **Tasks 3-4** (commit `feat: review polish — classification badge, motif chips, engine arrow`): explanation-panel polish (classification badge, motif chips, pawn-relative cp loss copy) and the suggested-move arrow overlay. `Board.tsx` gained an `arrows` prop forwarded to react-chessboard's `customArrows` (tuples are copied per render because the library filters in place); `Review.tsx` derives a blue arrow from `currentMove.bestUci` whenever the engine's preferred move differs from what was played.
+- **Tasks 5-6** (commit `feat: review summary panel + critical-moments quick-jump`): `GameReview` now carries a `summary` block — per-side Lichess accuracy via `gameAccuracy`, a `Classification`-keyed counts map per side via the new `countClassifications` helper (attributing by FEN STM so non-standard starts work), and the top 5 critical moments via `criticalMoments`. New `emptyReview()` constructor lets the UI surface a typed zero-state without re-running the pipeline. `Review.tsx` renders a `SummaryPanel` (W/B accuracy + a count table that hides zero-only rows) and a `CriticalMomentsList` (clickable rows that jump `viewPly`, color-coded by swing direction with the current row highlighted).
 
-Styles: classification badge palette + motif-chip pill in `src/index.css` (matches the existing left-border per-classification colors).
-
-Manual UI verification limited again to "Vite + Electron boot, no console errors at startup" — same level as Tasks 1-2. The interactive UX (badge legibility, arrow contrast on light theme, motif-chip wrapping) is unverified live.
+Manual UI verification: Vite + Electron boot clean, no console errors at startup. Interactive verification (badge legibility, arrow contrast on light theme, summary table layout, criticals click-through) still pending — sequential dev sessions can drive the live window.
 
 **Last updated:** 2026-04-27
 
 ## Next up
 
-- **Phase 11 / Task 5** — End-of-game summary panel: accuracy score (Lichess-style harmonic mean already lives in `src/chess/accuracy.ts`), blunder/mistake/inaccuracy counts per side, opening name. Surfaced in the Review screen, probably above or below the move list.
-- **Phase 11 / Task 6** — Critical-moments quick-jump list. The ranking already exists in `src/chess/critical.ts`; this task wires it into the Review side panel as a clickable list that sets `viewPly`.
+- **Phase 11 / Task 7** — Multi-PV alternatives panel for flagged moves. Phase 6 / Task 4 already runs a multi-PV second pass for blunders/mistakes/misses; the move records carry the alternatives. Wire them into the Review side panel as a small "alternatives" section under the explanation when the current move is flagged.
+- **Phase 11 / Task 8** — Right-click square highlights + arrows (Lichess-style). Persistent across navigation, cleared on left-click. Both Review and play views. Will need a shared `BoardAnnotations` state and right-click handlers on `Board.tsx`.
 
 ## Blockers
 
@@ -149,8 +147,8 @@ _None._
 - [x] **Task 2** — Annotation icons inline in move list (!, ??, etc.).
 - [x] **Task 3** — Explanation panel that updates per move.
 - [x] **Task 4** — Suggested-better-move arrow overlay on the board.
-- [ ] **Task 5** — End-of-game summary (accuracy, blunders, mistakes count, opening).
-- [ ] **Task 6** — Critical-moments quick-jump list.
+- [x] **Task 5** — End-of-game summary (accuracy, blunders, mistakes count, opening).
+- [x] **Task 6** — Critical-moments quick-jump list.
 - [ ] **Task 7** — Multi-PV alternatives panel for flagged moves.
 - [ ] **Task 8** — Right-click square highlights + arrows (Lichess-style: persistent across nav, cleared on left-click). Both review and play views.
 - [ ] **Task 9** — On-piece grade badges during review: Chess.com-style overlay icons (green check on best, blue spark on brilliant, orange `?!` on inaccuracy, red `??` on blunder, etc.) rendered over the destination square so the grade is readable from the board itself, not just the side panel.
