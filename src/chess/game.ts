@@ -6,15 +6,23 @@ export type Fen = string;
 export type Pgn = string;
 export type SanMove = string;
 
-/** All terminal game states we surface. `null` means the game is still ongoing. */
-export type GameEnd =
-  | 'checkmate'
-  | 'stalemate'
-  | 'threefold-repetition'
-  | 'fifty-move'
-  | 'insufficient-material'
-  | 'draw'
-  | null;
+/** A PGN comment attached to the position with `fen`. */
+export type PgnComment = { fen: string; comment: string };
+
+/**
+ * Terminal game states we surface. `null` means the game is still ongoing.
+ * Exposed as both a `const` (for runtime comparisons) and a string-literal
+ * union type (for exhaustive switches).
+ */
+export const GameEnd = {
+  Checkmate: 'checkmate',
+  Stalemate: 'stalemate',
+  ThreefoldRepetition: 'threefold-repetition',
+  FiftyMove: 'fifty-move',
+  InsufficientMaterial: 'insufficient-material',
+  Draw: 'draw',
+} as const;
+export type GameEnd = (typeof GameEnd)[keyof typeof GameEnd] | null;
 
 /**
  * Thin wrapper around `chess.js` that pins down the API surface our app uses
@@ -48,7 +56,14 @@ export class Game {
     this.chess.reset();
   }
 
-  /** Load a PGN string into this game, replacing any existing state. */
+  /**
+   * Load a PGN string into this game, replacing any existing state. Accepts
+   * the full PGN feature set chess.js supports: headers, brace comments,
+   * NAGs (`$N` glyphs and shorthand like `!`/`?`), and parenthesised
+   * variations. Variations are parsed but not retained — only the main line
+   * survives in `history()` (this is the v1 behaviour documented in
+   * PROGRESS.md / Phase 2 Task 2).
+   */
   load(pgn: Pgn): void {
     this.chess.loadPgn(pgn);
   }
@@ -56,6 +71,18 @@ export class Game {
   /** Load a FEN string into this game, replacing any existing state. */
   loadFen(fen: Fen): void {
     this.chess.load(fen);
+  }
+
+  /** PGN headers (Seven Tag Roster + any custom tags) from the most recent
+   *  `load(pgn)` / `Game.fromPgn(pgn)` call. Empty when the game wasn't
+   *  loaded from a PGN. */
+  headers(): Record<string, string> {
+    return this.chess.getHeaders();
+  }
+
+  /** PGN comments tied to the FEN of the position they annotate. */
+  comments(): PgnComment[] {
+    return this.chess.getComments();
   }
 
   /**
@@ -119,12 +146,13 @@ export class Game {
    * checkmate is never reported as "draw".
    */
   gameEnd(): GameEnd {
-    if (this.chess.isCheckmate()) return 'checkmate';
-    if (this.chess.isStalemate()) return 'stalemate';
-    if (this.chess.isThreefoldRepetition()) return 'threefold-repetition';
-    if (this.chess.isDrawByFiftyMoves()) return 'fifty-move';
-    if (this.chess.isInsufficientMaterial()) return 'insufficient-material';
-    if (this.chess.isDraw()) return 'draw';
+    if (this.chess.isCheckmate()) return GameEnd.Checkmate;
+    if (this.chess.isStalemate()) return GameEnd.Stalemate;
+    if (this.chess.isThreefoldRepetition()) return GameEnd.ThreefoldRepetition;
+    if (this.chess.isDrawByFiftyMoves()) return GameEnd.FiftyMove;
+    if (this.chess.isInsufficientMaterial())
+      return GameEnd.InsufficientMaterial;
+    if (this.chess.isDraw()) return GameEnd.Draw;
     return null;
   }
 
