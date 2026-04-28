@@ -16,7 +16,7 @@ import {
   type SettingsRecord,
 } from '../shared/ipc';
 import { analyzePosition } from './engine/analyze';
-import { StockfishEngine } from './engine/stockfish';
+import { EnginePool } from './engine/pool';
 import { openDatabase, type Db } from './storage/db';
 import { loadSettings, saveSettings } from './storage/settings';
 import { deleteGame, getGame, listGames, saveGame } from './storage/games';
@@ -28,10 +28,13 @@ const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist');
 
 let mainWindow: BrowserWindow | null = null;
 
-// One Stockfish process for the lifetime of the app. Started lazily on the
-// first IPC call so a `quit()` can be awaited cleanly during shutdown.
-let engineInstance: StockfishEngine | null = null;
-let enginePending: Promise<StockfishEngine> | null = null;
+// Engine pool — N parallel Stockfish processes. Defaults to 4, which is the
+// review-throughput sweet spot on most desktop CPUs (each process runs
+// single-threaded; `setoption Threads N` would speed individual analyses
+// but our review batches benefit more from running many positions
+// concurrently). Engines start lazily as load arrives.
+const ENGINE_POOL_SIZE = 4;
+let enginePool: EnginePool | null = null;
 
 /**
  * Resolve the directory holding `stockfish/bin/<platform-arch>/`. In dev the
@@ -44,24 +47,20 @@ function engineRoot(): string {
   return app.isPackaged ? process.resourcesPath : app.getAppPath();
 }
 
-async function getEngine(): Promise<StockfishEngine> {
-  if (engineInstance) return engineInstance;
-  if (enginePending) return enginePending;
-  enginePending = (async (): Promise<StockfishEngine> => {
-    const e = new StockfishEngine({ appRoot: engineRoot() });
-    await e.start();
-    engineInstance = e;
-    enginePending = null;
-    return e;
-  })();
-  return enginePending;
+function getPool(): EnginePool {
+  if (!enginePool) {
+    enginePool = new EnginePool({
+      appRoot: engineRoot(),
+      size: ENGINE_POOL_SIZE,
+    });
+  }
+  return enginePool;
 }
 
 async function shutdownEngine(): Promise<void> {
-  const e = engineInstance;
-  engineInstance = null;
-  enginePending = null;
-  if (e) await e.quit();
+  const pool = enginePool;
+  enginePool = null;
+  if (pool) await pool.quit();
 }
 
 // Application database. Opened once at app-ready and reused for the lifetime
@@ -75,30 +74,22 @@ function getDb(): Db {
   return dbInstance;
 }
 
-// Stockfish is a single UCI process — concurrent `go` calls would race on
-// the shared `bestmove` output stream. Serialize every engine task through
-// this chain so live-eval (Phase 12 / Task 7) can run alongside the play
-// loop's bestMove without their stdout listeners interleaving.
-let engineQueue: Promise<unknown> = Promise.resolve();
-function runEngineTask<T>(task: () => Promise<T>): Promise<T> {
-  const next = engineQueue.then(task, task);
-  engineQueue = next.catch(() => undefined);
-  return next;
-}
-
 function registerIpcHandlers(): void {
   ipcMain.handle(
     IpcChannel.EngineAnalyze,
-    async (_evt, req: AnalyzeRequest): Promise<AnalysisResult> => {
-      const engine = await getEngine();
-      return runEngineTask(() =>
-        analyzePosition(engine, req.fen, {
+    async (_evt, req: AnalyzeRequest): Promise<AnalysisResult> =>
+      getPool().dispatch(async (engine) => {
+        // Reset UCI_LimitStrength so a prior bestMove call's Elo cap doesn't
+        // leak into review analysis. The engines are shared across tasks in
+        // the pool; each task is responsible for setting up its own search
+        // options.
+        engine.send('setoption name UCI_LimitStrength value false');
+        return analyzePosition(engine, req.fen, {
           depth: req.depth,
           multiPV: req.multiPV,
           timeoutMs: req.timeoutMs,
-        }),
-      );
-    },
+        });
+      }),
   );
 
   ipcMain.handle(IpcChannel.PgnOpenFile, async (): Promise<PgnOpenResult> => {
@@ -170,9 +161,8 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle(
     IpcChannel.EngineBestMove,
-    async (_evt, req: BestMoveRequest): Promise<string | null> => {
-      const engine = await getEngine();
-      return runEngineTask(async () => {
+    async (_evt, req: BestMoveRequest): Promise<string | null> =>
+      getPool().dispatch(async (engine) => {
         if (req.elo !== undefined) {
           engine.send('setoption name UCI_LimitStrength value true');
           engine.send(`setoption name UCI_Elo value ${Math.round(req.elo)}`);
@@ -184,8 +174,7 @@ function registerIpcHandlers(): void {
           timeoutMs: req.timeoutMs,
         });
         return result.bestMove;
-      });
-    },
+      }),
   );
 }
 
@@ -234,7 +223,7 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', (event) => {
-  if (engineInstance || enginePending) {
+  if (enginePool) {
     event.preventDefault();
     void shutdownEngine().finally(() => {
       if (dbInstance) {

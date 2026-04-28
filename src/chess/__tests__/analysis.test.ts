@@ -96,7 +96,7 @@ describe('analyzeGame', () => {
     );
   });
 
-  it('emits onProgress after each ply with the running record', async () => {
+  it('emits onProgress as each pre-move analysis lands', async () => {
     const game = new Game();
     game.move('e4');
     game.move('e5');
@@ -113,18 +113,8 @@ describe('analyzeGame', () => {
     });
 
     expect(onProgress).toHaveBeenCalledTimes(2);
-    expect(onProgress).toHaveBeenNthCalledWith(
-      1,
-      1,
-      2,
-      expect.objectContaining({ ply: 1, san: 'e4' }),
-    );
-    expect(onProgress).toHaveBeenNthCalledWith(
-      2,
-      2,
-      2,
-      expect.objectContaining({ ply: 2, san: 'e5' }),
-    );
+    expect(onProgress).toHaveBeenNthCalledWith(1, 1, 2);
+    expect(onProgress).toHaveBeenNthCalledWith(2, 2, 2);
   });
 
   it('aborts early when the signal is already aborted', async () => {
@@ -158,31 +148,36 @@ describe('analyzeGame', () => {
     expect(rec.uciPlayed).toBe('a7a8q');
   });
 
-  it('analyzeAfter:true triggers a second engine call per ply and flips POV', async () => {
+  it('analyzeAfter:true populates evalCpAfter via dedup with the next ply', async () => {
     const game = new Game();
     game.move('e4');
     game.move('e5');
 
-    // First call returns +30 from white's POV; after 1.e4 it's black's turn so
-    // the second call should report from black's POV — return -30 (black's
-    // perspective: white is +30 ahead). The orchestrator should flip the sign
-    // so we record +30 from the original mover (white)'s POV.
-    let callIndex = 0;
-    const analyze = vi.fn(async (_req: AnalyzeRequest) => {
-      callIndex += 1;
-      // Odd calls = "before" position from white's POV.
-      // Even calls = "after" position from black's POV.
-      const evalCp = callIndex % 2 === 1 ? 30 : -30;
-      return stubResult(null, evalCp);
+    // Stub: eval is reported from the side-to-move's POV. We pretend white
+    // is at +30 from white's perspective; black sees the same as -30. The
+    // orchestrator should flip the sign on the after-eval so each ply's
+    // record stays in the *original mover's* POV.
+    const analyze = vi.fn(async (req: AnalyzeRequest) => {
+      const stm = req.fen.split(' ')[1];
+      return stubResult(null, stm === 'w' ? 30 : -30);
     });
 
     const results = await analyzeGame(game, { depth: 12, analyze });
 
-    expect(analyze).toHaveBeenCalledTimes(4); // 2 plies × 2 calls each
+    // Three FENs to evaluate: starting position (w STM), after-1.e4 (b STM,
+    // shared between ply 1's "after" and ply 2's "before"), after-1...e5
+    // (w STM, used for ply 2's "after"). Without dedup this would be four.
+    expect(analyze).toHaveBeenCalledTimes(3);
+
+    // Ply 1 (white): before-eval = white-POV +30; after-eval is black-POV
+    // -30 sign-flipped back to white-POV +30.
     expect(results[0].evalCp).toBe(30);
-    expect(results[0].evalCpAfter).toBe(30); // -(-30) flipped to white's POV
-    expect(results[1].evalCp).toBe(30); // black's perspective from stub odd
-    expect(results[1].evalCpAfter).toBe(30); // flipped from -30
+    expect(results[0].evalCpAfter).toBe(30);
+
+    // Ply 2 (black): before-eval is black-POV -30 (black is losing); after-
+    // eval is white-POV +30 sign-flipped to black-POV -30.
+    expect(results[1].evalCp).toBe(-30);
+    expect(results[1].evalCpAfter).toBe(-30);
   });
 
   it('analyzeAfter skips the after-call when the game ended on the move', async () => {
@@ -197,9 +192,10 @@ describe('analyzeGame', () => {
     const analyze = vi.fn(async (_req: AnalyzeRequest) => stubResult(null, 1));
     const results = await analyzeGame(game, { depth: 8, analyze });
 
-    // 4 plies; only the first 3 should produce after-calls (8 total). The
-    // mate-ending ply contributes only its before-call.
-    expect(analyze).toHaveBeenCalledTimes(7);
+    // 4 plies → 4 unique pre-move FENs to analyse. The post-final position
+    // is checkmate (gameOverAt[4] = true), so the standalone after-call we
+    // dispatch for non-terminal final positions is skipped.
+    expect(analyze).toHaveBeenCalledTimes(4);
     expect(results[3].evalCpAfter).toBeNull();
     expect(results[3].mateInAfter).toBeNull();
   });

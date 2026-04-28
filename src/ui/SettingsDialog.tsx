@@ -36,20 +36,30 @@ const PIECE_THEME_LABEL: Record<PieceTheme, string> = {
   alpha: 'Alpha',
 };
 
-/** Render a single white-king sample for the picker tile. We pull it
+/** Pieces shown in the picker tile preview, left-to-right. One of each
+ *  white piece so the user can read every silhouette before committing. */
+const PREVIEW_PIECES = ['wK', 'wQ', 'wR', 'wB', 'wN', 'wP'] as const;
+
+/** Render a row of all six white pieces for the picker tile. Pulled
  *  through the same pieces map the board uses, so the user previews the
  *  exact artwork they'd see in play. */
 function PieceTilePreview({ theme }: { theme: PieceTheme }): JSX.Element {
   const pieces = customPiecesFor(theme);
-  const renderKing = pieces?.wK;
-  if (!renderKing) {
+  if (!pieces) {
     return (
       <span className="piece-tile__preview piece-tile__preview--missing" />
     );
   }
   return (
     <span className="piece-tile__preview" aria-hidden="true">
-      {renderKing({ squareWidth: 36 })}
+      {PREVIEW_PIECES.map((code) => {
+        const render = pieces[code];
+        return render ? (
+          <span key={code} className="piece-tile__preview-cell">
+            {render({ squareWidth: 22 })}
+          </span>
+        ) : null;
+      })}
     </span>
   );
 }
@@ -243,13 +253,13 @@ export function SettingsDialog({
 
         <fieldset className="dialog__field">
           <legend>Piece set</legend>
-          <div className="theme-grid">
+          <div className="piece-grid">
             {(Object.keys(PIECE_THEME_LABEL) as PieceTheme[]).map((key) => {
               const checked = pieceTheme === key;
               return (
                 <label
                   key={key}
-                  className={`theme-tile${checked ? ' theme-tile--active' : ''}`}
+                  className={`piece-tile${checked ? ' piece-tile--active' : ''}`}
                 >
                   <input
                     type="radio"
@@ -260,7 +270,7 @@ export function SettingsDialog({
                     className="theme-tile__radio"
                   />
                   <PieceTilePreview theme={key} />
-                  <span className="theme-tile__label">
+                  <span className="piece-tile__label">
                     {PIECE_THEME_LABEL[key]}
                   </span>
                 </label>

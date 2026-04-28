@@ -83,13 +83,27 @@ const PIECE_SETS: PieceSetMap = {
   alpha: EMPTY_SET(),
 };
 
+/** Strip absolute width / height attributes from the root `<svg>` element
+ *  so the artwork scales to its container. The Merida set ships with
+ *  `width="50mm" height="50mm"` baked in, which renders the pieces at
+ *  ~189px regardless of the wrapping div — bigger than a standard square.
+ *  Removing the attributes means the SVG falls back to its `viewBox` and
+ *  fills the parent like Cburnett and Alpha already do. */
+function normalizeSvg(raw: string): string {
+  // Only touch attributes on the opening `<svg ...>` tag, not on any nested
+  // element (gradients, groups, etc., shouldn't be reshaped).
+  return raw.replace(/<svg\b[^>]*>/, (tag) =>
+    tag.replace(/\s(width|height)\s*=\s*"[^"]*"/g, ''),
+  );
+}
+
 for (const [path, raw] of Object.entries(RAW_FILES)) {
   // path looks like '../data/pieces/<set>/<piece>.svg'
   const m = /\/pieces\/([^/]+)\/([wb][KQRBNP])\.svg$/.exec(path);
   if (!m) continue;
   const [, set, code] = m;
   if (!(set in PIECE_SETS)) continue;
-  PIECE_SETS[set as PieceTheme][code as PieceCode] = raw;
+  PIECE_SETS[set as PieceTheme][code as PieceCode] = normalizeSvg(raw);
 }
 
 /** Tagged props the library passes when calling each piece renderer. */

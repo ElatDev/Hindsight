@@ -125,6 +125,17 @@ export function Board({
   // arrows L-shaped, sideways arrows horizontal, diagonal arrows diagonal,
   // etc. The library's own arrow path renders only straight lines.
   const [userArrows, setUserArrows] = useState<readonly ArrowSpec[]>([]);
+  // Click-flow promotion: when the user click-clicks a pawn onto its last
+  // rank with `autoQueen=false`, we defer the move and force the library's
+  // promotion dialog open at the destination square. The drag-flow already
+  // gets the dialog automatically (autoPromoteToQueen=false hands the
+  // library both squares); the click-flow has to drive it via these props
+  // because the library doesn't expose its `promoteFromSquare` setter to
+  // outside callers.
+  const [pendingPromotion, setPendingPromotion] = useState<{
+    from: Square;
+    to: Square;
+  } | null>(null);
   const interactive = Boolean(onMove);
   // Wrapper-div ref so the right-click drag detector can read the deepest
   // square element under the pointer (each square carries a `data-square`
@@ -151,6 +162,7 @@ export function Board({
   const clearAnnotations = useCallback((): void => {
     setHighlights([]);
     setUserArrows([]);
+    setPendingPromotion(null);
   }, []);
 
   /** Pick the deepest `data-square` element under the event target. The
@@ -257,19 +269,25 @@ export function Board({
   // Library callback when the user picks a piece from the promotion popup.
   // Returning `true` tells the library the move was accepted; we apply it
   // through our own `tryMove` so the caller's `onMove` runs with the right
-  // promotion type.
+  // promotion type. When the dialog was opened via the click-flow (drag
+  // didn't carry from/to), we fall back to the `pendingPromotion` we
+  // stashed before forcing the dialog open.
   const handlePromotionPieceSelect = (
     piece: string | undefined,
     fromSquare: Square | undefined,
     toSquare: Square | undefined,
   ): boolean => {
-    if (!piece || !fromSquare || !toSquare) return false;
+    if (!piece) return false;
+    const from = fromSquare ?? pendingPromotion?.from;
+    const to = toSquare ?? pendingPromotion?.to;
+    if (!from || !to) return false;
     const promo = piece[1]?.toLowerCase();
     const promotion: 'q' | 'r' | 'b' | 'n' =
       promo === 'r' || promo === 'b' || promo === 'n' || promo === 'q'
         ? promo
         : 'q';
-    return tryMove(fromSquare, toSquare, promotion);
+    setPendingPromotion(null);
+    return tryMove(from, to, promotion);
   };
 
   const handleSquareClick = (square: Square): void => {
@@ -279,8 +297,21 @@ export function Board({
     if (!interactive) return;
 
     if (selected && selected !== square) {
-      const moved = tryMove(selected, square, 'q');
-      if (moved) return;
+      const moves = game.legalMovesFrom(selected);
+      const matching = moves.find((m) => m.to === square);
+      if (matching) {
+        // Promotion via click-click: defer the move and force the library's
+        // promotion picker open over the destination square. The picker
+        // calls `handlePromotionPieceSelect`, which falls back to
+        // `pendingPromotion` for the source square (the library doesn't
+        // know it because the gesture wasn't a drag).
+        if (matching.flags.includes('p') && !autoQueen) {
+          setPendingPromotion({ from: selected, to: square });
+          return;
+        }
+        const moved = tryMove(selected, square, 'q');
+        if (moved) return;
+      }
     }
 
     const hasMoves = game.legalMovesFrom(square).length > 0;
@@ -328,6 +359,8 @@ export function Board({
           customDarkSquareStyle={{ backgroundColor: palette.dark }}
           animationDuration={250}
           autoPromoteToQueen={autoQueen}
+          showPromotionDialog={pendingPromotion !== null}
+          promotionToSquare={pendingPromotion?.to ?? null}
         />
         <ArrowOverlay
           arrows={overlayArrows}
