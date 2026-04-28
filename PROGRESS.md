@@ -4,7 +4,32 @@
 
 ## Current session
 
-**User-feedback round.** The user actually played with the running app and surfaced real regressions + asks the audit pass missed. This session closes the bugs and lands the small features that were on the asked-for list.
+**User-feedback round 2.** The user kept testing and turned up more gaps. This round delivers the actual fixes: real arrows in every direction, real piece-set selection, defensive promotion, scrollable settings.
+
+Arrows now support every direction the user can draw:
+
+- Right-click drag detection moved into our own DOM-level handler on the board wrapper (`mousedown` records the source square via the library's `data-square` attribute; document-level `mouseup` resolves single-square = toggle highlight, drag = toggle arrow). `areArrowsAllowed={false}` keeps react-chessboard's straight-line drawing out of the way. The user's arrows feed our existing SVG overlay, so knight jumps come out L-shaped and everything else (sideways, diagonal, straight) is a single line. The default OS context menu is preventDefault'd so right-clicking on the board doesn't pop the menu.
+
+Piece sets ship for real:
+
+- New `scripts/fetch-pieces.mjs` downloads Cburnett, Merida, and Alpha SVGs from Lichess' `lila` repo into `src/data/pieces/<set>/<piece>.svg`. 36 files, ~3 KB each, committed (stable upstream, no point fetching at install time). Per `src/data/pieces/LICENSE`, the artwork is CC-BY-SA 4.0; the rest of the app stays MIT.
+- New `src/ui/pieceSets.tsx` glob-imports the SVGs as raw strings via Vite's `?raw` query and exposes `customPiecesFor(theme)`, which builds the render-function map react-chessboard's `customPieces` prop expects.
+- `Board` accepts a new `pieceTheme` prop; both the play view (App.tsx) and the review view (Review.tsx) pass `settings.pieceTheme` through.
+- The Settings dialog's piece-set picker now shows a real white-king tile preview for each option — exactly the artwork the user gets on the board. The "preview only" hint is gone.
+
+Settings dialog polish:
+
+- **Scrollable**: `.dialog` got `max-height: 90vh; overflow-y: auto` so the now-taller Settings dialog scrolls instead of running off the bottom of the viewport.
+- **Board palette preview tiles**: each option renders a 36×36 swatch showing the actual light/dark colour pair instead of plain radio chrome.
+- **`autoQueen` defensive defaulting**: every dialog field initialises with `?? DEFAULT_SETTINGS.<key>`, so a stale settings blob that's missing the (recently-added) `autoQueen` field doesn't render the checkbox as a phantom-`undefined` that submits as `undefined` and gets sanitize'd back to `true`. The submit also coerces booleans explicitly. Same defensive coalesce at the call site in App.tsx (`autoQueen={settings.autoQueen !== false}`) so even a rendering tree with stale state doesn't silently auto-queen.
+
+All the changes ship behind HMR'd code paths (no main-process changes); existing dev session picked them up cleanly. Lint + typecheck green; full vitest suite (572 tests) green.
+
+---
+
+## Earlier session — User-feedback round 1
+
+The user actually played with the running app and surfaced real regressions + asks the audit pass missed. This session closes the bugs and lands the small features that were on the asked-for list.
 
 Bugs:
 
@@ -56,10 +81,8 @@ Two Phase 13 deliverables still need user input. Everything inside the app's sur
 - **Phase 13 / Task 1** — Screenshot capture. The README has the **Screenshots** section already; what's missing is the actual captures of the play view, the post-game review (annotations + suggested-move arrow + grade badges + new positional notes panel), the critical-moments / alternatives panel, the saved-games browser, and the settings dialog. Task 1 stays unchecked until those land.
 - **Phase 13 / Task 4** — Cut a v0.1 release on GitHub. The build path is verified; remaining steps are: bump `package.json` `version` from `0.0.0` to `0.1.0`, re-run `npm run dist` to produce `Hindsight-0.1.0-windows-x64.exe`, then `gh release create v0.1.0 release/Hindsight-0.1.0-windows-x64.exe ...` with release notes drawn from the recent commit log. macOS DMG + Linux AppImage need their respective hosts or a CI matrix; ship Windows-only for v0.1 unless those are easy to obtain.
 
-User-feedback backlog (asks that didn't fit this round; sized for separate sessions):
+User-feedback backlog (asks that didn't fit; sized for separate sessions):
 
-- **Piece-set bundling.** The radio still says "preview only" because Cburnett ships with react-chessboard out of the box but Merida and Alpha need their SVG bundles checked in (~12 files × 3 sets, ~2KB each). Lichess ships them under CC-BY-SA on its repo. Wants its own asset-pipeline pass: a fetch script that lands the SVGs in `src/data/pieces/`, a renderer that maps `PieceTheme` → `customPieces` for `<Chessboard>`, and a mini preview tile in the Settings dialog so the user sees the choice before saving.
-- **Theme preview tiles in the Settings dialog.** Both board palette and (eventually) piece set should render a small live board sample for the currently-selected option so the user doesn't have to "Save → look → reopen Settings" to compare. Cheap if it's a 1-square sample; pricier if we render a real 8×8.
 - **Time-based games / clocks.** New game dialog should grow a Time Control section: bullet / blitz / rapid / classical presets + a custom (initial + increment) form. Renderer-side clock that ticks via `requestAnimationFrame`, pauses when the engine is thinking, flips on every move, and resigns the side that flags. Probably wants a small `clock.ts` state machine and a `<Clock>` component above the board (would replace or sit next to the `MaterialAdvantage` strip's slot).
 - **Smooth piece animation review.** User reported "pieces move instantly". We're now passing `animationDuration={250}` explicitly; if that still feels too fast or doesn't fire reliably (maybe react-chessboard skips the animation when two FEN updates land in the same frame, e.g. after the engine responds), investigate. The library's source has the animation infra; it might be that an engine-move-immediately-after-user-move pair cancels the first transition.
 - **Parallel Stockfish engine pool (v0.2).** `electron/engine/` currently spawns one Stockfish process and serializes every analyse call. A pool of N processes (one per logical core) running independent plies in parallel would give the biggest review-speed win. Existing `engineQueue` in `main.ts` is the natural seam — change it from a single chain into a small worker-pool dispatcher. Wants its own design pass.
