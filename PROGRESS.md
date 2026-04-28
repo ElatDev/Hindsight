@@ -4,7 +4,28 @@
 
 ## Current session
 
-**Post-audit bug sweep + Phase 8 surfacing.** A code-level audit (boot the dev server, drive every UI / chess module, cross-reference PROGRESS "✅" claims) flagged seven gaps where the checklist had marked things done but the user-facing reality didn't match. This session closes them.
+**User-feedback round.** The user actually played with the running app and surfaced real regressions + asks the audit pass missed. This session closes the bugs and lands the small features that were on the asked-for list.
+
+Bugs:
+
+- **Right-click arrows are visible again.** `customArrowColor` was hardcoded to "transparent" to suppress the library's straight-line drawing of engine-suggested arrows (we render those L-shaped via our SVG overlay). But that same colour also wiped out user-drawn right-click drags — the library renders those internally with `customArrowColor`. The XOR-based interceptor over `onArrowsChange` was dead code on react-chessboard ^4.7.3 (the callback only echoes prop-driven arrows on this version, never user gestures). Removed the dead state and let the library paint its own user arrows in green; engine-suggested arrows still get the L-shape from our SVG overlay.
+- **Pawn promotion now opens an under-promotion picker** when the new `autoQueen` setting is off. The library's built-in `onPromotionPieceSelect` carries the chosen piece-type back through our `onMove` path so chess.js gets the right `promotion` key. Defaults to auto-queen so existing flows are unchanged.
+- **Default analysis depth lowered from 12 → 10** to address "review takes forever". Each step roughly doubles per-move analysis cost on Stockfish; 10 stays well above the noise floor for classification accuracy. Settings hint rewritten to explain the tradeoff. The bigger structural win — running multiple Stockfish processes in parallel — is now flagged on the v0.2 backlog.
+- **Piece animation duration is explicit** (`animationDuration={250}` on Chessboard). The library default is 300; the user reported "pieces move instantly" so we made the value visible at the call site for future tuning. If 250 still feels instant, bump it.
+
+Features:
+
+- **More board palettes.** Picker grew from 4 → 9: classic / blue / green / gray (canon) plus walnut, rose, ocean, midnight, mint.
+- **Material-advantage strip above + below the board.** New `MaterialAdvantage` component diffs the current piece census against starting material, lists the captured-enemy pieces (queen → rook → bishop → knight → pawn) as Unicode glyphs, and trails the leading side's pawn-equivalent advantage as `+N`. Promotion-correct: a side's surplus queens cancel against the opponent's "missing" pawns so under-promoted pieces don't double-count. Renders in both play and review views, oriented to the side it represents.
+- **`autoQueen` toggle in Settings → "Pawn promotion".** Defaults on; turning it off lets the user under-promote.
+
+Lint + typecheck green; full vitest suite (572 tests) green; HMR happily picked up every edit while the dev server was live; no error events fired in the main-process log monitor.
+
+---
+
+## Earlier session — Post-audit bug sweep + Phase 8 surfacing
+
+A code-level audit (boot the dev server, drive every UI / chess module, cross-reference PROGRESS "✅" claims) flagged seven gaps where the checklist had marked things done but the user-facing reality didn't match. The previous session closed them.
 
 Headline fix:
 
@@ -35,14 +56,22 @@ Two Phase 13 deliverables still need user input. Everything inside the app's sur
 - **Phase 13 / Task 1** — Screenshot capture. The README has the **Screenshots** section already; what's missing is the actual captures of the play view, the post-game review (annotations + suggested-move arrow + grade badges + new positional notes panel), the critical-moments / alternatives panel, the saved-games browser, and the settings dialog. Task 1 stays unchecked until those land.
 - **Phase 13 / Task 4** — Cut a v0.1 release on GitHub. The build path is verified; remaining steps are: bump `package.json` `version` from `0.0.0` to `0.1.0`, re-run `npm run dist` to produce `Hindsight-0.1.0-windows-x64.exe`, then `gh release create v0.1.0 release/Hindsight-0.1.0-windows-x64.exe ...` with release notes drawn from the recent commit log. macOS DMG + Linux AppImage need their respective hosts or a CI matrix; ship Windows-only for v0.1 unless those are easy to obtain.
 
-Audit-driven backlog (smaller polish items, none blocking v0.1 — promote to a real fix pass when convenient):
+User-feedback backlog (asks that didn't fit this round; sized for separate sessions):
 
-- **No Esc-key / overlay-click dismiss** on any dialog (NewGame, Settings, SavedGames, PgnPaste, PgnGameSelect, EngineMissing). Forces a button click; non-standard. Cleanest fix is a shared `useDialogDismiss` hook applied across the set.
+- **Piece-set bundling.** The radio still says "preview only" because Cburnett ships with react-chessboard out of the box but Merida and Alpha need their SVG bundles checked in (~12 files × 3 sets, ~2KB each). Lichess ships them under CC-BY-SA on its repo. Wants its own asset-pipeline pass: a fetch script that lands the SVGs in `src/data/pieces/`, a renderer that maps `PieceTheme` → `customPieces` for `<Chessboard>`, and a mini preview tile in the Settings dialog so the user sees the choice before saving.
+- **Theme preview tiles in the Settings dialog.** Both board palette and (eventually) piece set should render a small live board sample for the currently-selected option so the user doesn't have to "Save → look → reopen Settings" to compare. Cheap if it's a 1-square sample; pricier if we render a real 8×8.
+- **Time-based games / clocks.** New game dialog should grow a Time Control section: bullet / blitz / rapid / classical presets + a custom (initial + increment) form. Renderer-side clock that ticks via `requestAnimationFrame`, pauses when the engine is thinking, flips on every move, and resigns the side that flags. Probably wants a small `clock.ts` state machine and a `<Clock>` component above the board (would replace or sit next to the `MaterialAdvantage` strip's slot).
+- **Smooth piece animation review.** User reported "pieces move instantly". We're now passing `animationDuration={250}` explicitly; if that still feels too fast or doesn't fire reliably (maybe react-chessboard skips the animation when two FEN updates land in the same frame, e.g. after the engine responds), investigate. The library's source has the animation infra; it might be that an engine-move-immediately-after-user-move pair cancels the first transition.
+- **Parallel Stockfish engine pool (v0.2).** `electron/engine/` currently spawns one Stockfish process and serializes every analyse call. A pool of N processes (one per logical core) running independent plies in parallel would give the biggest review-speed win. Existing `engineQueue` in `main.ts` is the natural seam — change it from a single chain into a small worker-pool dispatcher. Wants its own design pass.
+
+Earlier audit-driven backlog (still open, smaller polish):
+
+- **No Esc-key / overlay-click dismiss** on any dialog. Cleanest fix is a shared `useDialogDismiss` hook applied across the set.
 - **Engine-error toast doesn't auto-clear** on idle — it does clear on the next engine request, but a transient error shown after the final move of a game stays up forever.
-- **Multi-game PGN with unclosed-brace comments mis-splits** in `pgnSplit.ts` — the line-by-line tag scan can be fooled by a comment that contains `[`. Single-game malformed input throws cleanly; multi-game malformed is the gap.
-- **Motif test suite uses weak assertions** (`expect(pins.length).toBeGreaterThanOrEqual(2)` instead of checking exact squares). Tighten when adding new motif tests.
+- **Multi-game PGN with unclosed-brace comments mis-splits** in `pgnSplit.ts`.
+- **Motif test suite uses weak assertions** (`toBeGreaterThanOrEqual(2)` instead of checking exact squares).
 
-Carved-out follow-ups still pending: piece-set bundling (Task 8 second half), engine-path override UI (Task 1/5 deferred). Also worth flagging for v0.2: an analysis-cache table keyed on `(pgn_hash, depth)` so re-opening a saved review is instant — the `electron/storage/` layer is now the natural home for it.
+Also worth flagging for v0.2: an analysis-cache table keyed on `(pgn_hash, depth)` so re-opening a saved review is instant — the `electron/storage/` layer is now the natural home for it.
 
 ## Blockers
 
