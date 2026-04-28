@@ -17,6 +17,7 @@ import type { MotifTag } from '../chess/templates/selector';
 import { exportAnnotatedPgn } from '../chess/pgnExport';
 import { Board, type ArrowSpec, type GradeBadge } from './Board';
 import { EvalBar } from './EvalBar';
+import { MaterialAdvantage } from './MaterialAdvantage';
 import { MoveList } from './MoveList';
 import { NavControls } from './NavControls';
 import { PositionalPanel } from './PositionalPanel';
@@ -260,14 +261,24 @@ export function Review({
         mateIn={evalForView.mate}
         orientation={orientation}
       />
-      <div className="board-frame">
-        <Board
+      <div className="board-stack">
+        <MaterialAdvantage
           game={displayed}
-          width={520}
-          orientation={orientation}
-          boardTheme={boardTheme}
-          arrows={arrows}
-          gradeBadge={gradeBadge}
+          side={orientation === 'white' ? 'b' : 'w'}
+        />
+        <div className="board-frame">
+          <Board
+            game={displayed}
+            width={520}
+            orientation={orientation}
+            boardTheme={boardTheme}
+            arrows={arrows}
+            gradeBadge={gradeBadge}
+          />
+        </div>
+        <MaterialAdvantage
+          game={displayed}
+          side={orientation === 'white' ? 'w' : 'b'}
         />
       </div>
       <aside className="side-panel">

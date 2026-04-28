@@ -12,6 +12,7 @@ import {
 } from './ui/NewGameDialog';
 import { PgnGameSelectDialog } from './ui/PgnGameSelectDialog';
 import { PgnPasteDialog } from './ui/PgnPasteDialog';
+import { MaterialAdvantage } from './ui/MaterialAdvantage';
 import { Review } from './ui/Review';
 import { SavedGamesDialog } from './ui/SavedGamesDialog';
 import { SettingsDialog } from './ui/SettingsDialog';
@@ -370,14 +371,25 @@ function App(): JSX.Element {
             mateIn={liveEvalSnap.mate}
             orientation={orientation}
           />
-          <div className="board-frame">
-            <Board
-              key={gameInstanceId}
+          <div className="board-stack">
+            <MaterialAdvantage
               game={displayed}
-              width={520}
-              orientation={orientation}
-              boardTheme={settings.boardTheme}
-              onMove={playerCanMove ? handleMove : undefined}
+              side={orientation === 'white' ? 'b' : 'w'}
+            />
+            <div className="board-frame">
+              <Board
+                key={gameInstanceId}
+                game={displayed}
+                width={520}
+                orientation={orientation}
+                boardTheme={settings.boardTheme}
+                autoQueen={settings.autoQueen}
+                onMove={playerCanMove ? handleMove : undefined}
+              />
+            </div>
+            <MaterialAdvantage
+              game={displayed}
+              side={orientation === 'white' ? 'w' : 'b'}
             />
           </div>
           <aside className="side-panel">

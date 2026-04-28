@@ -21,6 +21,11 @@ const BOARD_THEME_LABEL: Record<BoardTheme, string> = {
   blue: 'Blue',
   green: 'Green',
   gray: 'Gray',
+  walnut: 'Walnut',
+  rose: 'Rose',
+  ocean: 'Ocean',
+  midnight: 'Midnight',
+  mint: 'Mint',
 };
 
 const PIECE_THEME_LABEL: Record<PieceTheme, string> = {
@@ -48,10 +53,14 @@ export function SettingsDialog({
   const [liveEval, setLiveEval] = useState(initial.liveEval);
   const [boardTheme, setBoardTheme] = useState<BoardTheme>(initial.boardTheme);
   const [pieceTheme, setPieceTheme] = useState<PieceTheme>(initial.pieceTheme);
+  const [autoQueen, setAutoQueen] = useState(initial.autoQueen);
   const [themeChoice, setThemeChoice] = useState<Theme>(theme);
 
   const submit = (): void => {
-    onConfirm({ analysisDepth, liveEval, boardTheme, pieceTheme }, themeChoice);
+    onConfirm(
+      { analysisDepth, liveEval, boardTheme, pieceTheme, autoQueen },
+      themeChoice,
+    );
   };
 
   // "Restore defaults" used to call back into the parent and persist the
@@ -66,6 +75,7 @@ export function SettingsDialog({
     setLiveEval(DEFAULT_SETTINGS.liveEval);
     setBoardTheme(DEFAULT_SETTINGS.boardTheme);
     setPieceTheme(DEFAULT_SETTINGS.pieceTheme);
+    setAutoQueen(DEFAULT_SETTINGS.autoQueen);
     setThemeChoice(DEFAULT_THEME);
   };
 
@@ -93,8 +103,11 @@ export function SettingsDialog({
             <span className="dialog__elo-value">{analysisDepth}</span>
           </div>
           <p className="settings__hint">
-            Stockfish search depth used by the review pipeline. Higher is slower
-            but more accurate.
+            Stockfish search depth used by the review pipeline. Each step up
+            roughly doubles per-move analysis time. The default of 10 is a good
+            balance for casual review; tournament-quality analysis wants 14+.
+            Parallel-engine review is on the v0.2 roadmap; until then, lowering
+            this is the simplest way to speed things up.
           </p>
         </fieldset>
 
@@ -171,6 +184,23 @@ export function SettingsDialog({
           ))}
           <p className="settings__hint settings__hint--pending">
             {PIECE_SET_PENDING_NOTE}
+          </p>
+        </fieldset>
+
+        <fieldset className="dialog__field">
+          <legend>Pawn promotion</legend>
+          <label>
+            <input
+              type="checkbox"
+              checked={autoQueen}
+              onChange={(e) => setAutoQueen(e.target.checked)}
+            />
+            Always promote to queen automatically
+          </label>
+          <p className="settings__hint">
+            When off, dragging a pawn to its last rank pops up a picker so you
+            can under-promote (knight, bishop, rook). Most games want auto-
+            queen; tactical puzzles and the rare endgame need the picker.
           </p>
         </fieldset>
 

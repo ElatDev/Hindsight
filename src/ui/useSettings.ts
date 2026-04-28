@@ -13,11 +13,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * that blob up to the DB so the user's old preferences survive the upgrade.
  */
 
-export type BoardTheme = 'classic' | 'blue' | 'green' | 'gray';
+export type BoardTheme =
+  | 'classic'
+  | 'blue'
+  | 'green'
+  | 'gray'
+  | 'walnut'
+  | 'rose'
+  | 'ocean'
+  | 'midnight'
+  | 'mint';
 export type PieceTheme = 'cburnett' | 'merida' | 'alpha';
 
 export type Settings = {
-  /** Stockfish search depth used by `runGameReview`. Range 8..22. */
+  /** Stockfish search depth used by `runGameReview`. Range 8..22. Lowering
+   *  this is the simplest way to speed up review on a slow box; the v0.2
+   *  parallel-engine-pool will give the bigger win. */
   readonly analysisDepth: number;
   /** Show a live engine eval bar during play (Phase 12 / Task 7). */
   readonly liveEval: boolean;
@@ -25,13 +36,22 @@ export type Settings = {
   readonly boardTheme: BoardTheme;
   /** Piece set (Phase 12 / Task 8). */
   readonly pieceTheme: PieceTheme;
+  /** When true, drag-drop promotions auto-pick queen. When false, the
+   *  library's promotion picker pops up so under-promotion is reachable. */
+  readonly autoQueen: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  analysisDepth: 12,
+  // Default lowered from 12 → 10 in response to "review is slow" feedback.
+  // 10 is roughly half the per-ply cost of 12 on modern Stockfish, with
+  // negligible classification accuracy loss for typical games. Users who
+  // want stronger analysis can crank the slider; the parallel-pool win is
+  // tracked for v0.2.
+  analysisDepth: 10,
   liveEval: false,
   boardTheme: 'classic',
   pieceTheme: 'cburnett',
+  autoQueen: true,
 };
 
 export const ANALYSIS_DEPTH_MIN = 8;
@@ -44,6 +64,11 @@ const BOARD_THEMES: ReadonlySet<BoardTheme> = new Set([
   'blue',
   'green',
   'gray',
+  'walnut',
+  'rose',
+  'ocean',
+  'midnight',
+  'mint',
 ]);
 const PIECE_THEMES: ReadonlySet<PieceTheme> = new Set([
   'cburnett',
@@ -90,11 +115,16 @@ function sanitize(input: Partial<Settings>): Settings {
   const pieceTheme = PIECE_THEMES.has(input.pieceTheme as PieceTheme)
     ? (input.pieceTheme as PieceTheme)
     : DEFAULT_SETTINGS.pieceTheme;
+  const autoQueen =
+    typeof input.autoQueen === 'boolean'
+      ? input.autoQueen
+      : DEFAULT_SETTINGS.autoQueen;
   return {
     analysisDepth: clampedDepth,
     liveEval: Boolean(input.liveEval),
     boardTheme,
     pieceTheme,
+    autoQueen,
   };
 }
 
@@ -103,7 +133,8 @@ function settingsEqual(a: Settings, b: Settings): boolean {
     a.analysisDepth === b.analysisDepth &&
     a.liveEval === b.liveEval &&
     a.boardTheme === b.boardTheme &&
-    a.pieceTheme === b.pieceTheme
+    a.pieceTheme === b.pieceTheme &&
+    a.autoQueen === b.autoQueen
   );
 }
 

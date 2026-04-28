@@ -55,6 +55,10 @@ export type BoardProps = {
   /** Board colour palette key. Defaults to `'classic'` — the chess.com
    *  cream/brown the renderer ships with out of the box. */
   boardTheme?: BoardTheme;
+  /** When true, drag-drop promotions auto-pick queen (the default). When
+   *  false, react-chessboard's built-in promotion dialog pops up so the
+   *  user can under-promote. */
+  autoQueen?: boolean;
 };
 
 const SELECTED_STYLE = { backgroundColor: 'rgba(255, 233, 99, 0.55)' };
@@ -102,11 +106,11 @@ export function Board({
   arrows,
   gradeBadge,
   boardTheme = 'classic',
+  autoQueen = true,
 }: BoardProps): JSX.Element {
   const palette = BOARD_PALETTES[boardTheme] ?? BOARD_PALETTES.classic;
   const [selected, setSelected] = useState<Square | null>(null);
   const [highlights, setHighlights] = useState<readonly Square[]>([]);
-  const [userArrows, setUserArrows] = useState<readonly ArrowSpec[]>([]);
   const interactive = Boolean(onMove);
 
   const customSquareStyles = useMemo(() => {
@@ -124,7 +128,6 @@ export function Board({
 
   const clearAnnotations = (): void => {
     setHighlights([]);
-    setUserArrows([]);
   };
 
   const tryMove = (
@@ -141,7 +144,37 @@ export function Board({
   const handlePieceDrop = (
     sourceSquare: Square,
     targetSquare: Square,
-  ): boolean => tryMove(sourceSquare, targetSquare, 'q');
+    piece: string,
+  ): boolean => {
+    // The library uses pieces like `wP`, `bN`, `wQ`, etc. The fifth char of
+    // a promotion drag is the chosen piece (e.g. `wQ` after the picker);
+    // for non-promotion drags it's the moving piece's type. Either way the
+    // letter we want is `piece[1]` lowercased — `q`/`r`/`b`/`n` for the
+    // promotion path, anything else (`k`/`p`) means the move isn't a
+    // promotion and chess.js ignores the `promotion` field.
+    const promo = piece[1]?.toLowerCase();
+    const promotion: 'q' | 'r' | 'b' | 'n' =
+      promo === 'r' || promo === 'b' || promo === 'n' ? promo : 'q';
+    return tryMove(sourceSquare, targetSquare, promotion);
+  };
+
+  // Library callback when the user picks a piece from the promotion popup.
+  // Returning `true` tells the library the move was accepted; we apply it
+  // through our own `tryMove` so the caller's `onMove` runs with the right
+  // promotion type.
+  const handlePromotionPieceSelect = (
+    piece: string | undefined,
+    fromSquare: Square | undefined,
+    toSquare: Square | undefined,
+  ): boolean => {
+    if (!piece || !fromSquare || !toSquare) return false;
+    const promo = piece[1]?.toLowerCase();
+    const promotion: 'q' | 'r' | 'b' | 'n' =
+      promo === 'r' || promo === 'b' || promo === 'n' || promo === 'q'
+        ? promo
+        : 'q';
+    return tryMove(fromSquare, toSquare, promotion);
+  };
 
   const handleSquareClick = (square: Square): void => {
     // Lichess convention: any left-click clears persistent annotations,
@@ -166,50 +199,35 @@ export function Board({
     );
   };
 
-  // react-chessboard fires `onArrowsChange` whenever its internal arrow set
-  // changes — including when we update `customArrows` (which calls the
-  // library's `clearArrows`, immediately firing back with `[]`). Treat
-  // empty-array calls as the post-prop-update echo and ignore them.
-  // Non-empty calls are user-drawn arrows; toggle each into our state.
-  const handleArrowsChange = (libArrows: ArrowSpec[]): void => {
-    if (libArrows.length === 0) return;
-    setUserArrows((prev) => {
-      const next = [...prev];
-      for (const arrow of libArrows) {
-        const idx = next.findIndex(
-          (a) => a[0] === arrow[0] && a[1] === arrow[1],
-        );
-        if (idx >= 0) next.splice(idx, 1);
-        else next.push(arrow);
-      }
-      return next;
-    });
-  };
-
-  // Merge engine-supplied arrows (from props) with the user's right-click
-  // arrows. Engine arrows render first so the user's overlay sits on top
-  // when they share endpoints. Each tuple keeps its colour for the SVG
-  // overlay; the library copy below is force-coloured transparent so the
-  // straight react-chessboard arrows don't ghost behind our L-shapes.
-  const mergedArrows = useMemo<readonly ArrowSpec[]>(
+  // Engine-supplied arrows (from props) are the only ones we render via our
+  // SVG overlay — that's what carries the Lichess-style L-shape for knight
+  // moves. User-drawn right-click arrows go through react-chessboard's own
+  // mechanism: the library tracks the gesture, stores the resulting arrow
+  // in private state, and renders it with `customArrowColor`. We can't
+  // intercept that flow (`onArrowsChange` only echoes prop-driven arrows on
+  // this version, not user drags), so trying to layer L-shapes on top of
+  // user-drawn arrows is more complexity than the visual win is worth.
+  // Right-click arrows are straight-line green; engine arrows are L-shaped
+  // blue. Both are valid Lichess-style.
+  const overlayArrows = useMemo<readonly ArrowSpec[]>(
     () =>
-      [...(arrows ?? []), ...userArrows].map(
+      (arrows ?? []).map(
         (a) => [a[0], a[1], a[2] ?? RIGHT_CLICK_ARROW_COLOR] as ArrowSpec,
       ),
-    [arrows, userArrows],
+    [arrows],
   );
 
-  // react-chessboard mutates the `customArrows` array (filters in place), so
-  // hand it a fresh mutable copy each render. Stamping `'transparent'` on
-  // every entry hides the library's straight rendering — we only want it as
-  // an input source (right-click drag detection); the visible arrows come
-  // from `<ArrowOverlay>`.
+  // Hand react-chessboard a coloured-transparent copy of the engine arrows
+  // so it knows about them (e.g. for click-fall-through behaviour) but
+  // doesn't actually paint them — our overlay owns that drawing. Pass
+  // `undefined` when there's nothing to declare so the library can stay in
+  // its own arrow-management mode for user drags.
   const libraryArrows = useMemo(() => {
-    if (mergedArrows.length === 0) return undefined;
-    return mergedArrows.map(
+    if (overlayArrows.length === 0) return undefined;
+    return overlayArrows.map(
       (a) => [a[0], a[1], 'transparent'] as [Square, Square, string],
     );
-  }, [mergedArrows]);
+  }, [overlayArrows]);
 
   return (
     <GradeBadgeContext.Provider value={gradeBadge ?? null}>
@@ -220,9 +238,11 @@ export function Board({
           boardWidth={width}
           arePiecesDraggable={interactive}
           onPieceDrop={interactive ? handlePieceDrop : undefined}
+          onPromotionPieceSelect={
+            interactive ? handlePromotionPieceSelect : undefined
+          }
           onSquareClick={handleSquareClick}
           onSquareRightClick={handleSquareRightClick}
-          onArrowsChange={handleArrowsChange}
           customSquareStyles={customSquareStyles}
           customSquare={
             SquareWithBadge as unknown as ComponentProps<
@@ -230,13 +250,14 @@ export function Board({
             >['customSquare']
           }
           customArrows={libraryArrows}
-          customArrowColor="transparent"
+          customArrowColor={RIGHT_CLICK_ARROW_COLOR}
           customLightSquareStyle={{ backgroundColor: palette.light }}
           customDarkSquareStyle={{ backgroundColor: palette.dark }}
-          autoPromoteToQueen
+          animationDuration={250}
+          autoPromoteToQueen={autoQueen}
         />
         <ArrowOverlay
-          arrows={mergedArrows}
+          arrows={overlayArrows}
           orientation={orientation}
           defaultColor={RIGHT_CLICK_ARROW_COLOR}
         />
