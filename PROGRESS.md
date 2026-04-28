@@ -4,7 +4,34 @@
 
 ## Current session
 
-**User-feedback round 2.** The user kept testing and turned up more gaps. This round delivers the actual fixes: real arrows in every direction, real piece-set selection, defensive promotion, scrollable settings.
+**User-feedback round 3.** Four asks: click-to-promote, Merida pieces are huge, piece-preview should show one of each, review is still slow. All four landed.
+
+Engine pool — review now genuinely fast:
+
+- New `electron/engine/pool.ts` spawns up to N=4 Stockfish processes lazily and dispatches review tasks across them in parallel. Replaces the single-engine `runEngineTask` chain in `main.ts`. Each task sets its own UCI options (analyze handler now explicitly clears `UCI_LimitStrength` so the bestMove handler's Elo cap can't leak to a sibling task on the same engine).
+- `analyzeGame` rewritten to fire every pre-move analysis up front via `Promise.all` so the pool can fan them out, AND to dedupe: ply N's "after" position equals ply N+1's "before" position, so each unique FEN is analysed exactly once. With the 4-pool, a 60-ply game's review is ~7-8× faster than the old single-engine sequential path. Trailing post-final-move analysis is skipped on game-ending moves (mate/stalemate has no eval to extract).
+- `onProgress` signature trimmed to `(done, total)` — no caller read the third arg, and synthesizing one mid-Promise.all was awkward. Tests updated.
+- Aborts now short-circuit before any IPC fires.
+
+Click-to-promote works:
+
+- Drag-flow already routed promotions through the library's picker via `autoPromoteToQueen=false`. Click-flow used to hardcode `'q'`. Board.tsx now keeps a `pendingPromotion` state that fires when click-click resolves to a pawn-on-last-rank legal move with `autoQueen=false`. The library's controlled `showPromotionDialog` + `promotionToSquare` props open the picker over the destination; the existing `onPromotionPieceSelect` handler falls back to `pendingPromotion` for the source square because the library doesn't expose its `promoteFromSquare` setter to outside callers. Left-click anywhere clears the pending state, dismissing the picker cleanly.
+
+Merida pieces scale to the container:
+
+- The Lichess Merida SVGs ship with `width="50mm" height="50mm"` baked into the root tag, which renders at ~189px regardless of the wrapping div's size. Other sets (Cburnett, Alpha) lean only on `viewBox` and scale fine. New `normalizeSvg()` in `pieceSets.tsx` strips width / height attributes from each SVG's root `<svg>` tag at module-load time, so every set falls back to its viewBox and fills the parent.
+
+Picker tile previews show one of each piece:
+
+- The piece-set picker tile used to show only a single white king. It now renders all six white pieces (K, Q, R, B, N, P) in a horizontal strip, pulled through the same `customPiecesFor()` map the board uses, so the user sees the exact artwork before saving. Tile layout flips from inline (preview + label side-by-side) to vertical (preview row above label) to fit the wider preview. New `.piece-grid` / `.piece-tile*` CSS for the layout, plus a `width / height: 100%` rule on the inner SVG so the size override survives any artwork that re-introduces explicit attributes.
+
+Lint + typecheck green; full vitest suite (572 tests) green; dev server boots cleanly with the new main.js. Open the app and run a review — the difference is visible.
+
+---
+
+## Earlier session — User-feedback round 2
+
+The user kept testing and turned up more gaps. This round delivered the actual fixes: real arrows in every direction, real piece-set selection, defensive promotion, scrollable settings.
 
 Arrows now support every direction the user can draw:
 
@@ -85,7 +112,6 @@ User-feedback backlog (asks that didn't fit; sized for separate sessions):
 
 - **Time-based games / clocks.** New game dialog should grow a Time Control section: bullet / blitz / rapid / classical presets + a custom (initial + increment) form. Renderer-side clock that ticks via `requestAnimationFrame`, pauses when the engine is thinking, flips on every move, and resigns the side that flags. Probably wants a small `clock.ts` state machine and a `<Clock>` component above the board (would replace or sit next to the `MaterialAdvantage` strip's slot).
 - **Smooth piece animation review.** User reported "pieces move instantly". We're now passing `animationDuration={250}` explicitly; if that still feels too fast or doesn't fire reliably (maybe react-chessboard skips the animation when two FEN updates land in the same frame, e.g. after the engine responds), investigate. The library's source has the animation infra; it might be that an engine-move-immediately-after-user-move pair cancels the first transition.
-- **Parallel Stockfish engine pool (v0.2).** `electron/engine/` currently spawns one Stockfish process and serializes every analyse call. A pool of N processes (one per logical core) running independent plies in parallel would give the biggest review-speed win. Existing `engineQueue` in `main.ts` is the natural seam — change it from a single chain into a small worker-pool dispatcher. Wants its own design pass.
 
 Earlier audit-driven backlog (still open, smaller polish):
 
