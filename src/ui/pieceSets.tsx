@@ -81,6 +81,15 @@ const PIECE_SETS: PieceSetMap = {
   cburnett: EMPTY_SET(),
   merida: EMPTY_SET(),
   alpha: EMPTY_SET(),
+  california: EMPTY_SET(),
+  cardinal: EMPTY_SET(),
+  chessnut: EMPTY_SET(),
+  fantasy: EMPTY_SET(),
+  leipzig: EMPTY_SET(),
+  maestro: EMPTY_SET(),
+  pirouetti: EMPTY_SET(),
+  staunty: EMPTY_SET(),
+  tatiana: EMPTY_SET(),
 };
 
 /** Strip absolute width / height attributes from the root `<svg>` element

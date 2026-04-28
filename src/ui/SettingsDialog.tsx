@@ -34,33 +34,40 @@ const PIECE_THEME_LABEL: Record<PieceTheme, string> = {
   cburnett: 'Cburnett',
   merida: 'Merida',
   alpha: 'Alpha',
+  california: 'California',
+  cardinal: 'Cardinal',
+  chessnut: 'Chessnut',
+  fantasy: 'Fantasy',
+  leipzig: 'Leipzig',
+  maestro: 'Maestro',
+  pirouetti: 'Pirouetti',
+  staunty: 'Staunty',
+  tatiana: 'Tatiana',
 };
 
-/** Pieces shown in the picker tile preview, left-to-right. One of each
- *  white piece so the user can read every silhouette before committing. */
+/** Pieces shown in the live preview row, left-to-right. One of each white
+ *  piece so the user can read every silhouette before committing. */
 const PREVIEW_PIECES = ['wK', 'wQ', 'wR', 'wB', 'wN', 'wP'] as const;
 
-/** Render a row of all six white pieces for the picker tile. Pulled
- *  through the same pieces map the board uses, so the user previews the
- *  exact artwork they'd see in play. */
-function PieceTilePreview({ theme }: { theme: PieceTheme }): JSX.Element {
+/** Single live-preview row that updates whenever the user picks a new
+ *  piece set. Pulled through the same `customPiecesFor()` map the board
+ *  uses, so what the user sees here is exactly what they'd get in play. */
+function PieceSetPreview({ theme }: { theme: PieceTheme }): JSX.Element {
   const pieces = customPiecesFor(theme);
   if (!pieces) {
-    return (
-      <span className="piece-tile__preview piece-tile__preview--missing" />
-    );
+    return <div className="piece-set-preview piece-set-preview--missing" />;
   }
   return (
-    <span className="piece-tile__preview" aria-hidden="true">
+    <div className="piece-set-preview" aria-label={`Preview: ${theme}`}>
       {PREVIEW_PIECES.map((code) => {
         const render = pieces[code];
         return render ? (
-          <span key={code} className="piece-tile__preview-cell">
-            {render({ squareWidth: 22 })}
+          <span key={code} className="piece-set-preview__cell">
+            {render({ squareWidth: 44 })}
           </span>
         ) : null;
       })}
-    </span>
+    </div>
   );
 }
 
@@ -253,30 +260,21 @@ export function SettingsDialog({
 
         <fieldset className="dialog__field">
           <legend>Piece set</legend>
-          <div className="piece-grid">
-            {(Object.keys(PIECE_THEME_LABEL) as PieceTheme[]).map((key) => {
-              const checked = pieceTheme === key;
-              return (
-                <label
-                  key={key}
-                  className={`piece-tile${checked ? ' piece-tile--active' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="pieceTheme"
-                    value={key}
-                    checked={checked}
-                    onChange={() => setPieceTheme(key)}
-                    className="theme-tile__radio"
-                  />
-                  <PieceTilePreview theme={key} />
-                  <span className="piece-tile__label">
-                    {PIECE_THEME_LABEL[key]}
-                  </span>
-                </label>
-              );
-            })}
+          <div className="piece-radio-list">
+            {(Object.keys(PIECE_THEME_LABEL) as PieceTheme[]).map((key) => (
+              <label key={key} className="piece-radio-list__option">
+                <input
+                  type="radio"
+                  name="pieceTheme"
+                  value={key}
+                  checked={pieceTheme === key}
+                  onChange={() => setPieceTheme(key)}
+                />
+                {PIECE_THEME_LABEL[key]}
+              </label>
+            ))}
           </div>
+          <PieceSetPreview theme={pieceTheme} />
         </fieldset>
 
         <fieldset className="dialog__field">

@@ -1380,3 +1380,51 @@ body,
 .piece-tile--active .piece-tile__label {
   font-weight: 600;
 }
+
+.piece-radio-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.25rem 0.5rem;
+}
+
+.piece-radio-list__option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.piece-set-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.piece-set-preview--missing {
+  height: 56px;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  margin-top: 0.6rem;
+}
+
+.piece-set-preview__cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.piece-set-preview__cell svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}

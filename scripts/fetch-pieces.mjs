@@ -17,7 +17,20 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEST = resolve(__dirname, '..', 'src', 'data', 'pieces');
 
-const SETS = ['cburnett', 'merida', 'alpha'];
+const SETS = [
+  'cburnett',
+  'merida',
+  'alpha',
+  'california',
+  'cardinal',
+  'chessnut',
+  'fantasy',
+  'leipzig',
+  'maestro',
+  'pirouetti',
+  'staunty',
+  'tatiana',
+];
 const PIECES = ['K', 'Q', 'R', 'B', 'N', 'P'];
 const COLORS = ['w', 'b'];
 const BASE =
@@ -51,15 +64,15 @@ async function main() {
   // Drop a small NOTICE so anyone reading the repo knows the license + source.
   const notice = `Piece-set artwork in this directory is sourced from the
 Lichess public assets (https://github.com/lichess-org/lila/tree/master/public/piece)
-and is licensed under CC-BY-SA 4.0:
+and is licensed under CC-BY-SA 4.0 unless noted otherwise:
 https://creativecommons.org/licenses/by-sa/4.0/
 
 Sets included:
-- cburnett — by C. Burnett (Wikipedia chess piece designer); CC-BY-SA 3.0/4.0
-- merida — Armando Hernandez Marroquin (alpha), CC0
-- alpha — Eric Bentzen, CC-BY-NC
+${SETS.map((s) => `- ${s}`).join('\n')}
 
-Refer to the upstream Lichess repository for full per-set attribution.
+Refer to the upstream Lichess repository for full per-set attribution and
+license notes (a few sets carry slightly different terms — Cburnett is
+CC-BY-SA, the others ship under variants ranging from CC0 to CC-BY).
 
 The Hindsight application code (everything outside this directory) is MIT
 licensed; including CC-BY-SA assets does not relicense the app code, only

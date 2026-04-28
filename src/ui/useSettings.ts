@@ -23,7 +23,19 @@ export type BoardTheme =
   | 'ocean'
   | 'midnight'
   | 'mint';
-export type PieceTheme = 'cburnett' | 'merida' | 'alpha';
+export type PieceTheme =
+  | 'cburnett'
+  | 'merida'
+  | 'alpha'
+  | 'california'
+  | 'cardinal'
+  | 'chessnut'
+  | 'fantasy'
+  | 'leipzig'
+  | 'maestro'
+  | 'pirouetti'
+  | 'staunty'
+  | 'tatiana';
 
 export type Settings = {
   /** Stockfish search depth used by `runGameReview`. Range 8..22. Lowering
@@ -74,6 +86,15 @@ const PIECE_THEMES: ReadonlySet<PieceTheme> = new Set([
   'cburnett',
   'merida',
   'alpha',
+  'california',
+  'cardinal',
+  'chessnut',
+  'fantasy',
+  'leipzig',
+  'maestro',
+  'pirouetti',
+  'staunty',
+  'tatiana',
 ]);
 
 function readLocalCache(): Settings | null {
