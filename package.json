@@ -16,6 +16,7 @@
     "test:run": "vitest run",
     "prepare": "husky",
     "fetch-stockfish": "node scripts/fetch-stockfish.mjs",
+    "fetch-pieces": "node scripts/fetch-pieces.mjs",
     "build-eco": "node scripts/build-eco.mjs",
     "postinstall": "node scripts/fetch-stockfish.mjs && electron-rebuild -f -w better-sqlite3",
     "dist": "npm run build && electron-builder",

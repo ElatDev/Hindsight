@@ -1,8 +1,11 @@
 import {
   createContext,
   forwardRef,
+  useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ComponentProps,
 } from 'react';
@@ -12,7 +15,8 @@ import type { Classification } from '../chess/classify';
 import type { Game } from '../chess/game';
 import { ArrowOverlay } from './ArrowOverlay';
 import { BOARD_PALETTES } from './boardThemes';
-import type { BoardTheme } from './useSettings';
+import { customPiecesFor } from './pieceSets';
+import type { BoardTheme, PieceTheme } from './useSettings';
 
 /** `[from, to, color?]` — passed straight through to react-chessboard's
  *  `customArrows`. Color is any CSS color string; library default is amber. */
@@ -55,6 +59,9 @@ export type BoardProps = {
   /** Board colour palette key. Defaults to `'classic'` — the chess.com
    *  cream/brown the renderer ships with out of the box. */
   boardTheme?: BoardTheme;
+  /** Piece-set key. Defaults to `'cburnett'`. The mapping from key to SVGs
+   *  lives in `pieceSets.tsx`. */
+  pieceTheme?: PieceTheme;
   /** When true, drag-drop promotions auto-pick queen (the default). When
    *  false, react-chessboard's built-in promotion dialog pops up so the
    *  user can under-promote. */
@@ -106,12 +113,27 @@ export function Board({
   arrows,
   gradeBadge,
   boardTheme = 'classic',
+  pieceTheme = 'cburnett',
   autoQueen = true,
 }: BoardProps): JSX.Element {
+  const customPieces = useMemo(() => customPiecesFor(pieceTheme), [pieceTheme]);
   const palette = BOARD_PALETTES[boardTheme] ?? BOARD_PALETTES.classic;
   const [selected, setSelected] = useState<Square | null>(null);
   const [highlights, setHighlights] = useState<readonly Square[]>([]);
+  // User-drawn right-click arrows. Owned by us (not react-chessboard) so we
+  // can render them through our SVG overlay — that's what makes knight-jump
+  // arrows L-shaped, sideways arrows horizontal, diagonal arrows diagonal,
+  // etc. The library's own arrow path renders only straight lines.
+  const [userArrows, setUserArrows] = useState<readonly ArrowSpec[]>([]);
   const interactive = Boolean(onMove);
+  // Wrapper-div ref so the right-click drag detector can read the deepest
+  // square element under the pointer (each square carries a `data-square`
+  // attribute the library stamps on every cell).
+  const hostRef = useRef<HTMLDivElement | null>(null);
+  // Source square of an in-flight right-click drag, set on right-mousedown
+  // and consumed on right-mouseup. Refs (not state) because we don't want
+  // to re-render between the two events.
+  const dragSourceRef = useRef<Square | null>(null);
 
   const customSquareStyles = useMemo(() => {
     const styles: Record<string, React.CSSProperties> = {};
@@ -126,9 +148,83 @@ export function Board({
     return Object.keys(styles).length > 0 ? styles : undefined;
   }, [game, selected, highlights]);
 
-  const clearAnnotations = (): void => {
+  const clearAnnotations = useCallback((): void => {
     setHighlights([]);
+    setUserArrows([]);
+  }, []);
+
+  /** Pick the deepest `data-square` element under the event target. The
+   *  Chessboard stamps that attribute on every square, so closest()` walks
+   *  up from the actual click target (which is usually the piece image or
+   *  the inner square `<div>`) until it finds the square wrapper. Returns
+   *  the algebraic square name or null when the event hits non-board
+   *  chrome (e.g. the promotion dialog overlay). */
+  const squareFromEvent = (e: MouseEvent | React.MouseEvent): Square | null => {
+    const target = e.target as HTMLElement | null;
+    if (!target) return null;
+    const sq = target
+      .closest<HTMLElement>('[data-square]')
+      ?.getAttribute('data-square');
+    return sq && sq.length === 2 ? (sq as Square) : null;
   };
+
+  // Right-click drag detection. Mousedown records the source square, mouseup
+  // (anywhere — the listener is attached to the document so leaving the
+  // board boundary mid-drag still resolves cleanly) decides whether the
+  // gesture was a single-square click (toggle highlight) or a drag (toggle
+  // arrow). The default context menu is suppressed so right-clicks don't
+  // fire the OS popup mid-game.
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    const onContextMenu = (e: MouseEvent): void => {
+      e.preventDefault();
+    };
+
+    const onMouseDown = (e: MouseEvent): void => {
+      if (e.button !== 2) return;
+      const sq = squareFromEvent(e);
+      dragSourceRef.current = sq;
+    };
+
+    const onMouseUp = (e: MouseEvent): void => {
+      if (e.button !== 2) return;
+      const source = dragSourceRef.current;
+      dragSourceRef.current = null;
+      if (!source) return;
+      const target = squareFromEvent(e);
+      if (!target) return;
+      if (source === target) {
+        setHighlights((prev) =>
+          prev.includes(source)
+            ? prev.filter((s) => s !== source)
+            : [...prev, source],
+        );
+      } else {
+        setUserArrows((prev) => {
+          const idx = prev.findIndex((a) => a[0] === source && a[1] === target);
+          if (idx >= 0) return prev.filter((_, i) => i !== idx);
+          return [
+            ...prev,
+            [source, target, RIGHT_CLICK_ARROW_COLOR] as ArrowSpec,
+          ];
+        });
+      }
+    };
+
+    host.addEventListener('contextmenu', onContextMenu);
+    host.addEventListener('mousedown', onMouseDown);
+    // mouseup on the document so a drag that ends outside the board still
+    // resolves (otherwise we'd leave the source square armed forever).
+    document.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      host.removeEventListener('contextmenu', onContextMenu);
+      host.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
 
   const tryMove = (
     from: Square,
@@ -191,66 +287,43 @@ export function Board({
     setSelected(hasMoves ? square : null);
   };
 
-  const handleSquareRightClick = (square: Square): void => {
-    setHighlights((prev) =>
-      prev.includes(square)
-        ? prev.filter((s) => s !== square)
-        : [...prev, square],
-    );
-  };
-
-  // Engine-supplied arrows (from props) are the only ones we render via our
-  // SVG overlay — that's what carries the Lichess-style L-shape for knight
-  // moves. User-drawn right-click arrows go through react-chessboard's own
-  // mechanism: the library tracks the gesture, stores the resulting arrow
-  // in private state, and renders it with `customArrowColor`. We can't
-  // intercept that flow (`onArrowsChange` only echoes prop-driven arrows on
-  // this version, not user drags), so trying to layer L-shapes on top of
-  // user-drawn arrows is more complexity than the visual win is worth.
-  // Right-click arrows are straight-line green; engine arrows are L-shaped
-  // blue. Both are valid Lichess-style.
+  // Both engine-supplied arrows (from props) and user-drawn right-click
+  // arrows render through our own SVG overlay. The overlay's geometry
+  // module shapes knight jumps as L's, sideways/diagonal/straight arrows
+  // as a single line, and reverses for black orientation. The library's
+  // own arrow renderer only draws straight lines, so we route everything
+  // through the overlay for visual consistency.
   const overlayArrows = useMemo<readonly ArrowSpec[]>(
     () =>
-      (arrows ?? []).map(
+      [...(arrows ?? []), ...userArrows].map(
         (a) => [a[0], a[1], a[2] ?? RIGHT_CLICK_ARROW_COLOR] as ArrowSpec,
       ),
-    [arrows],
+    [arrows, userArrows],
   );
-
-  // Hand react-chessboard a coloured-transparent copy of the engine arrows
-  // so it knows about them (e.g. for click-fall-through behaviour) but
-  // doesn't actually paint them — our overlay owns that drawing. Pass
-  // `undefined` when there's nothing to declare so the library can stay in
-  // its own arrow-management mode for user drags.
-  const libraryArrows = useMemo(() => {
-    if (overlayArrows.length === 0) return undefined;
-    return overlayArrows.map(
-      (a) => [a[0], a[1], 'transparent'] as [Square, Square, string],
-    );
-  }, [overlayArrows]);
 
   return (
     <GradeBadgeContext.Provider value={gradeBadge ?? null}>
-      <div className="board-arrow-host">
+      <div className="board-arrow-host" ref={hostRef}>
         <Chessboard
           position={game.fen()}
           boardOrientation={orientation}
           boardWidth={width}
           arePiecesDraggable={interactive}
+          areArrowsAllowed={false}
           onPieceDrop={interactive ? handlePieceDrop : undefined}
           onPromotionPieceSelect={
             interactive ? handlePromotionPieceSelect : undefined
           }
           onSquareClick={handleSquareClick}
-          onSquareRightClick={handleSquareRightClick}
           customSquareStyles={customSquareStyles}
           customSquare={
             SquareWithBadge as unknown as ComponentProps<
               typeof Chessboard
             >['customSquare']
           }
-          customArrows={libraryArrows}
-          customArrowColor={RIGHT_CLICK_ARROW_COLOR}
+          customPieces={
+            customPieces as ComponentProps<typeof Chessboard>['customPieces']
+          }
           customLightSquareStyle={{ backgroundColor: palette.light }}
           customDarkSquareStyle={{ backgroundColor: palette.dark }}
           animationDuration={250}

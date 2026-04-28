@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { BOARD_PALETTES } from './boardThemes';
+import { customPiecesFor } from './pieceSets';
 import {
   ANALYSIS_DEPTH_MAX,
   ANALYSIS_DEPTH_MIN,
@@ -34,8 +36,23 @@ const PIECE_THEME_LABEL: Record<PieceTheme, string> = {
   alpha: 'Alpha',
 };
 
-const PIECE_SET_PENDING_NOTE =
-  'Preview only — the Cburnett set ships today; Merida and Alpha are bundled in a future release. Selecting one now records the preference but the on-board pieces stay Cburnett.';
+/** Render a single white-king sample for the picker tile. We pull it
+ *  through the same pieces map the board uses, so the user previews the
+ *  exact artwork they'd see in play. */
+function PieceTilePreview({ theme }: { theme: PieceTheme }): JSX.Element {
+  const pieces = customPiecesFor(theme);
+  const renderKing = pieces?.wK;
+  if (!renderKing) {
+    return (
+      <span className="piece-tile__preview piece-tile__preview--missing" />
+    );
+  }
+  return (
+    <span className="piece-tile__preview" aria-hidden="true">
+      {renderKing({ squareWidth: 36 })}
+    </span>
+  );
+}
 
 /**
  * Settings dialog. Drives every persisted preference: analysis depth, light /
@@ -49,16 +66,37 @@ export function SettingsDialog({
   onConfirm,
   onCancel,
 }: SettingsDialogProps): JSX.Element {
-  const [analysisDepth, setAnalysisDepth] = useState(initial.analysisDepth);
-  const [liveEval, setLiveEval] = useState(initial.liveEval);
-  const [boardTheme, setBoardTheme] = useState<BoardTheme>(initial.boardTheme);
-  const [pieceTheme, setPieceTheme] = useState<PieceTheme>(initial.pieceTheme);
-  const [autoQueen, setAutoQueen] = useState(initial.autoQueen);
+  // Initialise every field with an explicit fallback to DEFAULT_SETTINGS so
+  // the dialog never holds `undefined` for a flag that an old localStorage /
+  // SQLite blob is missing — `<input checked={undefined}>` looks unchecked,
+  // and the user-friendly read of "I left it alone" is "save the default",
+  // not "save undefined and watch sanitize promote it back to default".
+  const [analysisDepth, setAnalysisDepth] = useState<number>(
+    initial.analysisDepth ?? DEFAULT_SETTINGS.analysisDepth,
+  );
+  const [liveEval, setLiveEval] = useState<boolean>(
+    initial.liveEval ?? DEFAULT_SETTINGS.liveEval,
+  );
+  const [boardTheme, setBoardTheme] = useState<BoardTheme>(
+    initial.boardTheme ?? DEFAULT_SETTINGS.boardTheme,
+  );
+  const [pieceTheme, setPieceTheme] = useState<PieceTheme>(
+    initial.pieceTheme ?? DEFAULT_SETTINGS.pieceTheme,
+  );
+  const [autoQueen, setAutoQueen] = useState<boolean>(
+    initial.autoQueen ?? DEFAULT_SETTINGS.autoQueen,
+  );
   const [themeChoice, setThemeChoice] = useState<Theme>(theme);
 
   const submit = (): void => {
     onConfirm(
-      { analysisDepth, liveEval, boardTheme, pieceTheme, autoQueen },
+      {
+        analysisDepth,
+        liveEval: !!liveEval,
+        boardTheme,
+        pieceTheme,
+        autoQueen: !!autoQueen,
+      },
       themeChoice,
     );
   };
@@ -154,37 +192,81 @@ export function SettingsDialog({
 
         <fieldset className="dialog__field">
           <legend>Board theme</legend>
-          {(Object.keys(BOARD_THEME_LABEL) as BoardTheme[]).map((key) => (
-            <label key={key}>
-              <input
-                type="radio"
-                name="boardTheme"
-                value={key}
-                checked={boardTheme === key}
-                onChange={() => setBoardTheme(key)}
-              />
-              {BOARD_THEME_LABEL[key]}
-            </label>
-          ))}
+          <div className="theme-grid">
+            {(Object.keys(BOARD_THEME_LABEL) as BoardTheme[]).map((key) => {
+              const palette = BOARD_PALETTES[key];
+              const checked = boardTheme === key;
+              return (
+                <label
+                  key={key}
+                  className={`theme-tile${checked ? ' theme-tile--active' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="boardTheme"
+                    value={key}
+                    checked={checked}
+                    onChange={() => setBoardTheme(key)}
+                    className="theme-tile__radio"
+                  />
+                  <span
+                    className="theme-tile__preview"
+                    aria-hidden="true"
+                    style={{
+                      backgroundImage: `linear-gradient(
+                        to right,
+                        ${palette.light} 0,
+                        ${palette.light} 50%,
+                        ${palette.dark} 50%,
+                        ${palette.dark} 100%
+                      ),
+                      linear-gradient(
+                        to right,
+                        ${palette.dark} 0,
+                        ${palette.dark} 50%,
+                        ${palette.light} 50%,
+                        ${palette.light} 100%
+                      )`,
+                      backgroundSize: '100% 50%, 100% 50%',
+                      backgroundPosition: 'top, bottom',
+                      backgroundRepeat: 'no-repeat',
+                    }}
+                  />
+                  <span className="theme-tile__label">
+                    {BOARD_THEME_LABEL[key]}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
         </fieldset>
 
         <fieldset className="dialog__field">
           <legend>Piece set</legend>
-          {(Object.keys(PIECE_THEME_LABEL) as PieceTheme[]).map((key) => (
-            <label key={key}>
-              <input
-                type="radio"
-                name="pieceTheme"
-                value={key}
-                checked={pieceTheme === key}
-                onChange={() => setPieceTheme(key)}
-              />
-              {PIECE_THEME_LABEL[key]}
-            </label>
-          ))}
-          <p className="settings__hint settings__hint--pending">
-            {PIECE_SET_PENDING_NOTE}
-          </p>
+          <div className="theme-grid">
+            {(Object.keys(PIECE_THEME_LABEL) as PieceTheme[]).map((key) => {
+              const checked = pieceTheme === key;
+              return (
+                <label
+                  key={key}
+                  className={`theme-tile${checked ? ' theme-tile--active' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    name="pieceTheme"
+                    value={key}
+                    checked={checked}
+                    onChange={() => setPieceTheme(key)}
+                    className="theme-tile__radio"
+                  />
+                  <PieceTilePreview theme={key} />
+                  <span className="theme-tile__label">
+                    {PIECE_THEME_LABEL[key]}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
         </fieldset>
 
         <fieldset className="dialog__field">

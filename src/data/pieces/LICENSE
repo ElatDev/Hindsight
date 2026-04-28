@@ -1,0 +1,15 @@
+Piece-set artwork in this directory is sourced from the
+Lichess public assets (https://github.com/lichess-org/lila/tree/master/public/piece)
+and is licensed under CC-BY-SA 4.0:
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Sets included:
+- cburnett — by C. Burnett (Wikipedia chess piece designer); CC-BY-SA 3.0/4.0
+- merida — Armando Hernandez Marroquin (alpha), CC0
+- alpha — Eric Bentzen, CC-BY-NC
+
+Refer to the upstream Lichess repository for full per-set attribution.
+
+The Hindsight application code (everything outside this directory) is MIT
+licensed; including CC-BY-SA assets does not relicense the app code, only
+the assets themselves.

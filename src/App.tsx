@@ -360,6 +360,7 @@ function App(): JSX.Element {
           orientation={orientation}
           analysisDepth={settings.analysisDepth}
           boardTheme={settings.boardTheme}
+          pieceTheme={settings.pieceTheme}
           onFlip={flip}
           onToggleTheme={toggleTheme}
           onExit={exitReview}
@@ -383,7 +384,8 @@ function App(): JSX.Element {
                 width={520}
                 orientation={orientation}
                 boardTheme={settings.boardTheme}
-                autoQueen={settings.autoQueen}
+                pieceTheme={settings.pieceTheme}
+                autoQueen={settings.autoQueen !== false}
                 onMove={playerCanMove ? handleMove : undefined}
               />
             </div>

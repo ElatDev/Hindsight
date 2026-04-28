@@ -21,7 +21,7 @@ import { MaterialAdvantage } from './MaterialAdvantage';
 import { MoveList } from './MoveList';
 import { NavControls } from './NavControls';
 import { PositionalPanel } from './PositionalPanel';
-import type { BoardTheme } from './useSettings';
+import type { BoardTheme, PieceTheme } from './useSettings';
 
 export type ReviewProps = {
   /** The game to walk through. The component does not mutate it. */
@@ -32,6 +32,8 @@ export type ReviewProps = {
   analysisDepth?: number;
   /** Board palette key from the Settings dialog (Phase 12 / Task 8). */
   boardTheme?: BoardTheme;
+  /** Piece-set key from the Settings dialog. */
+  pieceTheme?: PieceTheme;
   onFlip: () => void;
   onToggleTheme: () => void;
   /** Leave review mode and return to the previous (play / free) view. */
@@ -96,6 +98,7 @@ export function Review({
   orientation,
   analysisDepth = DEFAULT_REVIEW_DEPTH,
   boardTheme,
+  pieceTheme,
   onFlip,
   onToggleTheme,
   onExit,
@@ -272,6 +275,7 @@ export function Review({
             width={520}
             orientation={orientation}
             boardTheme={boardTheme}
+            pieceTheme={pieceTheme}
             arrows={arrows}
             gradeBadge={gradeBadge}
           />
