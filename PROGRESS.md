@@ -4,7 +4,18 @@
 
 ## Current session
 
-**User-feedback round 3.** Four asks: click-to-promote, Merida pieces are huge, piece-preview should show one of each, review is still slow. All four landed.
+**Audit-driven polish round 1.** Two of the smaller open audit items closed: a shared dismiss hook for every modal dialog, and an auto-clear timer for the engine-error toast.
+
+- New `src/ui/useDialogDismiss.ts` hook returns the overlay's `mousedown` handler (target===currentTarget guard so a drag started inside the dialog body and released on the backdrop doesn't accidentally close) and registers a document-level `Escape` listener for the dialog's lifetime. Spread into the `.dialog-overlay` root of `NewGameDialog`, `PgnPasteDialog`, `PgnGameSelectDialog`, `SavedGamesDialog`, `SettingsDialog`, and `EngineMissingDialog`. Each dialog already had an `onCancel` / `onDismiss` callback the parent uses to close it; the hook just reuses it. `GameEndBanner` is a status bar (not a modal) and stays as-is.
+- `src/App.tsx` engine-error effect: when `engineError` is set and the message doesn't parse as `STOCKFISH_NOT_FOUND`, schedule a 6-second `setTimeout` that clears it. Cleanup function cancels the timer if the error changes or another engine call clears it first. Stockfish-missing errors stay sticky — they need acknowledgement via the EngineMissingDialog and the next engine call would just resurface them anyway.
+
+Verified: lint + typecheck + full vitest (572 tests) green. Dev server boots cleanly with the new bundles. Manual gesture-driven verification (clicking the actual backdrop, pressing Esc) requires the live Electron window — the wiring itself is mechanical (six identical hook applications, one effect with a guarded timer), so a smoke-level "the bundle starts" check is enough at this scope.
+
+---
+
+## Earlier session — User-feedback round 3
+
+Four asks: click-to-promote, Merida pieces are huge, piece-preview should show one of each, review is still slow. All four landed.
 
 Engine pool — review now genuinely fast:
 
@@ -99,7 +110,7 @@ Polish:
 
 Lint + typecheck green; full vitest suite (572 tests) green; dev server boots cleanly with no IPC errors. The audit also verified that the analysis pipeline (`runGameReview`, `classify`, `accuracy`, `critical`, `alternatives`, `pgnExport`) is _not_ buggy — every claim there held up.
 
-**Last updated:** 2026-04-27
+**Last updated:** 2026-05-04
 
 ## Next up
 
@@ -115,8 +126,6 @@ User-feedback backlog (asks that didn't fit; sized for separate sessions):
 
 Earlier audit-driven backlog (still open, smaller polish):
 
-- **No Esc-key / overlay-click dismiss** on any dialog. Cleanest fix is a shared `useDialogDismiss` hook applied across the set.
-- **Engine-error toast doesn't auto-clear** on idle — it does clear on the next engine request, but a transient error shown after the final move of a game stays up forever.
 - **Multi-game PGN with unclosed-brace comments mis-splits** in `pgnSplit.ts`.
 - **Motif test suite uses weak assertions** (`toBeGreaterThanOrEqual(2)` instead of checking exact squares).
 
