@@ -4,7 +4,23 @@
 
 ## Current session
 
-**User-feedback round 5.** One bug + three quality-of-life features.
+**Play-mode polish round 1.** Two on-demand affordances during play.
+
+Hint button:
+
+- `src/App.tsx`: new "Hint" button in the header during vs-engine play, gated to the player's turn at the live tip (and not while the engine is already thinking). Calls `engine.analyze` with MultiPV=1 — full strength rather than the Elo-capped `bestMove` API — so the suggestion is the engine's actual top choice, not a move at the player's selected difficulty. Renders the result as a temporary gold arrow on the board through the existing `arrows` Board prop. Drops the result if the user moved or rewound while the engine was thinking (FEN comparison), and clears any prior hint on every position change (move, navigation, new game) so a stale arrow never lingers on a position the suggestion no longer applies to.
+
+Keyboard shortcuts (play mode):
+
+- `src/App.tsx`: a small inline keydown effect binds `F` → flip board and `Backspace` → take back (when allowed). Skips on input/textarea focus so dialog typing isn't disrupted; skips entirely in review mode where the existing arrow-key nav owns the keyboard. Take Back's tooltip now mentions the shortcut.
+
+Verified: lint + typecheck + full vitest (574 tests) green; dev server boots cleanly with the new bundles.
+
+---
+
+## Earlier session — User-feedback round 5
+
+One bug + three quality-of-life features.
 
 Drag-shows-legal-moves bug fix:
 
