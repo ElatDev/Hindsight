@@ -4,12 +4,25 @@
 
 ## Current session
 
-**Audit-driven polish round 1.** Two of the smaller open audit items closed: a shared dismiss hook for every modal dialog, and an auto-clear timer for the engine-error toast.
+**Audit-driven polish round 1.** Four small open audit items closed: shared dialog dismiss hook, engine-error toast auto-clear, comment-aware multi-game PGN splitter, and tightened motif "both sides" tests.
+
+PGN splitter:
+
+- `src/chess/pgnSplit.ts` now tracks an `inComment` flag across lines so a `[Event "..."]`-shaped line that lives inside an unclosed `{...}` PGN comment can no longer trigger a false split. Char-level brace scan is skipped on tag lines so a literal `{` inside a quoted tag value doesn't poison the next line's tag detection.
+- `src/chess/__tests__/pgnSplit.test.ts` adds a regression case for a comment that spans a fake `[Event "..."]` line, plus a positive case for a real next game following a multi-line comment. Suite is now 11 tests.
+
+Motif test assertions tightened:
+
+- Every "both sides" motif test (`fork`, `pin`, `skewer`, `doubleAttack`) used to use `toBeGreaterThanOrEqual(N)` — and `doubleAttack` was checking `>= 0`, which is trivially true. Each test now pins down the exact attacker square, target squares, and pin/skewer kind.
+- `doubleAttack` switched FEN: the previous symmetric pawn position (`3qk3/8/8/p7/P7/8/8/3QK3`) had zero double attacks; only `>= 0` passed it. New position (`r2qk2r/8/8/P7/p7/8/8/R2QK2R`) has a real double attack from each queen — WQ d1 hits BQ d8 + BP a4, BQ d8 hits WQ d1 + WP a5.
+- `overloaded` got the same treatment: defending-list now asserted to be exactly `['b4', 'd4']` rather than just `length >= 2`.
+
+Earlier in the session:
 
 - New `src/ui/useDialogDismiss.ts` hook returns the overlay's `mousedown` handler (target===currentTarget guard so a drag started inside the dialog body and released on the backdrop doesn't accidentally close) and registers a document-level `Escape` listener for the dialog's lifetime. Spread into the `.dialog-overlay` root of `NewGameDialog`, `PgnPasteDialog`, `PgnGameSelectDialog`, `SavedGamesDialog`, `SettingsDialog`, and `EngineMissingDialog`. Each dialog already had an `onCancel` / `onDismiss` callback the parent uses to close it; the hook just reuses it. `GameEndBanner` is a status bar (not a modal) and stays as-is.
 - `src/App.tsx` engine-error effect: when `engineError` is set and the message doesn't parse as `STOCKFISH_NOT_FOUND`, schedule a 6-second `setTimeout` that clears it. Cleanup function cancels the timer if the error changes or another engine call clears it first. Stockfish-missing errors stay sticky — they need acknowledgement via the EngineMissingDialog and the next engine call would just resurface them anyway.
 
-Verified: lint + typecheck + full vitest (572 tests) green. Dev server boots cleanly with the new bundles. Manual gesture-driven verification (clicking the actual backdrop, pressing Esc) requires the live Electron window — the wiring itself is mechanical (six identical hook applications, one effect with a guarded timer), so a smoke-level "the bundle starts" check is enough at this scope.
+Verified: lint + typecheck + full vitest (574 tests) green. Dev server boots cleanly with the new bundles. Manual gesture-driven verification (clicking the actual backdrop, pressing Esc) requires the live Electron window — the wiring itself is mechanical (six identical hook applications, one effect with a guarded timer), so a smoke-level "the bundle starts" check is enough at this scope.
 
 ---
 
@@ -124,10 +137,7 @@ User-feedback backlog (asks that didn't fit; sized for separate sessions):
 - **Time-based games / clocks.** New game dialog should grow a Time Control section: bullet / blitz / rapid / classical presets + a custom (initial + increment) form. Renderer-side clock that ticks via `requestAnimationFrame`, pauses when the engine is thinking, flips on every move, and resigns the side that flags. Probably wants a small `clock.ts` state machine and a `<Clock>` component above the board (would replace or sit next to the `MaterialAdvantage` strip's slot).
 - **Smooth piece animation review.** User reported "pieces move instantly". We're now passing `animationDuration={250}` explicitly; if that still feels too fast or doesn't fire reliably (maybe react-chessboard skips the animation when two FEN updates land in the same frame, e.g. after the engine responds), investigate. The library's source has the animation infra; it might be that an engine-move-immediately-after-user-move pair cancels the first transition.
 
-Earlier audit-driven backlog (still open, smaller polish):
-
-- **Multi-game PGN with unclosed-brace comments mis-splits** in `pgnSplit.ts`.
-- **Motif test suite uses weak assertions** (`toBeGreaterThanOrEqual(2)` instead of checking exact squares).
+Earlier audit-driven backlog: cleared this session — every item that didn't depend on user input (screenshots, release cut) has now landed.
 
 Also worth flagging for v0.2: an analysis-cache table keyed on `(pgn_hash, depth)` so re-opening a saved review is instant — the `electron/storage/` layer is now the natural home for it.
 
