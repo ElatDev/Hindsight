@@ -4,7 +4,34 @@
 
 ## Current session
 
-**Audit-driven polish round 1.** Four small open audit items closed: shared dialog dismiss hook, engine-error toast auto-clear, comment-aware multi-game PGN splitter, and tightened motif "both sides" tests.
+**User-feedback round 4.** Four asks: a Resign button while playing, the ability to game-review a resigned game, arrow-key navigation in the review screen, last-move highlighting (toggleable), and a legal-move-dots toggle.
+
+Resign + review-resigned-game:
+
+- New `src/ui/ResignConfirmDialog.tsx` confirms the forfeit so a mis-click can't end the game; uses the existing `useDialogDismiss` hook for Esc/backdrop dismiss.
+- `src/App.tsx` carries `resignedBy: Color | null` as parallel state. The header shows a red "Resign" button only in vs-engine mode, with at least one move played, the player at the live tip, and the game still in progress. Confirming sets `resignedBy`, bumps `requestIdRef` to drop any in-flight engine bestMove, and shows the end banner. A unified `gameOver = isGameOver() || resignedBy !== null` gates the engine effect, status line, and end banner.
+- Review on a resigned game just works — the move list is intact, so `runGameReview` analyses what was actually played and the user can see the engine's preferred moves up to the resignation point.
+- `src/ui/GameEndBanner.tsx` widens its `reason` to a new `EndReason` union (`NonNullable<GameEnd> | 'resignation'`) with matching banner text. Winner is the side opposite the resigner.
+
+Arrow-key navigation in review:
+
+- New `src/ui/useArrowKeyNav.ts` hook wires Left/Right/Home/End to a `goTo(ply)` callback. Skips on `<input>` and `<textarea>` focus so typing in PGN-paste / saved-game-name fields keeps cursor movement (the previous inline App handler only checked `<input>`).
+- `src/App.tsx` drops its inline keydown effect for the hook; `src/ui/Review.tsx` gains the same navigation gestures it always should have had.
+
+Last-move + legal-move settings:
+
+- `src/ui/useSettings.ts` adds two booleans: `lastMoveHighlight` (default ON) and `showLegalMoves` (default ON). DEFAULT_SETTINGS / sanitize / settingsEqual all extended; sanitize falls back to defaults for non-boolean inputs so an old persisted blob round-trips cleanly.
+- `src/ui/SettingsDialog.tsx` grows a new "Board hints" fieldset with both toggles + their hint paragraphs. "Restore defaults" resets both alongside the rest.
+- `src/ui/Board.tsx` accepts a new `lastMove: { from, to } | null` prop that paints both squares with a soft yellow tint (laid down before right-click highlights and the selection ring so those still win on overlap), and a `showLegalMoves: boolean` prop (default true) that gates the per-target dot/capture-ring overlay. The selection ring still shows even when dots are off.
+- `src/App.tsx` and `src/ui/Review.tsx` derive `lastMove` from `displayed.historyVerbose()` so the highlight tracks navigation through plies rather than always pointing at the live tip. Same Settings toggle controls both surfaces.
+
+Verified: lint + typecheck + full vitest (574 tests) green; dev server boots cleanly with the new bundles. Manual gesture verification (clicking Resign, watching the highlight track arrows, etc.) requires the live Electron window — the wiring is mechanical so a smoke check is enough at this scope.
+
+---
+
+## Earlier session — Audit-driven polish round 1
+
+Four small open audit items closed: shared dialog dismiss hook, engine-error toast auto-clear, comment-aware multi-game PGN splitter, and tightened motif "both sides" tests.
 
 PGN splitter:
 
