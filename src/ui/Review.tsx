@@ -38,6 +38,8 @@ export type ReviewProps = {
   /** When true, the review board tints the from-/to-squares of the move
    *  the user is currently sitting on. Sourced from the Settings dialog. */
   lastMoveHighlight?: boolean;
+  /** Toggle the a-h / 1-8 board notation. Sourced from Settings. */
+  showCoordinates?: boolean;
   onFlip: () => void;
   onToggleTheme: () => void;
   /** Leave review mode and return to the previous (play / free) view. */
@@ -104,6 +106,7 @@ export function Review({
   boardTheme,
   pieceTheme,
   lastMoveHighlight = true,
+  showCoordinates = true,
   onFlip,
   onToggleTheme,
   onExit,
@@ -304,6 +307,7 @@ export function Review({
             arrows={arrows}
             gradeBadge={gradeBadge}
             lastMove={lastMove}
+            showCoordinates={showCoordinates}
           />
         </div>
         <MaterialAdvantage

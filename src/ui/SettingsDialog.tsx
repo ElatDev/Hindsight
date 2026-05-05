@@ -110,6 +110,9 @@ export function SettingsDialog({
   const [showLegalMoves, setShowLegalMoves] = useState<boolean>(
     initial.showLegalMoves ?? DEFAULT_SETTINGS.showLegalMoves,
   );
+  const [showCoordinates, setShowCoordinates] = useState<boolean>(
+    initial.showCoordinates ?? DEFAULT_SETTINGS.showCoordinates,
+  );
   const [themeChoice, setThemeChoice] = useState<Theme>(theme);
   const dismissProps = useDialogDismiss(onCancel);
 
@@ -123,6 +126,7 @@ export function SettingsDialog({
         autoQueen: !!autoQueen,
         lastMoveHighlight: !!lastMoveHighlight,
         showLegalMoves: !!showLegalMoves,
+        showCoordinates: !!showCoordinates,
       },
       themeChoice,
     );
@@ -143,6 +147,7 @@ export function SettingsDialog({
     setAutoQueen(DEFAULT_SETTINGS.autoQueen);
     setLastMoveHighlight(DEFAULT_SETTINGS.lastMoveHighlight);
     setShowLegalMoves(DEFAULT_SETTINGS.showLegalMoves);
+    setShowCoordinates(DEFAULT_SETTINGS.showCoordinates);
     setThemeChoice(DEFAULT_THEME);
   };
 
@@ -334,6 +339,18 @@ export function SettingsDialog({
             Off lets you play without target hints — the selection ring still
             shows which piece you picked, but you have to know the move
             yourself. Useful for training or for a less assisted experience.
+          </p>
+          <label>
+            <input
+              type="checkbox"
+              checked={showCoordinates}
+              onChange={(e) => setShowCoordinates(e.target.checked)}
+            />
+            Show file &amp; rank coordinates on the board
+          </label>
+          <p className="settings__hint">
+            Toggles the a-h / 1-8 labels in the corner of each square. Off keeps
+            the squares clean for screenshots or a less cluttered look.
           </p>
         </fieldset>
 

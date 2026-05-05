@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { Classification } from '../chess/classify';
 import type { SanMove } from '../chess/game';
 
@@ -44,6 +45,21 @@ export function MoveList({
   onSelect,
   annotations,
 }: MoveListProps): JSX.Element {
+  // Auto-scroll the active move into view when the user navigates plies
+  // (engine plays a move, arrow-key step, click in critical-moments list).
+  // Without this, long games hide the active row off the bottom of the
+  // scrollable panel and the user loses their place. `block: 'nearest'`
+  // avoids jumping when the row is already visible.
+  const listRef = useRef<HTMLOListElement | null>(null);
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const active = list.querySelector<HTMLElement>('.move-list__move--current');
+    if (active) {
+      active.scrollIntoView({ block: 'nearest' });
+    }
+  }, [currentPly, history.length]);
+
   if (history.length === 0) {
     return <div className="move-list move-list--empty">No moves yet.</div>;
   }
@@ -58,7 +74,7 @@ export function MoveList({
   }
 
   return (
-    <ol className="move-list">
+    <ol className="move-list" ref={listRef}>
       {rows.map((row, rowIdx) => {
         const whitePly = rowIdx * 2 + 1;
         const blackPly = rowIdx * 2 + 2;

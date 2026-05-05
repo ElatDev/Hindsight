@@ -75,6 +75,9 @@ export type BoardProps = {
    *  legal target. When false, only the selection ring shows — the user
    *  has to know the legal moves themselves. Toggleable from Settings. */
   showLegalMoves?: boolean;
+  /** Show the a-h / 1-8 board notation labels react-chessboard renders in
+   *  the corner of each square. Toggleable from Settings; defaults on. */
+  showCoordinates?: boolean;
 };
 
 const SELECTED_STYLE = { backgroundColor: 'rgba(255, 233, 99, 0.55)' };
@@ -132,6 +135,7 @@ export function Board({
   autoQueen = true,
   lastMove = null,
   showLegalMoves = true,
+  showCoordinates = true,
 }: BoardProps): JSX.Element {
   const customPieces = useMemo(() => customPiecesFor(pieceTheme), [pieceTheme]);
   const palette = BOARD_PALETTES[boardTheme] ?? BOARD_PALETTES.classic;
@@ -415,6 +419,7 @@ export function Board({
           autoPromoteToQueen={autoQueen}
           showPromotionDialog={pendingPromotion !== null}
           promotionToSquare={pendingPromotion?.to ?? null}
+          showBoardNotation={showCoordinates}
         />
         <ArrowOverlay
           arrows={overlayArrows}

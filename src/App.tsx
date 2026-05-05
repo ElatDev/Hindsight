@@ -456,6 +456,7 @@ function App(): JSX.Element {
           boardTheme={settings.boardTheme}
           pieceTheme={settings.pieceTheme}
           lastMoveHighlight={settings.lastMoveHighlight !== false}
+          showCoordinates={settings.showCoordinates !== false}
           onFlip={flip}
           onToggleTheme={toggleTheme}
           onExit={exitReview}
@@ -483,6 +484,7 @@ function App(): JSX.Element {
                 autoQueen={settings.autoQueen !== false}
                 lastMove={lastMove}
                 showLegalMoves={settings.showLegalMoves !== false}
+                showCoordinates={settings.showCoordinates !== false}
                 onMove={playerCanMove ? handleMove : undefined}
               />
             </div>

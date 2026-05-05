@@ -59,6 +59,10 @@ export type Settings = {
    *  is selected. Off lets the user play "blind" — selection ring still
    *  shows so they know which piece is picked, but no targets are hinted. */
   readonly showLegalMoves: boolean;
+  /** Show the a-h / 1-8 file & rank labels in the board's corners. Some
+   *  users find them visually noisy on small boards; turning them off
+   *  keeps the squares clean. */
+  readonly showCoordinates: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -74,6 +78,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoQueen: true,
   lastMoveHighlight: true,
   showLegalMoves: true,
+  showCoordinates: true,
 };
 
 export const ANALYSIS_DEPTH_MIN = 8;
@@ -158,6 +163,10 @@ function sanitize(input: Partial<Settings>): Settings {
     typeof input.showLegalMoves === 'boolean'
       ? input.showLegalMoves
       : DEFAULT_SETTINGS.showLegalMoves;
+  const showCoordinates =
+    typeof input.showCoordinates === 'boolean'
+      ? input.showCoordinates
+      : DEFAULT_SETTINGS.showCoordinates;
   return {
     analysisDepth: clampedDepth,
     liveEval: Boolean(input.liveEval),
@@ -166,6 +175,7 @@ function sanitize(input: Partial<Settings>): Settings {
     autoQueen,
     lastMoveHighlight,
     showLegalMoves,
+    showCoordinates,
   };
 }
 
@@ -177,7 +187,8 @@ function settingsEqual(a: Settings, b: Settings): boolean {
     a.pieceTheme === b.pieceTheme &&
     a.autoQueen === b.autoQueen &&
     a.lastMoveHighlight === b.lastMoveHighlight &&
-    a.showLegalMoves === b.showLegalMoves
+    a.showLegalMoves === b.showLegalMoves &&
+    a.showCoordinates === b.showCoordinates
   );
 }
 
