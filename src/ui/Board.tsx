@@ -66,6 +66,15 @@ export type BoardProps = {
    *  false, react-chessboard's built-in promotion dialog pops up so the
    *  user can under-promote. */
   autoQueen?: boolean;
+  /** From-/to-square of the most recently played move. When supplied, both
+   *  squares get a soft yellow tint so the user can spot what just changed.
+   *  Pass `null` to suppress (e.g., user disabled it in settings or no
+   *  moves have been played yet). */
+  lastMove?: { from: Square; to: Square } | null;
+  /** When true (the default), selecting a piece overlays dots on every
+   *  legal target. When false, only the selection ring shows — the user
+   *  has to know the legal moves themselves. Toggleable from Settings. */
+  showLegalMoves?: boolean;
 };
 
 const SELECTED_STYLE = { backgroundColor: 'rgba(255, 233, 99, 0.55)' };
@@ -76,6 +85,12 @@ const LEGAL_TARGET_STYLE = {
 const LEGAL_CAPTURE_STYLE = {
   background:
     'radial-gradient(circle, transparent 56%, rgba(220,40,40,0.55) 58%)',
+};
+/** Soft yellow tint for the from-/to-squares of the last played move. Half
+ *  the saturation of the selection style so it doesn't fight selection or
+ *  right-click highlights when they overlap on the same square. */
+const LAST_MOVE_STYLE = {
+  backgroundColor: 'rgba(255, 232, 99, 0.30)',
 };
 /** Right-click highlight color — Lichess-green at half opacity. Sits under
  *  any selection ring so the user can still see legal-move targets. */
@@ -115,6 +130,8 @@ export function Board({
   boardTheme = 'classic',
   pieceTheme = 'cburnett',
   autoQueen = true,
+  lastMove = null,
+  showLegalMoves = true,
 }: BoardProps): JSX.Element {
   const customPieces = useMemo(() => customPiecesFor(pieceTheme), [pieceTheme]);
   const palette = BOARD_PALETTES[boardTheme] ?? BOARD_PALETTES.classic;
@@ -148,16 +165,27 @@ export function Board({
 
   const customSquareStyles = useMemo(() => {
     const styles: Record<string, React.CSSProperties> = {};
+    // Last-move tint goes down first so a right-click highlight or a
+    // selection ring on the same square overrides the muted yellow.
+    if (lastMove) {
+      styles[lastMove.from] = LAST_MOVE_STYLE;
+      styles[lastMove.to] = LAST_MOVE_STYLE;
+    }
     for (const sq of highlights) styles[sq] = RIGHT_CLICK_HIGHLIGHT_STYLE;
     if (selected) {
       styles[selected] = SELECTED_STYLE;
-      for (const move of game.legalMovesFrom(selected)) {
-        const isCapture = move.flags.includes('c') || move.flags.includes('e');
-        styles[move.to] = isCapture ? LEGAL_CAPTURE_STYLE : LEGAL_TARGET_STYLE;
+      if (showLegalMoves) {
+        for (const move of game.legalMovesFrom(selected)) {
+          const isCapture =
+            move.flags.includes('c') || move.flags.includes('e');
+          styles[move.to] = isCapture
+            ? LEGAL_CAPTURE_STYLE
+            : LEGAL_TARGET_STYLE;
+        }
       }
     }
     return Object.keys(styles).length > 0 ? styles : undefined;
-  }, [game, selected, highlights]);
+  }, [game, selected, highlights, lastMove, showLegalMoves]);
 
   const clearAnnotations = useCallback((): void => {
     setHighlights([]);

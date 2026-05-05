@@ -104,6 +104,12 @@ export function SettingsDialog({
   const [autoQueen, setAutoQueen] = useState<boolean>(
     initial.autoQueen ?? DEFAULT_SETTINGS.autoQueen,
   );
+  const [lastMoveHighlight, setLastMoveHighlight] = useState<boolean>(
+    initial.lastMoveHighlight ?? DEFAULT_SETTINGS.lastMoveHighlight,
+  );
+  const [showLegalMoves, setShowLegalMoves] = useState<boolean>(
+    initial.showLegalMoves ?? DEFAULT_SETTINGS.showLegalMoves,
+  );
   const [themeChoice, setThemeChoice] = useState<Theme>(theme);
   const dismissProps = useDialogDismiss(onCancel);
 
@@ -115,6 +121,8 @@ export function SettingsDialog({
         boardTheme,
         pieceTheme,
         autoQueen: !!autoQueen,
+        lastMoveHighlight: !!lastMoveHighlight,
+        showLegalMoves: !!showLegalMoves,
       },
       themeChoice,
     );
@@ -133,6 +141,8 @@ export function SettingsDialog({
     setBoardTheme(DEFAULT_SETTINGS.boardTheme);
     setPieceTheme(DEFAULT_SETTINGS.pieceTheme);
     setAutoQueen(DEFAULT_SETTINGS.autoQueen);
+    setLastMoveHighlight(DEFAULT_SETTINGS.lastMoveHighlight);
+    setShowLegalMoves(DEFAULT_SETTINGS.showLegalMoves);
     setThemeChoice(DEFAULT_THEME);
   };
 
@@ -294,6 +304,36 @@ export function SettingsDialog({
             When off, dragging a pawn to its last rank pops up a picker so you
             can under-promote (knight, bishop, rook). Most games want auto-
             queen; tactical puzzles and the rare endgame need the picker.
+          </p>
+        </fieldset>
+
+        <fieldset className="dialog__field">
+          <legend>Board hints</legend>
+          <label>
+            <input
+              type="checkbox"
+              checked={lastMoveHighlight}
+              onChange={(e) => setLastMoveHighlight(e.target.checked)}
+            />
+            Highlight the last move&apos;s squares
+          </label>
+          <p className="settings__hint">
+            Tints both the from-square and to-square of the most recent move so
+            you can see what just changed. Helpful when the engine moves quickly
+            in vs-engine mode and easy to miss.
+          </p>
+          <label>
+            <input
+              type="checkbox"
+              checked={showLegalMoves}
+              onChange={(e) => setShowLegalMoves(e.target.checked)}
+            />
+            Show legal-move dots when a piece is selected
+          </label>
+          <p className="settings__hint">
+            Off lets you play without target hints — the selection ring still
+            shows which piece you picked, but you have to know the move
+            yourself. Useful for training or for a less assisted experience.
           </p>
         </fieldset>
 

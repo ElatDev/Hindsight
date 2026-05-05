@@ -35,6 +35,9 @@ export type ReviewProps = {
   boardTheme?: BoardTheme;
   /** Piece-set key from the Settings dialog. */
   pieceTheme?: PieceTheme;
+  /** When true, the review board tints the from-/to-squares of the move
+   *  the user is currently sitting on. Sourced from the Settings dialog. */
+  lastMoveHighlight?: boolean;
   onFlip: () => void;
   onToggleTheme: () => void;
   /** Leave review mode and return to the previous (play / free) view. */
@@ -100,6 +103,7 @@ export function Review({
   analysisDepth = DEFAULT_REVIEW_DEPTH,
   boardTheme,
   pieceTheme,
+  lastMoveHighlight = true,
   onFlip,
   onToggleTheme,
   onExit,
@@ -211,6 +215,18 @@ export function Review({
     };
   }, [currentMove]);
 
+  // From-/to-square tint for the move the user is currently sitting on.
+  // Mirrors the play view's behaviour so the same setting controls both
+  // surfaces. Hidden at the start of the game and when the toggle is off.
+  const lastMove = useMemo(() => {
+    if (!lastMoveHighlight) return null;
+    if (viewPly === 0) return null;
+    const verbose = displayed.historyVerbose();
+    const last = verbose[verbose.length - 1];
+    if (!last) return null;
+    return { from: last.from as Square, to: last.to as Square };
+  }, [displayed, viewPly, lastMoveHighlight]);
+
   const handleSaveAnnotatedPgn = async (): Promise<void> => {
     if (!result || totalPlies === 0) return;
     try {
@@ -287,6 +303,7 @@ export function Review({
             pieceTheme={pieceTheme}
             arrows={arrows}
             gradeBadge={gradeBadge}
+            lastMove={lastMove}
           />
         </div>
         <MaterialAdvantage

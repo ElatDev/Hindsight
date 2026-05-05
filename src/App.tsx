@@ -84,6 +84,18 @@ function App(): JSX.Element {
     return g;
   }, [history, viewPly]);
 
+  // From-/to-square of the most recently displayed move. Reads from the
+  // displayed game's verbose history so it tracks navigation correctly when
+  // the user steps back through plies.
+  const lastMove = useMemo(() => {
+    if (!settings.lastMoveHighlight) return null;
+    if (viewPly === 0) return null;
+    const verbose = displayed.historyVerbose();
+    const last = verbose[verbose.length - 1];
+    if (!last) return null;
+    return { from: last.from as Square, to: last.to as Square };
+  }, [displayed, viewPly, settings.lastMoveHighlight]);
+
   const gameOver = state.game.isGameOver() || resignedBy !== null;
 
   const playerCanMove =
@@ -402,6 +414,7 @@ function App(): JSX.Element {
           analysisDepth={settings.analysisDepth}
           boardTheme={settings.boardTheme}
           pieceTheme={settings.pieceTheme}
+          lastMoveHighlight={settings.lastMoveHighlight !== false}
           onFlip={flip}
           onToggleTheme={toggleTheme}
           onExit={exitReview}
@@ -427,6 +440,8 @@ function App(): JSX.Element {
                 boardTheme={settings.boardTheme}
                 pieceTheme={settings.pieceTheme}
                 autoQueen={settings.autoQueen !== false}
+                lastMove={lastMove}
+                showLegalMoves={settings.showLegalMoves !== false}
                 onMove={playerCanMove ? handleMove : undefined}
               />
             </div>

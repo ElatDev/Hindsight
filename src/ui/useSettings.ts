@@ -51,6 +51,14 @@ export type Settings = {
   /** When true, drag-drop promotions auto-pick queen. When false, the
    *  library's promotion picker pops up so under-promotion is reachable. */
   readonly autoQueen: boolean;
+  /** Highlight the from- and to-squares of the last move on the board.
+   *  Lichess-style — useful for spotting what just happened, especially
+   *  after the engine moves in vs-engine mode. */
+  readonly lastMoveHighlight: boolean;
+  /** Show the per-square dot/ring overlay for legal targets when a piece
+   *  is selected. Off lets the user play "blind" — selection ring still
+   *  shows so they know which piece is picked, but no targets are hinted. */
+  readonly showLegalMoves: boolean;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -64,6 +72,8 @@ export const DEFAULT_SETTINGS: Settings = {
   boardTheme: 'classic',
   pieceTheme: 'cburnett',
   autoQueen: true,
+  lastMoveHighlight: true,
+  showLegalMoves: true,
 };
 
 export const ANALYSIS_DEPTH_MIN = 8;
@@ -140,12 +150,22 @@ function sanitize(input: Partial<Settings>): Settings {
     typeof input.autoQueen === 'boolean'
       ? input.autoQueen
       : DEFAULT_SETTINGS.autoQueen;
+  const lastMoveHighlight =
+    typeof input.lastMoveHighlight === 'boolean'
+      ? input.lastMoveHighlight
+      : DEFAULT_SETTINGS.lastMoveHighlight;
+  const showLegalMoves =
+    typeof input.showLegalMoves === 'boolean'
+      ? input.showLegalMoves
+      : DEFAULT_SETTINGS.showLegalMoves;
   return {
     analysisDepth: clampedDepth,
     liveEval: Boolean(input.liveEval),
     boardTheme,
     pieceTheme,
     autoQueen,
+    lastMoveHighlight,
+    showLegalMoves,
   };
 }
 
@@ -155,7 +175,9 @@ function settingsEqual(a: Settings, b: Settings): boolean {
     a.liveEval === b.liveEval &&
     a.boardTheme === b.boardTheme &&
     a.pieceTheme === b.pieceTheme &&
-    a.autoQueen === b.autoQueen
+    a.autoQueen === b.autoQueen &&
+    a.lastMoveHighlight === b.lastMoveHighlight &&
+    a.showLegalMoves === b.showLegalMoves
   );
 }
 
