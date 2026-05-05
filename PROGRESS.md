@@ -4,7 +4,34 @@
 
 ## Current session
 
-**User-feedback round 4.** Four asks: a Resign button while playing, the ability to game-review a resigned game, arrow-key navigation in the review screen, last-move highlighting (toggleable), and a legal-move-dots toggle.
+**User-feedback round 5.** One bug + three quality-of-life features.
+
+Drag-shows-legal-moves bug fix:
+
+- `src/ui/Board.tsx`: wire `onPieceDragBegin` / `onPieceDragEnd` from react-chessboard to the same `selected` state the click flow uses. Picking up a piece now lights up legal-target dots / capture rings just like clicking it. Drag-begin skips squares with zero legal moves so an opponent's piece (or a pinned one) doesn't draw an empty selection ring; drag-end clears the selection so a snap-back doesn't leave a stray ring on the source square.
+
+Take-back button:
+
+- `src/App.tsx`: new "Take back" button in the header during play. Free-play undoes one ply per click; vs-engine walks back until the player is on move (so a single click reverses both the engine's response and the player's own move that prompted it). Aborts any in-flight engine bestMove via the existing `requestIdRef` bump pattern + clears `engineThinking`, so the engine doesn't re-play the move we just undid. Disabled when the game is over (resign / mate), when the player hasn't moved yet, or when the user is browsing past plies.
+
+Auto-scroll move list to current ply:
+
+- `src/ui/MoveList.tsx`: `useEffect` on `currentPly` finds the row with `.move-list__move--current` and calls `scrollIntoView({block: 'nearest'})`. `nearest` keeps the list still when the row is already in view (no jitter when stepping plies inside the visible window) and only scrolls when the active row would otherwise be cut off the top or bottom. Fixes the long-game annoyance where the engine plays a move and the active row vanishes off the bottom.
+
+Board coordinates toggle:
+
+- `src/ui/useSettings.ts` adds `showCoordinates: boolean` (default ON). Sanitize / settingsEqual / DEFAULT_SETTINGS extended with the same boolean-coalescing pattern as the other recent flags.
+- `src/ui/Board.tsx` exposes a `showCoordinates` prop that forwards to react-chessboard's `showBoardNotation`.
+- `src/ui/SettingsDialog.tsx` adds the toggle under the existing "Board hints" group + a hint paragraph; reset path covers it.
+- `src/App.tsx` and `src/ui/Review.tsx` pass the setting through.
+
+Verified: lint + typecheck + full vitest (574 tests) green; dev server boots cleanly with the new bundles. Manual gesture verification (dragging a piece, take-back, scrolling a long move list) requires the live Electron window — wiring is mechanical so a smoke check is enough at this scope.
+
+---
+
+## Earlier session — User-feedback round 4
+
+Four asks: a Resign button while playing, the ability to game-review a resigned game, arrow-key navigation in the review screen, last-move highlighting (toggleable), and a legal-move-dots toggle.
 
 Resign + review-resigned-game:
 
