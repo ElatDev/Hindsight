@@ -1,17 +1,23 @@
 import type { GameEnd } from '../chess/game';
 
-const REASON_TEXT: Record<NonNullable<GameEnd>, string> = {
+/** Reasons we surface in the banner. Mirrors `GameEnd` (the chess-rules
+ *  outcomes chess.js can detect) and adds `'resignation'`, which is purely
+ *  app-state — chess.js has no concept of resignation. */
+export type EndReason = NonNullable<GameEnd> | 'resignation';
+
+const REASON_TEXT: Record<EndReason, string> = {
   checkmate: 'Checkmate.',
   stalemate: 'Stalemate.',
   'threefold-repetition': 'Draw by threefold repetition.',
   'fifty-move': 'Draw by the fifty-move rule.',
   'insufficient-material': 'Draw by insufficient material.',
   draw: 'Draw.',
+  resignation: 'Resignation.',
 };
 
 export type GameEndBannerProps = {
   /** Non-null game-end reason; the banner only renders when there is one. */
-  reason: NonNullable<GameEnd>;
+  reason: EndReason;
   /** Side that won, or null for draws. */
   winner: 'white' | 'black' | null;
   onReview: () => void;

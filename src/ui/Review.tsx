@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Square } from 'chess.js';
 import type { Classification } from '../chess/classify';
 import { Game } from '../chess/game';
@@ -21,6 +21,7 @@ import { MaterialAdvantage } from './MaterialAdvantage';
 import { MoveList } from './MoveList';
 import { NavControls } from './NavControls';
 import { PositionalPanel } from './PositionalPanel';
+import { useArrowKeyNav } from './useArrowKeyNav';
 import type { BoardTheme, PieceTheme } from './useSettings';
 
 export type ReviewProps = {
@@ -125,6 +126,14 @@ export function Review({
     for (let i = 0; i < viewPly; i += 1) g.move(history[i]);
     return g;
   }, [history, viewPly]);
+
+  const goTo = useCallback(
+    (ply: number): void => {
+      setViewPly(Math.max(0, Math.min(ply, totalPlies)));
+    },
+    [totalPlies],
+  );
+  useArrowKeyNav(goTo, viewPly, totalPlies);
 
   useEffect(() => {
     if (totalPlies === 0) {

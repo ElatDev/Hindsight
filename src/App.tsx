@@ -13,10 +13,12 @@ import {
 import { PgnGameSelectDialog } from './ui/PgnGameSelectDialog';
 import { PgnPasteDialog } from './ui/PgnPasteDialog';
 import { MaterialAdvantage } from './ui/MaterialAdvantage';
+import { ResignConfirmDialog } from './ui/ResignConfirmDialog';
 import { Review } from './ui/Review';
 import { SavedGamesDialog } from './ui/SavedGamesDialog';
 import { SettingsDialog } from './ui/SettingsDialog';
 import { EngineMissingDialog } from './ui/EngineMissingDialog';
+import { useArrowKeyNav } from './ui/useArrowKeyNav';
 import { useLiveEval } from './ui/useLiveEval';
 import { useSettings } from './ui/useSettings';
 import { useTheme } from './ui/useTheme';
@@ -56,6 +58,11 @@ function App(): JSX.Element {
   const [engineThinking, setEngineThinking] = useState(false);
   const [engineError, setEngineError] = useState<string | null>(null);
   const [showEndBanner, setShowEndBanner] = useState(true);
+  // Resignation is app-state only — chess.js doesn't model it. Set to the
+  // colour that resigned; the banner / status line use it as a virtual game
+  // end. Cleared whenever a fresh game starts (new game / loaded PGN).
+  const [resignedBy, setResignedBy] = useState<Color | null>(null);
+  const [showResignConfirm, setShowResignConfirm] = useState(false);
   const [pgnError, setPgnError] = useState<string | null>(null);
   const [pgnGames, setPgnGames] = useState<PgnGamePreview[] | null>(null);
   const [reviewing, setReviewing] = useState(false);
@@ -77,14 +84,16 @@ function App(): JSX.Element {
     return g;
   }, [history, viewPly]);
 
+  const gameOver = state.game.isGameOver() || resignedBy !== null;
+
   const playerCanMove =
     atTip &&
-    !state.game.isGameOver() &&
+    !gameOver &&
     (state.mode === 'free' || state.game.turn() === state.playerColor);
 
   const liveEvalSnap = useLiveEval({
     enabled: settings.liveEval && !reviewing,
-    paused: engineThinking || !atTip || state.game.isGameOver(),
+    paused: engineThinking || !atTip || gameOver,
     fen: displayed.fen(),
     depth: ENGINE_DEPTH,
   });
@@ -119,7 +128,7 @@ function App(): JSX.Element {
   useEffect(() => {
     if (state.mode !== 'vs-engine') return;
     if (!atTip) return;
-    if (state.game.isGameOver()) return;
+    if (gameOver) return;
     if (state.game.turn() === state.playerColor) return;
 
     const myReq = ++requestIdRef.current;
@@ -155,22 +164,9 @@ function App(): JSX.Element {
       .finally(() => {
         if (myReq === requestIdRef.current) setEngineThinking(false);
       });
-  }, [state, atTip, version]);
+  }, [state, atTip, version, gameOver]);
 
-  // Keyboard navigation.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.target instanceof HTMLInputElement) return;
-      if (e.key === 'ArrowLeft') goTo(viewPly - 1);
-      else if (e.key === 'ArrowRight') goTo(viewPly + 1);
-      else if (e.key === 'Home') goTo(0);
-      else if (e.key === 'End') goTo(totalPlies);
-      else return;
-      e.preventDefault();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [goTo, viewPly, totalPlies]);
+  useArrowKeyNav(goTo, viewPly, totalPlies);
 
   const startNewGame = useCallback((settings: NewGameSettings): void => {
     setState({
@@ -187,6 +183,8 @@ function App(): JSX.Element {
     setShowEndBanner(true);
     setPgnError(null);
     setReviewing(false);
+    setResignedBy(null);
+    setShowResignConfirm(false);
     if (settings.mode === 'vs-engine') {
       setOrientation(settings.playerColor === 'w' ? 'white' : 'black');
     }
@@ -210,12 +208,26 @@ function App(): JSX.Element {
       setPgnError(null);
       setPgnGames(null);
       setReviewing(false);
+      setResignedBy(null);
+      setShowResignConfirm(false);
       return true;
     } catch (err: unknown) {
       setPgnError(err instanceof Error ? err.message : String(err));
       return false;
     }
   }, []);
+
+  const confirmResign = useCallback((): void => {
+    setResignedBy(state.playerColor);
+    setShowResignConfirm(false);
+    setEngineThinking(false);
+    setShowEndBanner(true);
+    // Bump requestIdRef so any in-flight engine bestMove won't apply.
+    requestIdRef.current += 1;
+  }, [state.playerColor]);
+
+  const canResign =
+    state.mode === 'vs-engine' && !gameOver && totalPlies > 0 && atTip;
 
   /** Load a (possibly multi-game) PGN. With one game the loader runs
    *  immediately; with two or more we open the selector. Returns true if the
@@ -284,6 +296,10 @@ function App(): JSX.Element {
       return 'Stockfish not found — engine features are disabled until you install it.';
     }
     if (engineError) return `Engine error: ${engineError}`;
+    if (resignedBy && atTip) {
+      const loser = resignedBy === 'w' ? 'White' : 'Black';
+      return `Game over — ${loser} resigned.`;
+    }
     if (displayed.isGameOver()) return `Game over — ${displayed.gameEnd()}.`;
     if (!atTip) return 'Reviewing — jump to the end to play.';
     if (engineThinking) return 'Engine thinking...';
@@ -329,6 +345,15 @@ function App(): JSX.Element {
             Review game
           </button>
         ) : null}
+        {!reviewing && canResign ? (
+          <button
+            type="button"
+            className="header-secondary-btn header-secondary-btn--danger"
+            onClick={() => setShowResignConfirm(true)}
+          >
+            Resign
+          </button>
+        ) : null}
         <button
           type="button"
           className="header-secondary-btn"
@@ -350,15 +375,19 @@ function App(): JSX.Element {
         <p className="status status--error">PGN error: {pgnError}</p>
       ) : null}
 
-      {showEndBanner && state.game.isGameOver() ? (
+      {showEndBanner && (state.game.isGameOver() || resignedBy) ? (
         <GameEndBanner
-          reason={state.game.gameEnd() ?? 'draw'}
+          reason={resignedBy ? 'resignation' : (state.game.gameEnd() ?? 'draw')}
           winner={
-            state.game.gameEnd() === 'checkmate'
-              ? state.game.turn() === 'w'
+            resignedBy
+              ? resignedBy === 'w'
                 ? 'black'
                 : 'white'
-              : null
+              : state.game.gameEnd() === 'checkmate'
+                ? state.game.turn() === 'w'
+                  ? 'black'
+                  : 'white'
+                : null
           }
           onReview={handleReview}
           onNewGame={() => setShowNewGame(true)}
@@ -485,6 +514,14 @@ function App(): JSX.Element {
             return ok;
           }}
           onCancel={() => setShowSavedGames(false)}
+        />
+      ) : null}
+
+      {showResignConfirm ? (
+        <ResignConfirmDialog
+          side={state.playerColor === 'w' ? 'white' : 'black'}
+          onConfirm={confirmResign}
+          onCancel={() => setShowResignConfirm(false)}
         />
       ) : null}
 

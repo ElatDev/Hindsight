@@ -114,6 +114,15 @@ body,
   background: var(--bg-button-hover);
 }
 
+.header-secondary-btn--danger {
+  color: #d04040;
+  border-color: #c84a3a;
+}
+
+.header-secondary-btn--danger:hover {
+  background: rgba(208, 64, 64, 0.12);
+}
+
 .status--error {
   color: #d04040;
 }
