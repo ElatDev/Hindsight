@@ -69,9 +69,23 @@ describe('findPins', () => {
     // a4-e8 and a5-e1 — c3 and c6 are on those.
     const g = Game.fromFen('4k3/8/2n5/1B6/1b6/2N5/8/4K3 w - - 0 1');
     const pins = findPins(g);
-    expect(pins.length).toBeGreaterThanOrEqual(2);
-    expect(findPinsBy(g, 'w').length).toBeGreaterThanOrEqual(1);
-    expect(findPinsBy(g, 'b').length).toBeGreaterThanOrEqual(1);
+    expect(pins).toHaveLength(2);
+
+    const white = findPinsBy(g, 'w');
+    expect(white).toHaveLength(1);
+    expect(white[0].pinner.square).toBe('b5');
+    expect(white[0].pinned.square).toBe('c6');
+    expect(white[0].behind.square).toBe('e8');
+    expect(white[0].behind.type).toBe('k');
+    expect(white[0].kind).toBe('absolute');
+
+    const black = findPinsBy(g, 'b');
+    expect(black).toHaveLength(1);
+    expect(black[0].pinner.square).toBe('b4');
+    expect(black[0].pinned.square).toBe('c3');
+    expect(black[0].behind.square).toBe('e1');
+    expect(black[0].behind.type).toBe('k');
+    expect(black[0].kind).toBe('absolute');
   });
 
   it('queen pins both diagonally and orthogonally', () => {

@@ -31,11 +31,19 @@ describe('findDoubleAttacks', () => {
   });
 
   it('reports double attacks from both sides', () => {
-    // Symmetric setup with attacking queens.
-    const g = Game.fromFen('3qk3/8/8/p7/P7/8/8/3QK3 w - - 0 1');
-    expect(findDoubleAttacksBy(g, 'w').length).toBeGreaterThanOrEqual(0);
-    expect(findDoubleAttacksBy(g, 'b').length).toBeGreaterThanOrEqual(0);
-    // At least the queen on d1 attacks d8 + a4 (different pieces) from white,
-    // and black queen attacks d1 + a4 from black.
+    // White queen on d1 hits BQ on d8 (file d) and BP on a4 (a4-d1 diagonal).
+    // Black queen on d8 mirrors: hits WQ on d1 (file d) and WP on a5 (a5-d8
+    // diagonal). The rooks are scenery — each only attacks one enemy.
+    const g = Game.fromFen('r2qk2r/8/8/P7/p7/8/8/R2QK2R w - - 0 1');
+
+    const white = findDoubleAttacksBy(g, 'w');
+    const wq = white.find((d) => d.attacker.square === 'd1');
+    expect(wq).toBeDefined();
+    expect(wq?.targets.map((t) => t.square).sort()).toEqual(['a4', 'd8']);
+
+    const black = findDoubleAttacksBy(g, 'b');
+    const bq = black.find((d) => d.attacker.square === 'd8');
+    expect(bq).toBeDefined();
+    expect(bq?.targets.map((t) => t.square).sort()).toEqual(['a5', 'd1']);
   });
 });

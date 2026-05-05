@@ -64,7 +64,23 @@ describe('findSkewers', () => {
     // White rook on a1 skewers black king (a4) → black queen (a8).
     // Black rook on h8 skewers white king (h5) → white queen (h1).
     const g = Game.fromFen('q6r/8/8/7K/k7/8/8/R6Q w - - 0 1');
-    expect(findSkewersBy(g, 'w').length).toBeGreaterThanOrEqual(1);
-    expect(findSkewersBy(g, 'b').length).toBeGreaterThanOrEqual(1);
+    const skewers = findSkewers(g);
+    expect(skewers).toHaveLength(2);
+
+    const white = findSkewersBy(g, 'w');
+    expect(white).toHaveLength(1);
+    expect(white[0].skewerer.square).toBe('a1');
+    expect(white[0].front.square).toBe('a4');
+    expect(white[0].front.type).toBe('k');
+    expect(white[0].back.square).toBe('a8');
+    expect(white[0].back.type).toBe('q');
+
+    const black = findSkewersBy(g, 'b');
+    expect(black).toHaveLength(1);
+    expect(black[0].skewerer.square).toBe('h8');
+    expect(black[0].front.square).toBe('h5');
+    expect(black[0].front.type).toBe('k');
+    expect(black[0].back.square).toBe('h1');
+    expect(black[0].back.type).toBe('q');
   });
 });

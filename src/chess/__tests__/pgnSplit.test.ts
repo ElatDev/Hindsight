@@ -67,6 +67,42 @@ describe('splitPgn', () => {
     const games = splitPgn(pgn);
     expect(games).toHaveLength(1);
   });
+
+  it('does not split on a tag-like line inside a multi-line comment', () => {
+    // `{ ... }` PGN comments may span lines. A line that *starts inside* an
+    // open comment must never be treated as a new-game boundary, even if its
+    // content matches the tag-line shape exactly.
+    const pgn = [
+      '[Event "Annotated"]',
+      '',
+      '1. e4 {comment opens here',
+      '[Event "fake — still inside the comment"]',
+      'and closes here} 1... e5 2. Nf3 *',
+    ].join('\n');
+    const games = splitPgn(pgn);
+    expect(games).toHaveLength(1);
+    expect(games[0]).toContain('[Event "Annotated"]');
+  });
+
+  it('still splits a real game that follows a multi-line comment', () => {
+    // The closing brace is on its own line; the next non-comment tag-line
+    // genuinely opens a new game.
+    const pgn = [
+      '[Event "G1"]',
+      '',
+      '1. e4 {comment',
+      'spans',
+      'multiple lines} e5 1-0',
+      '',
+      '[Event "G2"]',
+      '',
+      '1. d4 d5 0-1',
+    ].join('\n');
+    const games = splitPgn(pgn);
+    expect(games).toHaveLength(2);
+    expect(games[0]).toContain('[Event "G1"]');
+    expect(games[1]).toContain('[Event "G2"]');
+  });
 });
 
 describe('previewPgnGames', () => {

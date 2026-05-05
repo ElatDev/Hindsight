@@ -17,7 +17,11 @@ describe('findOverloadedPieces', () => {
       (o) => o.defender.type === 'q' && o.defender.color === 'w',
     );
     expect(whiteQueen).toBeDefined();
-    expect(whiteQueen?.defending.length).toBeGreaterThanOrEqual(2);
+    expect(whiteQueen?.defender.square).toBe('d2');
+    expect(whiteQueen?.defending.map((d) => d.square).sort()).toEqual([
+      'b4',
+      'd4',
+    ]);
   });
 
   it('does not flag a defender of a single attacked piece', () => {

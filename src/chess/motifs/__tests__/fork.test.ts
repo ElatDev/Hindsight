@@ -54,8 +54,18 @@ describe('findForks', () => {
     // turn while in (the irrelevant) check from the white knight's targets.
     const g = Game.fromFen('k3q3/2N5/8/8/8/5n2/7R/4K3 b - - 0 1');
     const forks = findForks(g);
-    expect(forks.length).toBeGreaterThanOrEqual(2);
-    expect(findForksBy(g, 'w').length).toBeGreaterThanOrEqual(1);
-    expect(findForksBy(g, 'b').length).toBeGreaterThanOrEqual(1);
+    expect(forks).toHaveLength(2);
+
+    const white = findForksBy(g, 'w');
+    expect(white).toHaveLength(1);
+    expect(white[0].forker.square).toBe('c7');
+    expect(white[0].forker.type).toBe('n');
+    expect(white[0].targets.map((t) => t.square).sort()).toEqual(['a8', 'e8']);
+
+    const black = findForksBy(g, 'b');
+    expect(black).toHaveLength(1);
+    expect(black[0].forker.square).toBe('f3');
+    expect(black[0].forker.type).toBe('n');
+    expect(black[0].targets.map((t) => t.square).sort()).toEqual(['e1', 'h2']);
   });
 });
