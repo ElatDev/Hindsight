@@ -369,6 +369,32 @@ export function Board({
           boardWidth={width}
           arePiecesDraggable={interactive}
           areArrowsAllowed={false}
+          onPieceDragBegin={
+            interactive
+              ? (_piece, sourceSquare) => {
+                  // Light up the same legal-target overlay we get on
+                  // click — without this, legal moves only show via the
+                  // click-to-select path and the drag flow is "blind".
+                  // Skip when the piece can't move (opponent's piece, or
+                  // pinned with no legal squares) so we don't draw an
+                  // empty selection ring on top of the drag.
+                  if (game.legalMovesFrom(sourceSquare).length > 0) {
+                    setSelected(sourceSquare);
+                  }
+                }
+              : undefined
+          }
+          onPieceDragEnd={
+            interactive
+              ? () => {
+                  // A successful drop already cleared selection via
+                  // tryMove; on a failed drop the piece snaps back, so
+                  // clear here too to avoid a stray selection ring on
+                  // the source square.
+                  setSelected(null);
+                }
+              : undefined
+          }
           onPieceDrop={interactive ? handlePieceDrop : undefined}
           onPromotionPieceSelect={
             interactive ? handlePromotionPieceSelect : undefined

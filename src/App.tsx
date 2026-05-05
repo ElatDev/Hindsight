@@ -241,6 +241,33 @@ function App(): JSX.Element {
   const canResign =
     state.mode === 'vs-engine' && !gameOver && totalPlies > 0 && atTip;
 
+  // Take-back undoes plies. In free-play that's exactly one ply per click;
+  // in vs-engine it walks back until the player is on move (so a click
+  // undoes both the engine's response and the player's move that prompted
+  // it). Aborts any in-flight engine bestMove first, otherwise the engine
+  // would re-play right after we rewound past it.
+  const canTakeBack =
+    atTip &&
+    !gameOver &&
+    (state.mode === 'free'
+      ? totalPlies > 0
+      : totalPlies >= (state.playerColor === 'w' ? 1 : 2));
+
+  const takeBack = useCallback((): void => {
+    if (!canTakeBack) return;
+    requestIdRef.current += 1;
+    setEngineThinking(false);
+    let undone = 0;
+    while (state.game.history().length > 0 && undone < 4) {
+      state.game.undo();
+      undone += 1;
+      if (state.mode === 'free') break;
+      if (state.game.turn() === state.playerColor) break;
+    }
+    setVersion((v) => v + 1);
+    setViewPly(state.game.history().length);
+  }, [canTakeBack, state.game, state.mode, state.playerColor]);
+
   /** Load a (possibly multi-game) PGN. With one game the loader runs
    *  immediately; with two or more we open the selector. Returns true if the
    *  caller should treat the load as accepted (selector opened or single-game
@@ -355,6 +382,20 @@ function App(): JSX.Element {
             onClick={() => setReviewing(true)}
           >
             Review game
+          </button>
+        ) : null}
+        {!reviewing && canTakeBack ? (
+          <button
+            type="button"
+            className="header-secondary-btn"
+            onClick={takeBack}
+            title={
+              state.mode === 'vs-engine'
+                ? 'Undo your last move (and the engine response).'
+                : 'Undo the last move.'
+            }
+          >
+            Take back
           </button>
         ) : null}
         {!reviewing && canResign ? (
