@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Color, Square } from 'chess.js';
-import { Board } from './ui/Board';
+import { Board, type ArrowSpec } from './ui/Board';
 import { EvalBar } from './ui/EvalBar';
 import { GameEndBanner } from './ui/GameEndBanner';
 import { MoveList } from './ui/MoveList';
@@ -63,6 +63,11 @@ function App(): JSX.Element {
   // end. Cleared whenever a fresh game starts (new game / loaded PGN).
   const [resignedBy, setResignedBy] = useState<Color | null>(null);
   const [showResignConfirm, setShowResignConfirm] = useState(false);
+  // On-demand engine hint: full-strength bestMove rendered as a temporary
+  // arrow on the board. Cleared on the player's next move (so it doesn't
+  // linger on a stale position) and on any game-instance change.
+  const [hintArrow, setHintArrow] = useState<ArrowSpec | null>(null);
+  const [hintLoading, setHintLoading] = useState(false);
   const [pgnError, setPgnError] = useState<string | null>(null);
   const [pgnGames, setPgnGames] = useState<PgnGamePreview[] | null>(null);
   const [reviewing, setReviewing] = useState(false);
@@ -266,7 +271,81 @@ function App(): JSX.Element {
     }
     setVersion((v) => v + 1);
     setViewPly(state.game.history().length);
+    setHintArrow(null);
   }, [canTakeBack, state.game, state.mode, state.playerColor]);
+
+  const canShowHint =
+    state.mode === 'vs-engine' &&
+    !gameOver &&
+    atTip &&
+    !engineThinking &&
+    !hintLoading &&
+    state.game.turn() === state.playerColor;
+
+  const requestHint = useCallback(async (): Promise<void> => {
+    if (!canShowHint) return;
+    setHintArrow(null);
+    setHintLoading(true);
+    const fen = state.game.fen();
+    try {
+      const result = await window.hindsight.engine.analyze({
+        fen,
+        depth: settings.analysisDepth,
+        multiPV: 1,
+      });
+      // Drop the result if the user moved (or rewound) while the engine was
+      // thinking — the FEN we asked about is no longer on the board.
+      if (state.game.fen() !== fen) return;
+      if (!result.bestMove) return;
+      const from = result.bestMove.slice(0, 2) as Square;
+      const to = result.bestMove.slice(2, 4) as Square;
+      setHintArrow([from, to, 'rgba(255, 200, 60, 0.85)'] as ArrowSpec);
+    } catch {
+      // Silent: a missing-engine state already pops its dialog and the
+      // status line covers other failures; a hint button toast would
+      // over-engineer this for what is an entirely optional action.
+    } finally {
+      setHintLoading(false);
+    }
+  }, [canShowHint, state.game, settings.analysisDepth]);
+
+  // Clear hints whenever the displayed position changes — a hint pinned to
+  // an old FEN would point the user at a square that no longer holds the
+  // suggested piece. `version` covers moves; `gameInstanceId` covers fresh
+  // games / PGN loads; `viewPly` covers history navigation.
+  useEffect(() => {
+    setHintArrow(null);
+  }, [version, gameInstanceId, viewPly]);
+
+  const playArrows = useMemo<readonly ArrowSpec[] | undefined>(
+    () => (hintArrow ? [hintArrow] : undefined),
+    [hintArrow],
+  );
+
+  // Single-key shortcuts for the most common play actions. F flips the
+  // board; Backspace takes back (when allowed). Both skip when focus is
+  // in a form field so typing in dialogs isn't interrupted, and skip in
+  // review mode so the review surface owns its own keyboard semantics.
+  useEffect(() => {
+    if (reviewing) return;
+    const onKey = (e: KeyboardEvent): void => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        flip();
+        e.preventDefault();
+      } else if (e.key === 'Backspace' && canTakeBack) {
+        takeBack();
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [reviewing, flip, takeBack, canTakeBack]);
 
   /** Load a (possibly multi-game) PGN. With one game the loader runs
    *  immediately; with two or more we open the selector. Returns true if the
@@ -391,11 +470,21 @@ function App(): JSX.Element {
             onClick={takeBack}
             title={
               state.mode === 'vs-engine'
-                ? 'Undo your last move (and the engine response).'
-                : 'Undo the last move.'
+                ? 'Undo your last move (and the engine response). Backspace.'
+                : 'Undo the last move. Backspace.'
             }
           >
             Take back
+          </button>
+        ) : null}
+        {!reviewing && canShowHint ? (
+          <button
+            type="button"
+            className="header-secondary-btn"
+            onClick={() => void requestHint()}
+            title="Show the engine's preferred move at full strength."
+          >
+            {hintLoading ? 'Thinking…' : 'Hint'}
           </button>
         ) : null}
         {!reviewing && canResign ? (
@@ -485,6 +574,7 @@ function App(): JSX.Element {
                 lastMove={lastMove}
                 showLegalMoves={settings.showLegalMoves !== false}
                 showCoordinates={settings.showCoordinates !== false}
+                arrows={playArrows}
                 onMove={playerCanMove ? handleMove : undefined}
               />
             </div>
