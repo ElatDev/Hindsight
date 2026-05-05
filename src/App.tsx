@@ -267,6 +267,18 @@ function App(): JSX.Element {
     ? parseStockfishNotFound(engineError)
     : null;
 
+  // Auto-clear transient engine errors after a few seconds so a failure with
+  // no follow-up engine call to clear it (e.g., the very last move of a game)
+  // doesn't pin the toast forever. STOCKFISH_NOT_FOUND stays sticky — it
+  // requires explicit acknowledgement via the EngineMissingDialog and would
+  // just reappear on the next engine call anyway.
+  useEffect(() => {
+    if (!engineError) return;
+    if (stockfishMissingPath) return;
+    const timer = window.setTimeout(() => setEngineError(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [engineError, stockfishMissingPath]);
+
   const statusLine = (() => {
     if (stockfishMissingPath) {
       return 'Stockfish not found — engine features are disabled until you install it.';

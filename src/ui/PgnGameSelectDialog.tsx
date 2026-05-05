@@ -1,4 +1,5 @@
 import type { PgnGamePreview } from '../chess/pgnSplit';
+import { useDialogDismiss } from './useDialogDismiss';
 
 export type PgnGameSelectDialogProps = {
   games: PgnGamePreview[];
@@ -25,12 +26,14 @@ export function PgnGameSelectDialog({
   onSelect,
   onCancel,
 }: PgnGameSelectDialogProps): JSX.Element {
+  const dismissProps = useDialogDismiss(onCancel);
   return (
     <div
       className="dialog-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby="pgn-select-title"
+      {...dismissProps}
     >
       <div className="dialog dialog--wide">
         <h2 id="pgn-select-title">Select a game ({games.length} found)</h2>

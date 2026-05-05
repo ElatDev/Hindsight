@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Color } from '../chess/game';
+import { useDialogDismiss } from './useDialogDismiss';
 
 export type GameMode = 'free' | 'vs-engine';
 
@@ -30,6 +31,7 @@ export function NewGameDialog({
     initial?.playerColor ?? 'w',
   );
   const [elo, setElo] = useState<number>(initial?.elo ?? 1500);
+  const dismissProps = useDialogDismiss(onCancel);
 
   const submit = (): void => {
     const resolvedColor: Color =
@@ -47,6 +49,7 @@ export function NewGameDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="new-game-title"
+      {...dismissProps}
     >
       <div className="dialog">
         <h2 id="new-game-title">New game</h2>

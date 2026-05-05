@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { previewPgnGames } from '../chess/pgnSplit';
+import { useDialogDismiss } from './useDialogDismiss';
 
 export type PgnPasteDialogProps = {
   onLoad: (pgn: string) => void;
@@ -43,6 +44,7 @@ export function PgnPasteDialog({
   const [text, setText] = useState('');
   const preview = useMemo(() => previewPgn(text), [text]);
   const canLoad = preview.ok === true;
+  const dismissProps = useDialogDismiss(onCancel);
 
   return (
     <div
@@ -50,6 +52,7 @@ export function PgnPasteDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="paste-pgn-title"
+      {...dismissProps}
     >
       <div className="dialog dialog--wide">
         <h2 id="paste-pgn-title">Paste PGN</h2>

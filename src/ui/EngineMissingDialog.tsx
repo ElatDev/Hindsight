@@ -1,3 +1,5 @@
+import { useDialogDismiss } from './useDialogDismiss';
+
 export type EngineMissingDialogProps = {
   /** Absolute path the main process expected the binary at. Shown in the
    *  dialog so the user can sanity-check what went wrong (typo? missing
@@ -22,12 +24,14 @@ export function EngineMissingDialog({
   binaryPath,
   onDismiss,
 }: EngineMissingDialogProps): JSX.Element {
+  const dismissProps = useDialogDismiss(onDismiss);
   return (
     <div
       className="dialog-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby="engine-missing-title"
+      {...dismissProps}
     >
       <div className="dialog">
         <h2 id="engine-missing-title">Stockfish not found</h2>

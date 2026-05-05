@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BOARD_PALETTES } from './boardThemes';
 import { customPiecesFor } from './pieceSets';
+import { useDialogDismiss } from './useDialogDismiss';
 import {
   ANALYSIS_DEPTH_MAX,
   ANALYSIS_DEPTH_MIN,
@@ -104,6 +105,7 @@ export function SettingsDialog({
     initial.autoQueen ?? DEFAULT_SETTINGS.autoQueen,
   );
   const [themeChoice, setThemeChoice] = useState<Theme>(theme);
+  const dismissProps = useDialogDismiss(onCancel);
 
   const submit = (): void => {
     onConfirm(
@@ -140,6 +142,7 @@ export function SettingsDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="settings-title"
+      {...dismissProps}
     >
       <div className="dialog dialog--wide">
         <h2 id="settings-title">Settings</h2>

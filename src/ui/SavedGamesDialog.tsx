@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { SavedGameSummary } from '../../shared/ipc';
+import { useDialogDismiss } from './useDialogDismiss';
 
 export type SavedGamesDialogProps = {
   /** When non-null, the dialog shows a "Save current game" button at the top
@@ -29,6 +30,7 @@ export function SavedGamesDialog({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [saveName, setSaveName] = useState('');
+  const dismissProps = useDialogDismiss(onCancel);
 
   const refresh = useCallback(async (): Promise<void> => {
     try {
@@ -111,6 +113,7 @@ export function SavedGamesDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="saved-games-title"
+      {...dismissProps}
     >
       <div className="dialog dialog--wide">
         <h2 id="saved-games-title">Saved games</h2>
