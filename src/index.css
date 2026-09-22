@@ -1129,6 +1129,20 @@ body,
   align-items: stretch;
 }
 
+/* Saved-game rows reuse the PGN selector's grid, but their first column
+   holds the game's name, not a short game number. Give it real width and
+   truncate it instead of letting it wrap one word per line. */
+.saved-games__row .pgn-select-list__btn {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto auto;
+}
+
+.saved-games__row .pgn-select-list__num {
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .saved-games__delete {
   background: transparent;
   border: 1px solid var(--border);
