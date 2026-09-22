@@ -7,14 +7,15 @@ import type { MoveAnalysis } from './analysis';
  * (sigmoid, k=0.00368208) is the de-facto standard.
  *
  * Mate scores collapse to 100/0 — a forced mate is "winning" or "losing"
- * with no further nuance for the win-percent purpose.
+ * with no further nuance for the win-percent purpose. Mate in 0 is a mate
+ * the POV side has already delivered, so it counts as a win.
  */
 export function winPercentFromEval(
   evalCp: number | null,
   mateIn: number | null,
 ): number {
   if (mateIn != null) {
-    return mateIn > 0 ? 100 : 0;
+    return mateIn >= 0 ? 100 : 0;
   }
   if (evalCp == null) return 50;
   return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * evalCp)) - 1);

@@ -317,6 +317,13 @@ export function snapshotsFromAnalysis(record: MoveAnalysis): {
   // mover at ply N (1-based) = white when N is odd.
   const moverIsWhite = record.ply % 2 === 1;
   const flip = moverIsWhite ? 1 : -1;
+  // A delivered mate (`mateInAfter === 0`) has no sign to flip, so a
+  // white-POV consumer like the eval bar can't tell who won. Leave it
+  // unscored here; the scoring code reads it from `MoveAnalysis` directly.
+  const mateAfter =
+    record.mateInAfter != null && record.mateInAfter !== 0
+      ? record.mateInAfter * flip
+      : null;
   return {
     evalBefore: {
       cp: record.evalCp != null ? record.evalCp * flip : null,
@@ -324,7 +331,7 @@ export function snapshotsFromAnalysis(record: MoveAnalysis): {
     },
     evalAfter: {
       cp: record.evalCpAfter != null ? record.evalCpAfter * flip : null,
-      mate: record.mateInAfter != null ? record.mateInAfter * flip : null,
+      mate: mateAfter,
     },
   };
 }

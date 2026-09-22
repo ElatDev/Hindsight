@@ -72,10 +72,11 @@ const MATE_AS_CP = 100_000;
 const evalAsCp = (cp: number | null, mate: number | null): number | null => {
   if (cp != null) return cp;
   if (mate == null) return null;
-  // mate > 0 → the mover delivers mate; further from mate (large |mate|) is
-  // worse than mate-in-1, but still vastly better than any cp score. We
-  // subtract |mate| so mate-in-1 > mate-in-5 within the mate region.
-  if (mate > 0) return MATE_AS_CP - mate;
+  // mate >= 0 → the mover delivers mate (0 = already delivered); further
+  // from mate (large |mate|) is worse than mate-in-1, but still vastly
+  // better than any cp score. We subtract |mate| so mate-in-1 > mate-in-5
+  // within the mate region.
+  if (mate >= 0) return MATE_AS_CP - mate;
   return -MATE_AS_CP - mate; // mate < 0 → being mated; closer mate = worse
 };
 
@@ -83,7 +84,8 @@ const evalAsCp = (cp: number | null, mate: number | null): number | null => {
  * Map a fully-populated `MoveAnalysis` to a `ClassifiedMove`.
  *
  * Decision order:
- *  1. The played move matches the engine's top recommendation → `Best`.
+ *  1. The played move delivers checkmate, or matches the engine's top
+ *     recommendation → `Best`.
  *  2. Mate-aware overrides:
  *     - mover had a forced mate but no longer does → `Miss`
  *     - mover walked into a forced mate against them → `Blunder`
@@ -96,8 +98,13 @@ const evalAsCp = (cp: number | null, mate: number | null): number | null => {
 export function classifyMove(record: MoveAnalysis): ClassifiedMove {
   const cpLoss = computeCpLoss(record);
 
-  // Engine top-pick wins outright.
-  if (record.bestMove && record.uciPlayed === record.bestMove) {
+  // Engine top-pick wins outright, and so does checkmate: when a position
+  // has several mates in one, the engine names only one of them, and the
+  // others are no worse.
+  if (
+    record.mateInAfter === 0 ||
+    (record.bestMove && record.uciPlayed === record.bestMove)
+  ) {
     return {
       ...record,
       classification: Classification.Best,

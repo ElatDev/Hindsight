@@ -172,6 +172,35 @@ describe('classifyMove — mate handling', () => {
     expect(out.cpLoss).toBeLessThan(10);
   });
 
+  it('Best when the move delivers checkmate, even if not the engine pick', () => {
+    // Two mates in one: the engine names Qd8#, the player finds Re8#.
+    const out = classifyMove(
+      baseRecord({
+        uciPlayed: 'e1e8',
+        bestMove: 'd1d8',
+        evalCp: null,
+        mateIn: 1,
+        evalCpAfter: null,
+        mateInAfter: 0,
+      }),
+    );
+    expect(out.classification).toBe(Classification.Best);
+    expect(out.cpLoss).toBe(0);
+  });
+
+  it('Blunder: stalemating the opponent from a won position', () => {
+    const out = classifyMove(
+      baseRecord({
+        uciPlayed: 'd1e2',
+        bestMove: 'd1d7',
+        evalCp: 900,
+        evalCpAfter: 0, // stalemate is scored as a draw
+      }),
+    );
+    expect(out.classification).toBe(Classification.Blunder);
+    expect(out.cpLoss).toBe(900);
+  });
+
   it('Blunder: walked into a forced mate that did not exist before', () => {
     const out = classifyMove(
       baseRecord({

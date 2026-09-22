@@ -98,6 +98,24 @@ describe('snapshotsFromAnalysis', () => {
     expect(snap.evalBefore).toEqual({ cp: null, mate: 3 });
     expect(snap.evalAfter).toEqual({ cp: null, mate: 2 });
   });
+
+  it('leaves a delivered mate unscored rather than guess its sign', () => {
+    // mate 0 flipped to white POV is -0 or 0 either way, which the eval
+    // bar would read as black winning.
+    const snap = snapshotsFromAnalysis({
+      ply: 3,
+      san: 'Qxf7#',
+      uciPlayed: 'h5f7',
+      fenBefore: '',
+      evalCp: null,
+      mateIn: 1,
+      bestMove: 'h5f7',
+      evalCpAfter: null,
+      mateInAfter: 0,
+    });
+    expect(snap.evalBefore).toEqual({ cp: null, mate: 1 });
+    expect(snap.evalAfter).toEqual({ cp: null, mate: null });
+  });
 });
 
 describe('uciToMoveInfo', () => {

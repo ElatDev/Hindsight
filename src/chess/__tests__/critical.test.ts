@@ -73,6 +73,17 @@ describe('criticalMoments', () => {
     expect(out[0].wpDelta).toBeLessThan(-50);
   });
 
+  it('does not rank a mating move as a swing', () => {
+    const records: MoveAnalysis[] = [
+      rec({ ply: 1, evalCp: 0, evalCpAfter: -300 }),
+      // Mate in 1 → mate delivered: already won, still won.
+      rec({ ply: 2, evalCp: null, mateIn: 1, mateInAfter: 0 }),
+    ];
+    const [top, second] = criticalMoments(records);
+    expect(top.ply).toBe(1);
+    expect(second.wpDelta).toBe(0);
+  });
+
   it('respects minDelta filter', () => {
     const records: MoveAnalysis[] = [
       rec({ ply: 1, evalCp: 0, evalCpAfter: -2 }),

@@ -16,6 +16,10 @@ describe('winPercentFromEval', () => {
     expect(winPercentFromEval(null, -2)).toBe(0);
   });
 
+  it('returns 100 for a mate the mover has already delivered', () => {
+    expect(winPercentFromEval(null, 0)).toBe(100);
+  });
+
   it('returns 50 for missing data', () => {
     expect(winPercentFromEval(null, null)).toBe(50);
   });
@@ -140,6 +144,14 @@ describe('gameAccuracy', () => {
     const out = gameAccuracy(records);
     expect(out.white.overall).toBeGreaterThan(95);
     expect(out.black.overall).toBeLessThan(60);
+  });
+
+  it('does not penalise the move that delivers checkmate', () => {
+    // Mate in 1 before, mate delivered after: no win-percent was given up.
+    const out = gameAccuracy([
+      rec({ evalCp: null, mateIn: 1, evalCpAfter: null, mateInAfter: 0 }),
+    ]);
+    expect(out.white.perMove[0]).toBeCloseTo(100, 0);
   });
 
   it('returns 0 overall for a side with no moves recorded', () => {

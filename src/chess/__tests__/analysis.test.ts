@@ -196,8 +196,45 @@ describe('analyzeGame', () => {
     // is checkmate (gameOverAt[4] = true), so the standalone after-call we
     // dispatch for non-terminal final positions is skipped.
     expect(analyze).toHaveBeenCalledTimes(4);
+    // The result stands in for the missing eval: the mover delivered mate.
     expect(results[3].evalCpAfter).toBeNull();
-    expect(results[3].mateInAfter).toBeNull();
+    expect(results[3].mateInAfter).toBe(0);
+  });
+
+  it('scores a move that ends the game in stalemate as a draw', async () => {
+    // Sam Loyd's ten-move stalemate: 10.Qe6 leaves black with no legal move.
+    const game = new Game();
+    for (const san of [
+      'e3',
+      'a5',
+      'Qh5',
+      'Ra6',
+      'Qxa5',
+      'h5',
+      'h4',
+      'Rah6',
+      'Qxc7',
+      'f6',
+      'Qxd7+',
+      'Kf7',
+      'Qxb7',
+      'Qd3',
+      'Qxb8',
+      'Qh7',
+      'Qxc8',
+      'Kg6',
+      'Qe6',
+    ]) {
+      game.move(san);
+    }
+    expect(game.gameEnd()).toBe('stalemate');
+
+    const analyze = vi.fn(async (_req: AnalyzeRequest) => stubResult(null, 1));
+    const results = await analyzeGame(game, { depth: 8, analyze });
+
+    const last = results[results.length - 1];
+    expect(last.evalCpAfter).toBe(0);
+    expect(last.mateInAfter).toBeNull();
   });
 
   it('plumbs multiPV into the pre-move analyze call and surfaces linesBefore', async () => {

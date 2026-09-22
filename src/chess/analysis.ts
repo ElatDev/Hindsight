@@ -3,7 +3,7 @@ import type {
   AnalysisResult,
   AnalyzeRequest,
 } from '../../shared/ipc';
-import { Game } from './game';
+import { Game, GameEnd } from './game';
 
 /**
  * Per-position analysis record. One entry is produced for every ply that was
@@ -32,11 +32,12 @@ export type MoveAnalysis = {
   bestMove: string | null;
   /** Centipawn score after the move, normalised to the *moving player's* POV
    *  (i.e. positive = good for them). null when the resulting position was
-   *  mate-scored, or when the move ended the game. */
+   *  mate-scored. A move that ends the game in a draw scores 0. */
   evalCpAfter: number | null;
   /** Mate distance after the move, from the *moving player's* POV (positive
    *  = they're delivering mate, negative = they're getting mated). null when
-   *  the resulting position was cp-scored, or when the move ended the game. */
+   *  the resulting position was cp-scored. `0` means the move itself
+   *  delivered checkmate. */
   mateInAfter: number | null;
   /** Full multi-PV result for the pre-move analysis, sorted by `multipv`.
    *  Only populated when the caller passes `multiPV > 1`; lets downstream
@@ -119,10 +120,12 @@ export async function analyzeGame(
   const replay = new Game();
   const fens: string[] = [replay.fen()];
   const gameOverAt: boolean[] = [replay.isGameOver()];
+  const checkmateAt: boolean[] = [replay.gameEnd() === GameEnd.Checkmate];
   for (let i = 0; i < total; i += 1) {
     replay.move(verbose[i].san);
     fens.push(replay.fen());
     gameOverAt.push(replay.isGameOver());
+    checkmateAt.push(replay.gameEnd() === GameEnd.Checkmate);
   }
 
   // Aborts from the caller (e.g. the user leaves the review screen) short-
@@ -174,7 +177,14 @@ export async function analyzeGame(
     const beforeTop = beforeResults[i].lines[0];
     let evalCpAfter: number | null = null;
     let mateInAfter: number | null = null;
-    if (wantAfter && !gameOverAt[i + 1]) {
+    if (wantAfter && gameOverAt[i + 1]) {
+      // A finished game has no engine eval, so score the result itself:
+      // checkmate is a win for the mover, any other ending is a draw.
+      // Left null, accuracy and critical moments read a mating move as a
+      // drop from 100% to 50%.
+      if (checkmateAt[i + 1]) mateInAfter = 0;
+      else evalCpAfter = 0;
+    } else if (wantAfter) {
       // After-eval at fens[i+1] is the next ply's pre-move analysis,
       // except for the last move which uses the standalone finalResult.
       const afterRes = i + 1 < total ? beforeResults[i + 1] : finalResult;
