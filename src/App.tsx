@@ -517,7 +517,9 @@ function App(): JSX.Element {
         <p className="status status--error">PGN error: {pgnError}</p>
       ) : null}
 
-      {showEndBanner && (state.game.isGameOver() || resignedBy) ? (
+      {!reviewing &&
+      showEndBanner &&
+      (state.game.isGameOver() || resignedBy) ? (
         <GameEndBanner
           reason={resignedBy ? 'resignation' : (state.game.gameEnd() ?? 'draw')}
           winner={
