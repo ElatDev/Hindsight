@@ -46,12 +46,12 @@ move as an arrow, an explanation, and the engine's top alternatives.
 
 Installers are on the [Releases page](https://github.com/ElatDev/Hindsight/releases/latest).
 
-| System                | File                                 |
-| --------------------- | ------------------------------------ |
-| Windows 10 and 11     | `Hindsight-0.1.0-windows-x64.exe`    |
-| macOS (Apple silicon) | `Hindsight-0.1.0-mac-arm64.dmg`      |
-| macOS (Intel)         | `Hindsight-0.1.0-mac-x64.dmg`        |
-| Linux (x64)           | `Hindsight-0.1.0-linux-x64.AppImage` |
+| System                | File                                    |
+| --------------------- | --------------------------------------- |
+| Windows 10 and 11     | `Hindsight-0.1.0-windows-x64.exe`       |
+| macOS (Apple silicon) | `Hindsight-0.1.0-mac-arm64.dmg`         |
+| macOS (Intel)         | `Hindsight-0.1.0-mac-x64.dmg`           |
+| Linux (x64)           | `Hindsight-0.1.0-linux-x86_64.AppImage` |
 
 Stockfish is included. You don't need to install anything else, and the app
 never goes online.
