@@ -64,8 +64,9 @@ url="https://github.com/official-stockfish/Stockfish/releases/download/${VERSION
 
 target_dir="stockfish/bin/${node_platform}-${node_arch}"
 target_bin="${target_dir}/stockfish"
+target_license="${target_dir}/Copying.txt"
 
-if [[ -x "$target_bin" ]]; then
+if [[ -x "$target_bin" && -f "$target_license" ]]; then
   echo "Stockfish already present at $target_bin — skipping fetch."
   exit 0
 fi
@@ -98,5 +99,26 @@ fi
 
 cp "$src_bin" "$target_bin"
 chmod +x "$target_bin"
+
+# Stockfish is GPLv3. Its license text, author list and a pointer to the
+# matching source travel with the binary so the installer ships them too.
+for doc in Copying.txt AUTHORS; do
+  src_doc="$(find "$tmp" -maxdepth 2 -type f -name "$doc" | head -n1)"
+  if [[ -z "$src_doc" ]]; then
+    echo "Could not locate $doc inside extracted archive." >&2
+    exit 1
+  fi
+  cp "$src_doc" "${target_dir}/${doc}"
+done
+cat > "${target_dir}/SOURCE.txt" <<EOF
+Stockfish ${VERSION} is free software, licensed under the GNU General
+Public License version 3 (see Copying.txt). Hindsight runs it as a
+separate program and talks to it over UCI.
+
+Source code for this build:
+  https://github.com/official-stockfish/Stockfish/tree/${VERSION}
+The release archive this binary came from, which also contains the source:
+  ${url}
+EOF
 
 echo "Installed Stockfish to $target_bin"

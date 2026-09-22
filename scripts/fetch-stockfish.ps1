@@ -29,8 +29,9 @@ $Url = "https://github.com/official-stockfish/Stockfish/releases/download/$Versi
 $NodeArch = if ([System.Environment]::Is64BitOperatingSystem) { 'x64' } else { 'ia32' }
 $TargetDir = Join-Path 'stockfish/bin' "win32-$NodeArch"
 $TargetBin = Join-Path $TargetDir 'stockfish.exe'
+$TargetLicense = Join-Path $TargetDir 'Copying.txt'
 
-if (Test-Path $TargetBin) {
+if ((Test-Path $TargetBin) -and (Test-Path $TargetLicense)) {
   Write-Host "Stockfish already present at $TargetBin - skipping fetch."
   exit 0
 }
@@ -61,6 +62,26 @@ try {
   }
 
   Copy-Item -Path $SrcBin.FullName -Destination $TargetBin -Force
+
+  # Stockfish is GPLv3. Its license text, author list and a pointer to the
+  # matching source travel with the binary so the installer ships them too.
+  foreach ($Doc in 'Copying.txt', 'AUTHORS') {
+    $SrcDoc = Get-ChildItem -Path $TmpRoot -Recurse -Depth 1 -Filter $Doc | Select-Object -First 1
+    if (-not $SrcDoc) {
+      throw "Could not locate $Doc inside extracted archive."
+    }
+    Copy-Item -Path $SrcDoc.FullName -Destination (Join-Path $TargetDir $Doc) -Force
+  }
+  Set-Content -Path (Join-Path $TargetDir 'SOURCE.txt') -Encoding ascii -Value @(
+    "Stockfish $Version is free software, licensed under the GNU General",
+    'Public License version 3 (see Copying.txt). Hindsight runs it as a',
+    'separate program and talks to it over UCI.',
+    '',
+    'Source code for this build:',
+    "  https://github.com/official-stockfish/Stockfish/tree/$Version",
+    'The release archive this binary came from, which also contains the source:',
+    "  $Url"
+  )
   Write-Host "Installed Stockfish to $TargetBin"
 } finally {
   Remove-Item -Path $TmpRoot -Recurse -Force -ErrorAction SilentlyContinue
