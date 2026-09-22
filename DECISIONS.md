@@ -138,6 +138,61 @@ Format:
 
 ---
 
+## ADR-006: Ship third-party licenses and Stockfish's source with every release
+
+**Date:** 2026-09-21
+**Status:** Accepted
+
+**Context:** ADR-003 and ADR-004 settled that bundling GPLv3 Stockfish with MIT Hindsight is fine because Hindsight runs it as a separate process. Neither covered what the installer has to carry. The fetch scripts kept only the Stockfish executable, so the installer shipped a GPLv3 binary with no license text and no way to find its source. It also shipped no copy of Hindsight's own MIT license and no attribution for the piece artwork. The piece-set notice in `src/data/pieces/LICENSE` called all twelve sets CC BY-SA 4.0. Lichess's `COPYING.md` shows none of them are: they are GPLv2+, AGPLv3+, Apache 2.0, MIT and CC BY-NC-SA 4.0, and lila lists `alpha` and `leipzig` as non-free.
+
+**Decision:**
+
+- The fetch scripts copy Stockfish's `Copying.txt` and `AUTHORS` from the upstream archive and write a `SOURCE.txt` naming the exact tag and archive. The existing `extraResources` rule puts them next to the binary.
+- `extraResources` also ships `LICENSE`, a new `THIRD_PARTY_NOTICES.md` and the piece-set notice in the app's resources folder.
+- The piece-set notice lists each set's author and license from lila's `COPYING.md`. `scripts/fetch-pieces.mjs` generates the same text.
+- The release workflow attaches the source of the bundled Stockfish tag to every GitHub Release, so the source is available from the same place as the binary (GPLv3 section 6).
+
+**Consequences:**
+
+- (+) Every installer carries the license texts and attribution its contents require.
+- (+) The source offer doesn't depend on the Stockfish project keeping its old tags online.
+- (–) The Stockfish tag appears in both the fetch scripts and the release workflow and must be bumped in both.
+- (–) Several bundled piece sets are non-commercial or non-free. The notice says so, but a fork that wants to sell Hindsight would have to drop those sets. Whether to keep them is an open product decision. Hindsight's MIT license is unchanged.
+
+**Alternatives considered:**
+
+- Relying on a link to Stockfish's GitHub instead of attaching its source: simpler, but it leaves compliance in someone else's hands.
+- Showing licenses in an in-app About screen: better for users, but it's a new feature, so it's out of scope for this release.
+
+---
+
+## ADR-007: Build every installer in CI; ad-hoc sign on macOS
+
+**Date:** 2026-09-21
+**Status:** Accepted
+
+**Context:** electron-builder only builds for the OS it runs on, so the DMG and AppImage targets in `package.json` had never been built. The fetch script downloads the Stockfish binary for the host architecture, so an x64 DMG built on an Apple Silicon runner would bundle an arm64 engine. With no Developer ID (ADR-005), electron-builder skips signing on macOS. That leaves Electron's executable with only its linker signature, which no longer matches the repackaged bundle. `codesign --verify` fails, and macOS reports a downloaded copy as "damaged" with no way to open it.
+
+**Decision:**
+
+- `.github/workflows/release.yml` builds each installer on its own runner: Windows, Apple Silicon macOS, Intel macOS and Linux. Each build names its target and arch on the command line. A `v*` tag attaches the installers and the Stockfish source to a draft release, which is published by hand. Pushes to `main` that touch the packaging run the same builds as a dry run.
+- An electron-builder `afterPack` hook (`scripts/adhoc-sign-mac.cjs`) ad-hoc signs the macOS app bundle before the DMG is built, then verifies the signature.
+
+**Consequences:**
+
+- (+) All four installers come from the same clean, reproducible build.
+- (+) A packaging break shows up on `main` before anyone cuts a tag.
+- (+) On macOS, users get Gatekeeper's normal unverified-developer prompt ("Open Anyway" in System Settings) instead of "damaged".
+- (–) Still not notarized. That needs a paid Apple Developer ID and remains a follow-up to ADR-005.
+- (–) Intel builds depend on GitHub keeping an Intel macOS runner (`macos-26-intel`).
+
+**Alternatives considered:**
+
+- Cross-building the x64 DMG on Apple Silicon: needs a second Stockfish download for the other arch and per-arch `extraResources` rules. Separate runners need no changes.
+- Leaving the Mac app unsigned and telling users to run `xattr -cr`: works, but it asks every Mac user to run a terminal command to get past a scary error.
+
+---
+
 ## Note: Windows dev gotcha — `ELECTRON_RUN_AS_NODE`
 
 If `ELECTRON_RUN_AS_NODE=1` is set in your shell environment (some Windows setups have this from earlier electron experimentation), `npm run dev` and `npx electron .` will both fail with `TypeError: Cannot read properties of undefined (reading 'whenReady')`. The fix is to `unset ELECTRON_RUN_AS_NODE` before running. We may add an `env-check` script to detect this at `npm run dev` startup if it bites repeatedly.
