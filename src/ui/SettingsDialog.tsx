@@ -179,8 +179,6 @@ export function SettingsDialog({
             Stockfish search depth used by the review pipeline. Each step up
             roughly doubles per-move analysis time. The default of 10 is a good
             balance for casual review; tournament-quality analysis wants 14+.
-            Parallel-engine review is on the v0.2 roadmap; until then, lowering
-            this is the simplest way to speed things up.
           </p>
         </fieldset>
 
