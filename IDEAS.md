@@ -73,13 +73,12 @@ scheduled. Each item says where the evidence is.
 - **Code signing and notarization.** Windows shows SmartScreen and macOS shows
   its unverified-developer prompt (ADR-005, ADR-007). This needs a Windows
   code-signing certificate and a paid Apple Developer ID.
-- **Upgrade Electron.** Electron 32 is end-of-life. `npm audit` reports 32
-  advisories. The two critical ones (`vitest`, and `tar` via electron-builder)
-  are build-time only, but Electron ships in the app. Upgrading means major
-  bumps of Electron, electron-builder, Vite and Vitest.
-- **Decide on the non-commercial piece sets.** `alpha` and `leipzig` are listed
-  as non-free by Lichess, and five sets are CC BY-NC-SA 4.0 (ADR-006).
-  Dropping them would let the whole app be used commercially.
+- **Upgrade Electron.** Electron 32 is end-of-life. `npm audit` reports 15
+  advisories. The one critical one (`vitest`) is build-time only, but Electron
+  ships in the app. Upgrading means major bumps of Electron, Vite and Vitest.
+- **Replace the non-commercial piece sets.** Five of the ten bundled sets are
+  CC BY-NC-SA 4.0 (ADR-006, ADR-008). Swapping them for freely licensed sets
+  would let the whole app be used commercially.
 - **Show licenses in the app.** An About screen could display
   `THIRD_PARTY_NOTICES.md`, which today only sits in the resources folder.
 - **Linux arm64.** There's no arm64 Linux Stockfish download in the fetch
