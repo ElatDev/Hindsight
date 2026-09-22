@@ -85,8 +85,9 @@ async function main() {
     const [author, license] = LICENSES[set];
     return `- ${set}: ${author}, ${license}`;
   });
-  const notice = `Piece-set artwork in this directory comes from the Lichess
-repository (https://github.com/lichess-org/lila/tree/master/public/piece).
+  const notice = `Hindsight's piece-set artwork (src/data/pieces/ in the source tree)
+comes from the Lichess repository
+(https://github.com/lichess-org/lila/tree/master/public/piece).
 Each set keeps its author's license. The authors and licenses below are
 copied from https://github.com/lichess-org/lila/blob/master/COPYING.md,
 which is the authoritative list:
@@ -96,7 +97,7 @@ ${rows.join('\n')}
 Some of these licenses are non-commercial (CC BY-NC-SA 4.0, "free for
 personal non commercial use") and lila lists alpha and leipzig as non-free.
 They cover the artwork only. The Hindsight application code (everything
-outside this directory) is MIT licensed.
+outside src/data/pieces/) is MIT licensed.
 `;
   await writeFile(join(DEST, 'LICENSE'), notice, 'utf8');
   console.log('Done.');

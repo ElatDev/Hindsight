@@ -81,6 +81,18 @@
       {
         "from": "stockfish/bin",
         "to": "stockfish/bin"
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE.txt"
+      },
+      {
+        "from": "THIRD_PARTY_NOTICES.md",
+        "to": "THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "src/data/pieces/LICENSE",
+        "to": "pieces-LICENSE.txt"
       }
     ],
     "asar": true,
