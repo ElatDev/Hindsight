@@ -4,6 +4,44 @@
 
 ## Current session
 
+**v0.1.0 release prep.** Release work only: no new features. Fixes were limited to crashes, anything that made a screenshot look broken, and build, installer or CI blockers. Everything else went to [IDEAS.md](./IDEAS.md).
+
+CI and release builds:
+
+- `.github/workflows/ci.yml` runs lint, typecheck and `test:run` on Ubuntu, Windows and macOS. It was green on all three on its first run.
+- `.github/workflows/release.yml` builds the Windows NSIS installer, Apple Silicon and Intel DMGs (on separate runners) and the Linux AppImage. A `v*` tag attaches them, plus the bundled Stockfish's source, to a draft release. Pushes to `main` that touch the packaging run the builds as a dry run.
+
+Fixes:
+
+- Review scoring: a move that ends the game is scored from the result (checkmate = win, draw = 0.00). The post-move eval used to be null, so accuracy and critical moments read every mating move as a drop to 50%.
+- Installer: electron-builder 25's per-user NSIS template crashed in `System.dll` on about one install in four (electron-builder #8536). Updating to 26.15.3 fixed it: 12 of 12 installs succeeded.
+- macOS: an `afterPack` hook ad-hoc signs the app. Without it, a downloaded copy reads as "damaged".
+- UI: the game-over banner no longer shows during a review, header buttons no longer break their labels in play mode, saved-game names no longer wrap one word per line, and a stale "v0.2 roadmap" note is gone from Settings.
+- Shell scripts stay LF in Windows checkouts (`.gitattributes`).
+
+Licensing (ADR-006):
+
+- Stockfish's `Copying.txt`, `AUTHORS` and a `SOURCE.txt` now ship next to the binary.
+- The installer carries `LICENSE`, `THIRD_PARTY_NOTICES.md` and a corrected piece-set notice. The old notice called every set CC BY-SA 4.0. In fact several are non-commercial, and two are listed as non-free by Lichess.
+
+Docs:
+
+- Screenshots and a review GIF are in `docs/screenshots/`.
+- The README was rewritten around them and around how the analysis works.
+- USER_GUIDE, CONTRIBUTING and ARCHITECTURE were corrected to match the code.
+- ADR-006 and ADR-007 were added.
+
+Verified:
+
+- lint, typecheck and 581 tests are green locally and in CI.
+- The installed Windows build launches, finds Stockfish and completes a review.
+- The Apple Silicon DMG was built and run the same way on an M2 MacBook.
+- The Intel DMG and Linux AppImage are built in CI but not hand-tested.
+
+---
+
+## Earlier session — Play-mode polish round 1
+
 **Play-mode polish round 1.** Two on-demand affordances during play.
 
 Hint button:
