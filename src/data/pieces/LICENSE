@@ -1,26 +1,23 @@
-Piece-set artwork in this directory is sourced from the
-Lichess public assets (https://github.com/lichess-org/lila/tree/master/public/piece)
-and is licensed under CC-BY-SA 4.0 unless noted otherwise:
-https://creativecommons.org/licenses/by-sa/4.0/
+Piece-set artwork in this directory comes from the Lichess
+repository (https://github.com/lichess-org/lila/tree/master/public/piece).
+Each set keeps its author's license. The authors and licenses below are
+copied from https://github.com/lichess-org/lila/blob/master/COPYING.md,
+which is the authoritative list:
 
-Sets included:
-- cburnett
-- merida
-- alpha
-- california
-- cardinal
-- chessnut
-- fantasy
-- leipzig
-- maestro
-- pirouetti
-- staunty
-- tatiana
+- cburnett: Colin M.L. Burnett, GPLv2+
+- merida: Armando Hernandez Marroquin, GPLv2+
+- alpha: Eric Bentzen, "free for personal non commercial use" (non-free)
+- california: Jerry S., CC BY-NC-SA 4.0
+- cardinal: sadsnake1, CC BY-NC-SA 4.0
+- chessnut: Alexis Luengas, Apache 2.0
+- fantasy: Maurizio Monge, MIT
+- leipzig: Armando Hernandez Marroquin, "freeware" (non-free)
+- maestro: sadsnake1, CC BY-NC-SA 4.0
+- pirouetti: pirouetti, AGPLv3+
+- staunty: sadsnake1, CC BY-NC-SA 4.0
+- tatiana: sadsnake1, CC BY-NC-SA 4.0
 
-Refer to the upstream Lichess repository for full per-set attribution and
-license notes (a few sets carry slightly different terms — Cburnett is
-CC-BY-SA, the others ship under variants ranging from CC0 to CC-BY).
-
-The Hindsight application code (everything outside this directory) is MIT
-licensed; including CC-BY-SA assets does not relicense the app code, only
-the assets themselves.
+Some of these licenses are non-commercial (CC BY-NC-SA 4.0, "free for
+personal non commercial use") and lila lists alpha and leipzig as non-free.
+They cover the artwork only. The Hindsight application code (everything
+outside this directory) is MIT licensed.
