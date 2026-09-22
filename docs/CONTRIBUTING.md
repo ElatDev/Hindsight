@@ -25,7 +25,7 @@ In rough order of "easiest to land cleanly" to "more involved":
 - **New explanation templates.** The library has a hundred-plus snippets but every one we add makes the review feel less repetitive. No TypeScript required for the template text itself — the DSL is small and friendly.
 - **Bug reports with PGNs attached.** A single weird game that breaks the parser or makes the review say something silly is gold.
 - **Additional tactical motif detectors.** New motif → richer explanations. The interface is small and self-contained.
-- **Translations of the explanation library.** All user-facing text lives in templates; localising means swapping the template strings, not the engine.
+- **Translations of the explanation library.** All explanation text lives in templates; localising it means swapping the template strings, not the engine.
 - **Performance improvements** to the review pipeline.
 
 If you have an idea that doesn't fit any of these categories, open an issue first to talk it through — we want to keep Hindsight focused, and a "discuss first" conversation saves you implementation effort if the answer is "this isn't a direction we want to go".
@@ -36,7 +36,7 @@ If you have an idea that doesn't fit any of these categories, open an issue firs
 
 You will need:
 
-- **Node 20+** and **npm 10+**
+- **Node 24** (what CI uses) and **npm 10+**
 - **git**
 - An internet connection on first install (for the Stockfish fetch)
 
@@ -51,7 +51,7 @@ npm run dev
 
 ### Windows note
 
-If `npm run dev` crashes immediately on Windows with `Cannot find module 'electron'`, unset the `ELECTRON_RUN_AS_NODE` env var first:
+If `npm run dev` crashes immediately on Windows with `TypeError: Cannot read properties of undefined (reading 'whenReady')`, unset the `ELECTRON_RUN_AS_NODE` env var first:
 
 ```bash
 unset ELECTRON_RUN_AS_NODE
@@ -87,8 +87,8 @@ A pre-commit hook runs `eslint --fix` and `prettier --write` on staged files via
 electron/
   main.ts                main process: lifecycle, BrowserWindow, IPC
   preload.ts             contextBridge — typed in `shared/ipc.ts`
-  engine/                Stockfish UCI wrapper, analyze / bestMove
-  storage/               SQLite layer (saved games + analysis cache)
+  engine/                Stockfish UCI wrapper, analyzer, engine pool
+  storage/               SQLite layer (settings + saved games)
 
 src/
   App.tsx                renderer entry point
@@ -97,9 +97,9 @@ src/
     pgnSplit.ts          multi-game PGN splitter + previews
     classify.ts          centipawn-loss thresholds + bucketing
     accuracy.ts          Lichess-style accuracy formula
-    alternatives.ts      multi-PV second-pass orchestration
+    alternatives.ts      multi-PV second pass (not used by the review)
     critical.ts          top-N evaluation-swing ranking
-    analysis.ts          per-move review orchestration
+    analysis.ts          per-position engine analysis, run in parallel
     review.ts            renderer-side review entry point
     pgnExport.ts         annotated PGN serialiser
     openings.ts          ECO trie + identifyOpening()
@@ -186,7 +186,7 @@ doubleAttack  backRank  overloaded  removingDefender
 
 ### Where to put it
 
-Add your entry to `TEMPLATES` in `src/chess/templates/library.ts`. Use a dotted-id with a logical prefix: `<bucket>.<context>.<n>`. Examples that already exist: `best.general.1`, `best.with-capture`, `blunder.hangs.queen`. Pick a number suffix one higher than the last `<bucket>.<context>` entry.
+Add your entry to `TEMPLATES` in `src/chess/templates/library.ts`. Use a dotted-id with a logical prefix: `<bucket>.<context>.<n>`. Examples that already exist: `best.general.1`, `best.with-capture`, `blunder.hanging.1`. Pick a number suffix one higher than the last `<bucket>.<context>` entry.
 
 ```ts
 'inaccuracy.opening.1': {
@@ -223,8 +223,8 @@ Keep it deterministic and pure: no shared state, no IO. That keeps tests easy an
 ### Wiring a new motif into the pipeline
 
 1. Add the motif name to `MOTIF_TAGS` in `src/chess/templates/selector.ts`. **Do not rename existing tags** — templates encode them in their criteria and renaming breaks every template that referenced the old name.
-2. Surface the detected data through whatever the orchestration layer (analysis / review) expects. Look at how an existing motif (e.g. `fork`) plumbs through `src/chess/analysis.ts` to see the pattern.
-3. Add render-context variables for the detected data in the relevant orchestration spot, so templates can reference them.
+2. Surface the detected data through whatever the orchestration layer (review) expects. Look at how an existing motif (e.g. `fork`) plumbs through `detectMoveMotifs` in `src/chess/review.ts` to see the pattern.
+3. Add render-context variables for the detected data in `buildRenderContext` (same file), so templates can reference them.
 
 ### Test it
 
@@ -244,18 +244,18 @@ Hindsight bundles the Lichess ECO data as `src/data/eco.json`, generated from up
 
 To pull a fresh ECO snapshot:
 
-1. Update the source TSVs the build script reads (path / source documented at the top of `build-eco.mjs`).
-2. Run `npm run build-eco`.
+1. Check the source the build script reads (documented at the top of `build-eco.mjs`). It downloads the TSVs from the `master` branch of `lichess-org/chess-openings`, so there are no local files to update.
+2. Run `npm run build-eco` (it needs an internet connection).
 3. Inspect the diff in `src/data/eco.json` — if it's enormous and unrelated to the change you intended, the source likely shifted format; talk to a maintainer before committing.
 4. Run `npm run test:run` — the openings tests cover a handful of well-known lines and will catch a corrupt build.
 
-The ECO build is the one place we vendor third-party data. License-wise, Lichess ECO data is permissive (CC0 at time of writing); double-check before bumping the source.
+The ECO build and the piece sets in `src/data/pieces/` (fetched by `npm run fetch-pieces`) are the two places we vendor third-party data. License-wise, Lichess ECO data is permissive (CC0 at time of writing); double-check before bumping the source.
 
 ---
 
 ## Translations
 
-All user-facing review text lives in templates. To translate the explanation library:
+The review's explanation text lives in templates. To translate the explanation library:
 
 1. Decide on a locale identifier (e.g. `es-ES`, `de-DE`).
 2. Copy `src/chess/templates/library.ts` to a per-locale variant, or — better — open an issue and we'll work out a structure that doesn't duplicate the criteria. Translations of UI chrome (button labels, menu items) are out of scope for v0.1 but a natural follow-up.
@@ -297,7 +297,7 @@ feat: add fork detector and templates for fork-driven blunders
 - src/chess/templates/library.ts: 6 new entries under blunder.fork.*
 ```
 
-Avoid co-author trailers and AI-attribution footers. The commit log is for humans describing what humans did.
+Avoid co-author trailers and tool-attribution footers. The commit log is for humans describing what humans did.
 
 ---
 
@@ -311,6 +311,7 @@ Avoid co-author trailers and AI-attribution footers. The commit log is for human
    npm run typecheck
    npm run test:run
    ```
+   CI runs the same three checks on Windows, macOS and Linux.
 4. **Open the PR** against `main`. The PR description should:
    - Summarise what changed and why (one paragraph).
    - List user-facing changes if any (a bullet list is plenty).
@@ -330,6 +331,6 @@ Open an issue on [GitHub](https://github.com/ElatDev/Hindsight/issues) with:
 - **A minimal reproduction.** For review bugs, the PGN that triggers the issue is essential — Hindsight is local-only, so we can't see it any other way.
 - **Your OS and version, Node version, and Hindsight version (or commit hash if running from source).**
 
-For security issues — e.g. a way to make the engine subprocess execute attacker-supplied input from a PGN — please disclose privately rather than via a public issue. The README has the contact information.
+For security issues — e.g. a way to make the engine subprocess execute attacker-supplied input from a PGN — please disclose privately rather than via a public issue. Open an issue at [GitHub issues](https://github.com/ElatDev/Hindsight/issues) asking for a private contact, and leave the details out of it.
 
 Thanks for reading this far. Now go ship a template.
