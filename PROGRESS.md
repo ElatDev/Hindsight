@@ -22,7 +22,7 @@ Fixes:
 Licensing (ADR-006):
 
 - Stockfish's `Copying.txt`, `AUTHORS` and a `SOURCE.txt` now ship next to the binary.
-- The installer carries `LICENSE`, `THIRD_PARTY_NOTICES.md` and a corrected piece-set notice. The old notice called every set CC BY-SA 4.0. In fact several are non-commercial, and two are listed as non-free by Lichess.
+- The installer carries `LICENSE`, `THIRD_PARTY_NOTICES.md` and a corrected piece-set notice. The old notice called every set CC BY-SA 4.0. In fact several are non-commercial, and two are listed as non-free by Lichess. Those two (alpha, leipzig) were dropped, leaving ten sets (ADR-008).
 
 Docs:
 
@@ -36,7 +36,8 @@ Verified:
 - lint, typecheck and 581 tests are green locally and in CI.
 - The installed Windows build launches, finds Stockfish and completes a review.
 - The Apple Silicon DMG was built and run the same way on an M2 MacBook.
-- The Intel DMG and Linux AppImage are built in CI but not hand-tested.
+- The Intel DMG ran under Rosetta on the M2 and completed a review.
+- The Linux AppImage was built in CI and its contents checked (an executable x86-64 Stockfish with its license files, the notices and the native SQLite module). It has not been launched on Linux.
 
 ---
 
