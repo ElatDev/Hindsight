@@ -1,0 +1,87 @@
+name: Release
+
+# A v* tag builds every installer and attaches them to a draft GitHub
+# Release, which is published by hand after a last look. Pushes to main
+# that touch the packaging run the same builds without releasing, so a
+# broken installer shows up before a tag does.
+on:
+  push:
+    tags: ['v*']
+    branches: [main]
+    paths:
+      - .github/workflows/release.yml
+      - package.json
+      - scripts/fetch-stockfish.*
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+            args: --win nsis --x64
+          # Each Mac build runs on its own architecture so the fetch script
+          # downloads the matching Stockfish binary.
+          - name: mac-arm64
+            os: macos-latest
+            args: --mac dmg --arm64
+          - name: mac-x64
+            os: macos-26-intel
+            args: --mac dmg --x64
+          - name: linux-x64
+            os: ubuntu-latest
+            args: --linux AppImage --x64
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Naming the target and arch on the command line overrides the
+      # multi-arch lists in package.json, so each runner builds one file.
+      - run: npx electron-builder ${{ matrix.args }} --publish never
+        env:
+          # No signing certificates (DECISIONS.md ADR-005): don't search
+          # the macOS keychain for one.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.AppImage
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
+      # Stockfish is GPLv3: publish its corresponding source next to the
+      # installers that bundle it. Keep the tag in step with
+      # scripts/fetch-stockfish.* (STOCKFISH_VERSION).
+      - name: Attach the bundled Stockfish's source
+        run: >-
+          curl -fsSL -o dist/stockfish-sf_17-source.tar.gz
+          https://github.com/official-stockfish/Stockfish/archive/refs/tags/sf_17.tar.gz
+      - uses: softprops/action-gh-release@v3.0.3
+        with:
+          draft: true
+          files: dist/*
