@@ -101,6 +101,7 @@
     ],
     "compression": "normal",
     "publish": null,
+    "afterPack": "scripts/adhoc-sign-mac.cjs",
     "win": {
       "target": [
         {
