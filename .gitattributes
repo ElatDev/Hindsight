@@ -1,0 +1,5 @@
+# Shell scripts run under bash on macOS and Linux, and bash rejects CRLF
+# ("set: pipefail\r: invalid option name"). Keep them LF even in Windows
+# checkouts with core.autocrlf=true, so a copy taken from one (WSL, a
+# shared folder, scp) still runs.
+*.sh text eol=lf
