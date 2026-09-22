@@ -4,6 +4,8 @@
 
 ## Current session
 
+**v0.1.0 released 2026-09-22.** Tag `v0.1.0` (commit 2adaf55), [release page](https://github.com/ElatDev/Hindsight/releases/tag/v0.1.0) with all four installers and the Stockfish source. The published Windows installer was downloaded, installed, run and uninstalled once more before publishing. Next up: anything in [IDEAS.md](./IDEAS.md).
+
 **v0.1.0 release prep.** Release work only: no new features. Fixes were limited to crashes, anything that made a screenshot look broken, and build, installer or CI blockers. Everything else went to [IDEAS.md](./IDEAS.md).
 
 CI and release builds:
