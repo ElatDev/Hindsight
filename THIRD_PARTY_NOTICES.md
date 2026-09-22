@@ -27,28 +27,27 @@ process and talks to it over the UCI text protocol. It does not link to it.
 
 ## Piece artwork
 
-The twelve piece sets come from the
+The ten piece sets come from the
 [Lichess repository](https://github.com/lichess-org/lila/tree/master/public/piece).
 Each set keeps its author's license, as listed in lila's
 [COPYING.md](https://github.com/lichess-org/lila/blob/master/COPYING.md):
 
-| Set        | Author                      | License                                           |
-| ---------- | --------------------------- | ------------------------------------------------- |
-| cburnett   | Colin M.L. Burnett          | GPLv2+                                            |
-| merida     | Armando Hernandez Marroquin | GPLv2+                                            |
-| alpha      | Eric Bentzen                | "free for personal non commercial use" (non-free) |
-| california | Jerry S.                    | CC BY-NC-SA 4.0                                   |
-| cardinal   | sadsnake1                   | CC BY-NC-SA 4.0                                   |
-| chessnut   | Alexis Luengas              | Apache 2.0                                        |
-| fantasy    | Maurizio Monge              | MIT                                               |
-| leipzig    | Armando Hernandez Marroquin | "freeware" (non-free)                             |
-| maestro    | sadsnake1                   | CC BY-NC-SA 4.0                                   |
-| pirouetti  | pirouetti                   | AGPLv3+                                           |
-| staunty    | sadsnake1                   | CC BY-NC-SA 4.0                                   |
-| tatiana    | sadsnake1                   | CC BY-NC-SA 4.0                                   |
+| Set        | Author                      | License         |
+| ---------- | --------------------------- | --------------- |
+| cburnett   | Colin M.L. Burnett          | GPLv2+          |
+| merida     | Armando Hernandez Marroquin | GPLv2+          |
+| california | Jerry S.                    | CC BY-NC-SA 4.0 |
+| cardinal   | sadsnake1                   | CC BY-NC-SA 4.0 |
+| chessnut   | Alexis Luengas              | Apache 2.0      |
+| fantasy    | Maurizio Monge              | MIT             |
+| maestro    | sadsnake1                   | CC BY-NC-SA 4.0 |
+| pirouetti  | pirouetti                   | AGPLv3+         |
+| staunty    | sadsnake1                   | CC BY-NC-SA 4.0 |
+| tatiana    | sadsnake1                   | CC BY-NC-SA 4.0 |
 
-Several of these licenses do not allow commercial use. They apply to the
-artwork only, not to Hindsight's code. The same list ships as
+The CC BY-NC-SA 4.0 sets do not allow commercial use. These licenses apply
+to the artwork only, not to Hindsight's code. Two sets that lila lists as
+non-free (alpha and leipzig) are not included. The same list ships as
 `pieces-LICENSE.txt`.
 
 ## Opening names

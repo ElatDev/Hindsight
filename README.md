@@ -151,7 +151,7 @@ yet either.
 - Save games to a local database and load them later.
 - Export the review as an annotated PGN, with evaluations and explanations
   as comments.
-- Nine board colors, twelve piece sets, light and dark themes.
+- Nine board colors, ten piece sets, light and dark themes.
 - Keyboard: arrow keys, Home and End move through a game. While playing, F
   flips the board and Backspace takes a move back.
 
@@ -202,7 +202,7 @@ The installers include software and artwork under other licenses:
   license and a pointer to its source ship next to the binary, and each
   release attaches the matching Stockfish source.
 - **The piece sets** come from Lichess and keep their authors' licenses.
-  Several allow only non-commercial use.
+  Five of them allow only non-commercial use.
 
 Details for every component are in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

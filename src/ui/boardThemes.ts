@@ -6,10 +6,8 @@
  * picks (walnut for richer brown, rose for warmth, ocean / midnight for
  * darker contrast, mint for a cooler green than the canonical "green").
  *
- * Piece-set selection (Cburnett / Merida / Alpha) is the matching half of
- * Phase 12 / Task 8 and is carved out for a separate follow-up — the asset
- * bundles run ~100KB each and want their own dedicated landing. The radio
- * in the Settings dialog labels itself as preview-only until that ships.
+ * Piece sets are the matching half of Phase 12 / Task 8 and live in
+ * `pieceSets.tsx`.
  */
 
 import type { BoardTheme } from './useSettings';

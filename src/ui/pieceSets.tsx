@@ -80,12 +80,10 @@ const EMPTY_SET = (): Record<PieceCode, string> =>
 const PIECE_SETS: PieceSetMap = {
   cburnett: EMPTY_SET(),
   merida: EMPTY_SET(),
-  alpha: EMPTY_SET(),
   california: EMPTY_SET(),
   cardinal: EMPTY_SET(),
   chessnut: EMPTY_SET(),
   fantasy: EMPTY_SET(),
-  leipzig: EMPTY_SET(),
   maestro: EMPTY_SET(),
   pirouetti: EMPTY_SET(),
   staunty: EMPTY_SET(),
@@ -97,7 +95,7 @@ const PIECE_SETS: PieceSetMap = {
  *  `width="50mm" height="50mm"` baked in, which renders the pieces at
  *  ~189px regardless of the wrapping div — bigger than a standard square.
  *  Removing the attributes means the SVG falls back to its `viewBox` and
- *  fills the parent like Cburnett and Alpha already do. */
+ *  fills the parent like the other sets already do. */
 function normalizeSvg(raw: string): string {
   // Only touch attributes on the opening `<svg ...>` tag, not on any nested
   // element (gradients, groups, etc., shouldn't be reshaped).

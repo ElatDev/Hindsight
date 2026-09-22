@@ -26,12 +26,10 @@ export type BoardTheme =
 export type PieceTheme =
   | 'cburnett'
   | 'merida'
-  | 'alpha'
   | 'california'
   | 'cardinal'
   | 'chessnut'
   | 'fantasy'
-  | 'leipzig'
   | 'maestro'
   | 'pirouetti'
   | 'staunty'
@@ -100,12 +98,10 @@ const BOARD_THEMES: ReadonlySet<BoardTheme> = new Set([
 const PIECE_THEMES: ReadonlySet<PieceTheme> = new Set([
   'cburnett',
   'merida',
-  'alpha',
   'california',
   'cardinal',
   'chessnut',
   'fantasy',
-  'leipzig',
   'maestro',
   'pirouetti',
   'staunty',

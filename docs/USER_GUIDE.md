@@ -174,7 +174,7 @@ Click **Settings** in the header. Your choices persist locally between sessions.
 | Theme                       | App-level light or dark theme.                                                                               |
 | Live evaluation during play | Whether the eval bar updates while you're playing a game (off by default).                                   |
 | Board theme                 | Board palette, one of nine: classic brown, blue, green, gray, walnut, rose, ocean, midnight, or mint.        |
-| Piece set                   | One of twelve bundled piece sets, with a preview row.                                                        |
+| Piece set                   | One of ten bundled piece sets, with a preview row.                                                           |
 | Pawn promotion              | Always promote to a queen (on by default), or pick the piece so you can under-promote.                       |
 | Last-move highlight         | Tints the from- and to-squares of the last move (on by default).                                             |
 | Legal-move dots             | Dots on the legal destinations of a selected piece (on by default).                                          |

@@ -34,12 +34,10 @@ const BOARD_THEME_LABEL: Record<BoardTheme, string> = {
 const PIECE_THEME_LABEL: Record<PieceTheme, string> = {
   cburnett: 'Cburnett',
   merida: 'Merida',
-  alpha: 'Alpha',
   california: 'California',
   cardinal: 'Cardinal',
   chessnut: 'Chessnut',
   fantasy: 'Fantasy',
-  leipzig: 'Leipzig',
   maestro: 'Maestro',
   pirouetti: 'Pirouetti',
   staunty: 'Staunty',

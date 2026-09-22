@@ -21,12 +21,10 @@ const DEST = resolve(__dirname, '..', 'src', 'data', 'pieces');
 const SETS = [
   'cburnett',
   'merida',
-  'alpha',
   'california',
   'cardinal',
   'chessnut',
   'fantasy',
-  'leipzig',
   'maestro',
   'pirouetti',
   'staunty',
@@ -34,16 +32,15 @@ const SETS = [
 ];
 // Per-set author and license, as listed in
 // https://github.com/lichess-org/lila/blob/master/COPYING.md. Check that
-// file again before adding a set: several are non-free or non-commercial.
+// file again before adding a set: several are non-free or non-commercial,
+// and the non-free ones (alpha, leipzig) were dropped for that reason.
 const LICENSES = {
   cburnett: ['Colin M.L. Burnett', 'GPLv2+'],
   merida: ['Armando Hernandez Marroquin', 'GPLv2+'],
-  alpha: ['Eric Bentzen', '"free for personal non commercial use" (non-free)'],
   california: ['Jerry S.', 'CC BY-NC-SA 4.0'],
   cardinal: ['sadsnake1', 'CC BY-NC-SA 4.0'],
   chessnut: ['Alexis Luengas', 'Apache 2.0'],
   fantasy: ['Maurizio Monge', 'MIT'],
-  leipzig: ['Armando Hernandez Marroquin', '"freeware" (non-free)'],
   maestro: ['sadsnake1', 'CC BY-NC-SA 4.0'],
   pirouetti: ['pirouetti', 'AGPLv3+'],
   staunty: ['sadsnake1', 'CC BY-NC-SA 4.0'],
@@ -94,9 +91,8 @@ which is the authoritative list:
 
 ${rows.join('\n')}
 
-Some of these licenses are non-commercial (CC BY-NC-SA 4.0, "free for
-personal non commercial use") and lila lists alpha and leipzig as non-free.
-They cover the artwork only. The Hindsight application code (everything
+The CC BY-NC-SA 4.0 sets may not be used commercially. These licenses
+cover the artwork only. The Hindsight application code (everything
 outside src/data/pieces/) is MIT licensed.
 `;
   await writeFile(join(DEST, 'LICENSE'), notice, 'utf8');

@@ -193,6 +193,29 @@ Format:
 
 ---
 
+## ADR-008: Drop the two non-free piece sets
+
+**Date:** 2026-09-21
+**Status:** Accepted
+
+**Context:** ADR-006 left open whether to keep shipping the piece sets that lila's `COPYING.md` lists as non-free. `alpha` is "free for personal non commercial use", which grants no clear right to redistribute. `leipzig` is only described as "freeware".
+
+**Decision:** Remove `alpha` and `leipzig` before v0.1.0. That leaves ten sets. The five CC BY-NC-SA 4.0 sets stay, because that license allows non-commercial redistribution with attribution, which is how Hindsight is distributed.
+
+**Consequences:**
+
+- (+) Every bundled set now has a license that allows Hindsight to redistribute it.
+- (+) A saved preference for a removed set falls back to the default (Cburnett), because settings sanitizing already rejects unknown set names.
+- (–) Users who liked Alpha or Leipzig lose them.
+- (–) Five sets are still non-commercial, so the app as a whole can't be sold as-is. Replacing them is in `IDEAS.md`.
+
+**Alternatives considered:**
+
+- Keeping them with an accurate notice: the notice doesn't create a right to redistribute that the license doesn't grant.
+- Dropping every non-commercial set too: stricter than needed for a free app, and it would cut the choice to five sets.
+
+---
+
 ## Note: Windows dev gotcha — `ELECTRON_RUN_AS_NODE`
 
 If `ELECTRON_RUN_AS_NODE=1` is set in your shell environment (some Windows setups have this from earlier electron experimentation), `npm run dev` and `npx electron .` will both fail with `TypeError: Cannot read properties of undefined (reading 'whenReady')`. The fix is to `unset ELECTRON_RUN_AS_NODE` before running. We may add an `env-check` script to detect this at `npm run dev` startup if it bites repeatedly.
