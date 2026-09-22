@@ -183,14 +183,8 @@ npm run test:run
 The installers for other systems are built by the
 [release workflow](.github/workflows/release.yml).
 
-Two Windows notes:
-
-- If `npm run dev` crashes with an error about `whenReady`, your shell has
-  `ELECTRON_RUN_AS_NODE` set. Unset it and run again.
-- `npm run dist` needs permission to create symbolic links while
-  electron-builder unpacks its tools. Turn on Developer Mode
-  (**Settings > System > For developers**) or build from an administrator
-  terminal.
+On Windows, if `npm run dev` crashes with an error about `whenReady`, your
+shell has `ELECTRON_RUN_AS_NODE` set. Unset it and run again.
 
 The design is described in [ARCHITECTURE.md](ARCHITECTURE.md), and the
 reasons behind it in [DECISIONS.md](DECISIONS.md).
