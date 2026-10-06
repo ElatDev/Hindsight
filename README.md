@@ -5,11 +5,11 @@
 Hindsight is a free desktop app that reviews your chess games move by move,
 entirely on your own computer.
 
-Chess.com limits Game Review on free accounts and unlocks it fully only with
-a paid membership. Hindsight does the same kind of review for free: it
-grades every move, points out mistakes, shows the move you should have
-played and scores your accuracy. It runs offline, with no account and no
-telemetry. Stockfish runs on your machine and your games stay there too.
+Chess.com limits Game Review on free accounts and only unlocks it fully with a
+paid membership. Hindsight does the same kind of review for free: it grades
+every move, points out mistakes, shows the move you should have played and
+scores your accuracy. It works offline, with no account and no telemetry.
+Stockfish runs on your machine, and your games stay there too.
 
 ## Screenshots
 
@@ -53,8 +53,8 @@ Installers are on the [Releases page](https://github.com/ElatDev/Hindsight/relea
 | macOS (Intel)         | `Hindsight-0.1.0-mac-x64.dmg`           |
 | Linux (x64)           | `Hindsight-0.1.0-linux-x86_64.AppImage` |
 
-Stockfish is included. You don't need to install anything else, and the app
-never goes online.
+Stockfish is included, so there's nothing else to install, and the app never
+goes online.
 
 The installers aren't code-signed yet, so your system will warn you the
 first time:
@@ -71,19 +71,22 @@ first time:
 
 ## How the analysis works
 
-Everything below runs locally. There are no network calls and no language
-models.
+All of this runs locally. There are no network calls and no language models.
 
-**The engine.** Hindsight bundles [Stockfish 17](https://stockfishchess.org/)
-and runs up to four copies in parallel. Each position in the game is
-analyzed once, to a fixed search depth. The default depth is 10, and
-Settings lets you pick anything from 8 to 22. Higher depths take longer but
-judge better. In the game above, depth 14 graded 11.Bg5 as Good; depth 16
-caught it as a blunder. For careful review, use 16 to 18.
+### Engine
 
-**Move grades.** For each move, Hindsight compares the evaluation before and
-after it, from the point of view of the player who moved. The difference is
-the centipawn loss (100 centipawns is about one pawn).
+Hindsight bundles [Stockfish 17](https://stockfishchess.org/) and runs up to
+four copies in parallel. Each position in the game is analyzed once, to a
+fixed search depth. The default depth is 10, and Settings lets you pick
+anything from 8 to 22. Higher depths take longer but judge better. In the game
+above, depth 14 graded 11.Bg5 as Good and depth 16 caught it as a blunder. For
+careful review, use 16 to 18.
+
+### Move grades
+
+For each move, Hindsight compares the evaluation before and after it, from the
+point of view of the player who moved. The difference is the centipawn loss
+(100 centipawns is about one pawn).
 
 | Grade      | Rule                                          |
 | ---------- | --------------------------------------------- |
@@ -95,13 +98,14 @@ the centipawn loss (100 centipawns is about one pawn).
 | Blunder    | 200 or more lost, or walking into forced mate |
 | Miss       | You had a forced mate and gave it up          |
 
-For this calculation a forced mate counts as 100,000 centipawns, so
-throwing one away always grades as a big loss. A move that ends the game is
-scored by the result: a win for checkmate, 0.00 for stalemate or any other
-draw.
+For this calculation a forced mate counts as 100,000 centipawns, so throwing
+one away always grades as a big loss. A move that ends the game is scored by
+the result: a win for checkmate, 0.00 for stalemate or any other draw.
 
-**Accuracy.** Hindsight uses the same curves as Lichess. It turns each
-evaluation into a winning chance for the side to move:
+### Accuracy
+
+Hindsight uses the same curves as Lichess. Each evaluation is turned into a
+winning chance for the side to move:
 
 ```
 win% = 50 + 50 × (2 / (1 + e^(−0.00368208 × centipawns)) − 1)
@@ -113,35 +117,37 @@ Each move's accuracy comes from how much winning chance it gave up:
 accuracy = 103.1668 × e^(−0.04354 × (win% before − win% after)) − 3.1669
 ```
 
-That value is clamped to 0–100. A player's game accuracy is the harmonic
-mean of their move accuracies. A harmonic mean weighs bad moves more heavily
-than a plain average does, so one blunder pulls the score down noticeably.
-Each move counts as at least 0.5, so a single disaster can't drag the whole
-game to zero.
+That value is clamped to 0–100. A player's game accuracy is the harmonic mean
+of their move accuracies, which weighs bad moves more heavily than a plain
+average, so one blunder pulls the score down noticeably. Each move counts as at
+least 0.5, so a single disaster can't drag the whole game to zero.
 
-**Critical moments.** These are the five moves where the winning chance
-changed the most, in either direction. Click one to jump to it.
+### Critical moments
 
-**Suggested moves and alternatives.** Every position is analyzed with three
-principal variations. When your move wasn't the engine's choice, the board
-shows its preferred move as an arrow. For inaccuracies, mistakes, blunders
-and misses, the panel also lists the engine's top moves (up to three) with
-their evaluations.
+These are the five moves where the winning chance changed the most, in either
+direction. Click one to jump to it.
 
-**Explanations.** After each move, Hindsight looks at the new position for
-tactical patterns: hanging pieces, forks, pins, skewers, double attacks,
-overloaded defenders and back-rank weaknesses. It picks an explanation from
-109 hand-written templates based on the grade and the patterns it found,
-then fills in the actual pieces and squares. A "Position notes" panel
-summarizes material, pawn structure, king safety and piece activity.
+### Suggested moves and alternatives
 
-**Openings.** The opening name comes from Lichess's
-[chess-openings](https://github.com/lichess-org/chess-openings) list of
-3,690 named lines. Hindsight picks the longest one that matches your moves.
+Every position is analyzed with three principal variations. When your move
+wasn't the engine's choice, the board shows its preferred move as an arrow.
+For inaccuracies, mistakes, blunders and misses, the panel also lists the
+engine's top moves (up to three) with their evaluations.
 
-**Not there yet.** The Sharp (brilliant) and Book grades are defined but not
-assigned yet. Discovered attacks and "removing the defender" aren't detected
-yet either.
+### Explanations
+
+After each move, Hindsight looks at the new position for tactical patterns:
+hanging pieces, forks, pins, skewers, double attacks, overloaded defenders and
+back-rank weaknesses. It picks an explanation from 109 hand-written templates
+based on the grade and the patterns it found, then fills in the actual pieces
+and squares. A "Position notes" panel summarizes material, pawn structure,
+king safety and piece activity.
+
+### Openings
+
+The opening name comes from Lichess's
+[chess-openings](https://github.com/lichess-org/chess-openings) list of 3,690
+named lines. Hindsight picks the longest one that matches your moves.
 
 ## Other features
 
@@ -155,6 +161,11 @@ yet either.
 - Keyboard: arrow keys, Home and End move through a game. While playing, F
   flips the board and Backspace takes a move back.
 
+## Limitations
+
+- The Sharp (brilliant) and Book grades are defined but not assigned yet.
+- Discovered attacks and "removing the defender" aren't detected yet.
+
 ## Build from source
 
 You need Node.js 24 (what CI uses), npm and git.
@@ -167,10 +178,10 @@ npm run dev
 ```
 
 `npm install` downloads the Stockfish binary for your system into
-`stockfish/bin/`. It also rebuilds `better-sqlite3` for Electron. Once
-installed, the app never goes online.
+`stockfish/bin/` and rebuilds `better-sqlite3` for Electron. After that, the
+app never goes online.
 
-Checks, the same ones CI runs on Windows, macOS and Linux:
+To run the same checks CI runs on Windows, macOS and Linux:
 
 ```bash
 npm run lint
@@ -186,8 +197,8 @@ The installers for other systems are built by the
 On Windows, if `npm run dev` crashes with an error about `whenReady`, your
 shell has `ELECTRON_RUN_AS_NODE` set. Unset it and run again.
 
-The design is described in [ARCHITECTURE.md](ARCHITECTURE.md), and the
-reasons behind it in [DECISIONS.md](DECISIONS.md).
+[ARCHITECTURE.md](ARCHITECTURE.md) describes the design and
+[DECISIONS.md](DECISIONS.md) the reasons behind it.
 [docs/USER_GUIDE.md](docs/USER_GUIDE.md) walks through the app, and
 [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) covers adding templates and
 detectors.
